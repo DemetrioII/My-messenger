@@ -1,0 +1,15 @@
+include/.tmpobject
+include/.err
+include/network/.err
+include/network/.tmpobject
+.tmpobject
+build/
+a.out
+client
+OLDMESSSERVER
+CMakeFiles/
+CMakeTests.txt
+temp.txt
+.err
+.clangd
+.cache/

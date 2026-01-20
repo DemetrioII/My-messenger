@@ -1,0 +1,62 @@
+#pragma once
+#include "../command_interface.hpp"
+#include "../encryption_service.hpp"
+
+class LoginCommand : public ICommandHandler {
+  std::vector<uint8_t> username;
+  std::vector<uint8_t> pubkey_bytes;
+
+public:
+  CommandType getType() const override { return CommandType::LOGIN; }
+
+  void fromParsedCommand(const ParsedCommand &parsed) override {
+    if (!parsed.args.empty()) {
+      username = parsed.args[0];
+      // pubkey_bytes = parsed.args[1];
+    }
+  }
+
+  Message toMessage() const override {
+    ParsedCommand pc;
+    pc.name = "login";
+    pc.args = {std::vector<uint8_t>(username.begin(), username.end())};
+    pc.args.push_back(pubkey_bytes);
+
+    Parser parser;
+    return parser.make_command_from_struct(pc);
+  }
+
+  void fromMessage(const Message &msg) override {
+    username = msg.get_meta(1);
+    pubkey_bytes = msg.get_meta(2);
+  }
+
+  void execeuteOnServer(std::shared_ptr<ServerContext> context) override {
+    auto service = context->messaging_service;
+    auto fd = context->fd;
+    auto username_string = std::string(username.begin(), username.end());
+    auto token = service->authenticate(username_string, "", pubkey_bytes);
+    auto user_id = service->get_user_id_by_token(token);
+    service->bind_connection(fd, user_id);
+    auto &user = service->get_user_by_id(user_id);
+    user.set_public_key(pubkey_bytes);
+    std::string response_string = "Hello, " + username_string + "!";
+    context->transport_server->send(
+        fd, context->serializer.serialize(
+                Message(std::vector<uint8_t>(response_string.begin(),
+                                             response_string.end()),
+                        0, {}, MessageType::Text)));
+  }
+
+  void executeOnClient(std::shared_ptr<ClientContext> context) override {
+    std::shared_ptr<IClient> client = context->client;
+    std::shared_ptr<EncryptionService> encryptionService =
+        context->encryption_service;
+    pubkey_bytes = encryptionService->get_public_bytes();
+
+    Serializer serializer;
+    client->send_to_server(serializer.serialize(toMessage()));
+  }
+
+  ~LoginCommand() override {}
+};
