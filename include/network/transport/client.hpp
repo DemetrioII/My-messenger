@@ -22,7 +22,8 @@ class TCPClient : public IClient,
 
   TCPClient()
       : event_loop(std::make_unique<EventLoop>()),
-        handler(std::make_shared<ClientHandler>()) {}
+        handler(std::make_shared<ClientHandler>()),
+        socket_visitor(std::make_unique<TCPSocket>()) {}
 
 public:
   static std::shared_ptr<TCPClient> create() {
