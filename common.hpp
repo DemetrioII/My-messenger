@@ -28,7 +28,7 @@ void input_thread_func(MessagingClient &client) {
       break;
     }
 
-    if (input == "/exit") {
+    if (input.substr(0, 5) == "/exit") {
       client.get_data(input);
       is_running = false;
       break;

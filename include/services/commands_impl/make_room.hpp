@@ -37,6 +37,16 @@ public:
                   {}, MessageType::Text)));
       return;
     }
+
+    if (chat_name.empty()) {
+      std::string error_msg = "[Error]: Please enter non-empty chat name";
+      transport_server->send(
+          fd, context->serializer.serialize(Message(
+                  std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0,
+                  {}, MessageType::Text)));
+      return;
+    }
+
     std::string user_id = service->get_user_id_by_fd(fd);
 
     std::vector<std::string> members{user_id};
