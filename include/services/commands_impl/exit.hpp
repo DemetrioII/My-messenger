@@ -15,15 +15,15 @@ public:
 
   void fromMessage(const Message &msg) override {}
 
-  void execeuteOnServer(std::shared_ptr<ServerContext> context) override {}
+  void execeuteOnServer(std::shared_ptr<ServerContext> context) override {
+    auto service = context->messaging_service;
+    service->remove_user_by_fd(context->fd);
+  }
 
   void executeOnClient(std::shared_ptr<ClientContext> context) override {
-    try {
-      auto client = context->client;
-      client->disconnect();
-    } catch (const std::bad_any_cast &) {
-      std::cerr << "Wrong argument type for ExitCommand" << std::endl;
-    }
+    auto client = context->client;
+    client->send_to_server(context->serializer->serialize(toMessage()));
+    client->disconnect();
   }
 
   ~ExitCommand() override {}

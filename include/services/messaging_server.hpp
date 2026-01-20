@@ -75,7 +75,8 @@ public:
         [](auto &) { return true; },
         [this](auto &tpl) {
           auto [from_user_id, chat_id, msg] = tpl;
-          auto &chat = server_context->messaging_service->get_chat(chat_id);
+          auto &chat =
+              server_context->messaging_service->get_chat_by_id(chat_id);
           for (auto &member : chat.get_members()) {
             int fd =
                 server_context->messaging_service->get_fd_by_user_id(member);

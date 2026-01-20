@@ -58,6 +58,10 @@ public:
                              return p.second.get_username() == username;
                            });
 
+    if (it != users.end()) {
+      return "";
+    }
+
     User user;
     std::string token = generate_token();
 
@@ -167,7 +171,22 @@ public:
     return "chat_" + std::to_string(chats.size() + 1);
   }
 
-  auto &get_chat(const std::string &chat_id) { return chats[chat_id]; }
+  auto &get_chat_by_id(const std::string &chat_id) { return chats[chat_id]; }
+
+  std::string get_chat_id_by_name(const std::string &chat_name) {
+    for (auto &[chat_id, chat_obj] : chats) {
+      if (chat_obj.get_name() == chat_name) {
+        return chat_id;
+      }
+    }
+    return "";
+  }
+
+  bool is_member_of_chat(const std::string &chat_name,
+                         const std::string &user_id) {
+    Chat &chat = get_chat_by_id(get_chat_id_by_name(chat_name));
+    return chat.is_member(user_id);
+  }
 
   std::string create_chat(const std::string &creator_id,
                           const std::string &name, ChatType type,
