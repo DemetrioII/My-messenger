@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-class TCPConnection : public IConnection {
+class ClientConnection : public IConnection {
   Fd fd;
   std::unique_ptr<FramerMessage> framer;
   struct sockaddr_in addr;
@@ -17,20 +17,21 @@ class TCPConnection : public IConnection {
   std::vector<uint8_t> send_buffer;
 
 public:
-  TCPConnection(int fd_) : fd(fd_) {}
-  explicit TCPConnection(int fd_, const struct sockaddr_in &addr_)
+  ClientConnection(int fd_) : fd(fd_) {}
+  explicit ClientConnection(int fd_, const struct sockaddr_in &addr_)
       : fd(fd_), addr(addr_),
         framer(std::move(std::make_unique<FramerMessage>())) {}
 
   void init_transport(std::unique_ptr<ITransport> transport_) {
     transport = std::move(transport_);
+    transport->connect(fd.get_fd());
   }
 
-  TCPConnection(const TCPConnection &) = delete;
-  TCPConnection &operator=(const TCPConnection &) = delete;
+  ClientConnection(const ClientConnection &) = delete;
+  ClientConnection &operator=(const ClientConnection &) = delete;
 
   // ЧИНЯЕМ MOVE: сбрасываем fd у донора
-  TCPConnection(TCPConnection &&other) noexcept
+  ClientConnection(ClientConnection &&other) noexcept
       : fd(std::move(other.fd)), addr(other.addr),
         transport(std::move(other.transport)),
         recv_buffer(std::move(other.recv_buffer)),
@@ -39,7 +40,7 @@ public:
     other.fd = -1;
   }
 
-  TCPConnection &operator=(TCPConnection &&other) noexcept {
+  ClientConnection &operator=(ClientConnection &&other) noexcept {
     if (this != &other) {
       fd = std::move(other.fd);
       addr = other.addr;
@@ -89,32 +90,15 @@ public:
   auto get_addr() { return addr; }
 
   int get_fd() const { return fd.get_fd(); }
-  ~TCPConnection() override {}
-};
-
-class UDPConnection : public IConnection {
-  Fd fd;
-  sockaddr_in peer_addr;
-  std::vector<uint8_t> recv_buffer;
-  std::vector<uint8_t> send_buffer;
-
-public:
-  UDPConnection(int fd, const sockaddr_in &addr) : fd(fd), peer_addr(addr) {}
-
-  void send_packet(const std::vector<uint8_t> &data) {
-    ::sendto(fd.get_fd(), data.data(), data.size(), 0,
-             (const sockaddr *)&peer_addr, sizeof(peer_addr));
-  }
-
-  bool try_receive() {}
+  ~ClientConnection() override {}
 };
 
 class ConnectionManager {
   std::mutex connections_mutex;
-  std::unordered_map<int, std::shared_ptr<TCPConnection>> connections;
+  std::unordered_map<int, std::shared_ptr<ClientConnection>> connections;
 
 public:
-  void add_connection(int fd, std::shared_ptr<TCPConnection> conn) {
+  void add_connection(int fd, std::shared_ptr<ClientConnection> conn) {
     std::lock_guard<std::mutex> lock(connections_mutex);
     connections[fd] = conn;
   }
@@ -137,7 +121,7 @@ public:
     }
   }
 
-  std::optional<std::shared_ptr<TCPConnection>> get_connection(int fd) {
+  std::optional<std::shared_ptr<ClientConnection>> get_connection(int fd) {
     std::lock_guard<std::mutex> lock(connections_mutex);
     if (find_connection(fd))
       return connections[fd];

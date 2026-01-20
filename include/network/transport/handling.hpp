@@ -34,13 +34,13 @@ class ServerHandler : public IEventHandler {
   std::weak_ptr<IServer> server;
   std::recursive_mutex server_mutex;
   // std::unordered_map<int, std::shared_ptr<T>> transport;
-  std::unordered_map<int, std::weak_ptr<TCPConnection>> clients;
+  std::unordered_map<int, std::weak_ptr<ClientConnection>> clients;
 
 public:
   ServerHandler() = default;
   void init(std::shared_ptr<IServer> server_) { server = server_; }
 
-  void add_client(int fd, std::shared_ptr<TCPConnection> client_connection) {
+  void add_client(int fd, std::shared_ptr<ClientConnection> client_connection) {
     std::lock_guard<std::recursive_mutex> lock(server_mutex);
     clients[fd] = client_connection;
   }

@@ -112,7 +112,7 @@ public:
 
   void on_client_error(int fd) override {}
 
-  void on_client_connected(std::shared_ptr<TCPConnection> conn) override {
+  void on_client_connected(std::shared_ptr<ClientConnection> conn) override {
     // std::lock_guard<std::mutex> lock(server_mutex);
     std::cout << "Новое подключение от " << conn->get_fd() << '\n'
               << "IP=" << inet_ntoa(conn->get_addr().sin_addr) << ":"

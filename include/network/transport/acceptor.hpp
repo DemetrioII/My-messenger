@@ -20,7 +20,7 @@ class Acceptor {
 
 public:
   Acceptor() = default;
-  std::optional<std::shared_ptr<TCPConnection>> accept(int server_fd) {
+  std::optional<std::shared_ptr<ClientConnection>> accept(int server_fd) {
     struct sockaddr_in addr;
     socklen_t addr_len = sizeof(addr);
     int client_fd = ::accept(server_fd, (struct sockaddr *)&addr, &addr_len);
@@ -34,7 +34,7 @@ public:
     int flags = fcntl(client_fd, F_GETFL, 0);
     fcntl(client_fd, F_SETFL, O_NONBLOCK | flags);
 
-    auto connection = std::make_shared<TCPConnection>(client_fd, addr);
+    auto connection = std::make_shared<ClientConnection>(client_fd, addr);
     connection->init_transport(std::move(transport_fabric.create_tcp()));
     return connection;
   }

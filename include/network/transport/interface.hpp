@@ -11,7 +11,7 @@
 
 #define MAX_EVENTS 10
 
-class TCPConnection;
+class ClientConnection;
 
 class Fd {
   int fd;
@@ -52,6 +52,7 @@ class ITransport {
 public:
   virtual ssize_t send(int fd, const std::vector<uint8_t> &data) const = 0;
   virtual ReceiveResult receive(int fd) const = 0;
+  virtual void connect(int fd) = 0;
   virtual ~ITransport() = default;
 };
 
@@ -71,7 +72,7 @@ public:
   virtual void stop() = 0;
   virtual bool is_running() const = 0;
   virtual void on_client_error(int fd) = 0;
-  virtual void on_client_connected(std::shared_ptr<TCPConnection> conn) = 0;
+  virtual void on_client_connected(std::shared_ptr<ClientConnection> conn) = 0;
   virtual void on_client_disconnected(int fd) = 0;
   virtual void on_client_message(int fd, const std::vector<uint8_t> &data) = 0;
   virtual void on_client_writable(int fd) = 0;
