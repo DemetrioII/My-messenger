@@ -18,6 +18,8 @@
 class TCPSocket : public ISocket {
   Fd fd;
 
+  struct sockaddr_in address;
+
 public:
   int create_socket() override {
     fd.reset_fd(socket(AF_INET, SOCK_STREAM, 0));
@@ -41,7 +43,6 @@ public:
   }
 
   void setup_server(uint16_t PORT, const std::string &ip) override {
-    struct sockaddr_in address;
     address.sin_family = AF_INET;
     address.sin_port = htons(PORT);
     if (ip == "0.0.0.0")
@@ -64,19 +65,18 @@ public:
     }
   }
 
-  int setup_connection(const std::string &ip, uint16_t port) {
-    struct sockaddr_in sockaddr;
-    memset(&sockaddr, 0, sizeof(sockaddr));
+  int setup_connection(const std::string &ip, uint16_t port) override {
+    memset(&address, 0, sizeof(address));
 
-    sockaddr.sin_family = AF_INET;
-    sockaddr.sin_port = htons(port);
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port);
 
-    if (inet_pton(AF_INET, ip.c_str(), &sockaddr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, ip.c_str(), &address.sin_addr) <= 0) {
       std::cerr << ("inet_pton");
       return -1;
     }
 
-    if (::connect(fd.get_fd(), (struct sockaddr *)&sockaddr, sizeof(sockaddr)) <
+    if (::connect(fd.get_fd(), (struct sockaddr *)&address, sizeof(address)) <
         0) {
       std::cerr << ("connect");
       return -2;
@@ -89,6 +89,8 @@ public:
     return 0;
   }
 
+  sockaddr_in get_peer_address() const override { return address; }
+
   int get_fd() const override { return fd.get_fd(); }
 
   void close() override { fd.reset_fd(-1); }
@@ -98,6 +100,8 @@ public:
 
 class UDPSocket : public ISocket {
   Fd fd;
+
+  struct sockaddr_in address;
 
 public:
   int create_socket() override {
@@ -111,7 +115,6 @@ public:
   }
 
   void setup_server(uint16_t port, const std::string &ip) override {
-    struct sockaddr_in address;
     address.sin_family = AF_INET;
     address.sin_port = htons(port);
     if (ip == "0.0.0.0")
@@ -137,19 +140,18 @@ public:
     }
   }
 
-  int setup_connection(const std::string &ip, uint16_t port) {
-    struct sockaddr_in sockaddr;
-    memset(&sockaddr, 0, sizeof(sockaddr));
+  int setup_connection(const std::string &ip, uint16_t port) override {
+    memset(&address, 0, sizeof(address));
 
-    sockaddr.sin_family = AF_INET;
-    sockaddr.sin_port = htons(port);
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port);
 
-    if (inet_pton(AF_INET, ip.c_str(), &sockaddr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, ip.c_str(), &address.sin_addr) <= 0) {
       std::cerr << ("inet_pton");
       return -1;
     }
 
-    if (::connect(fd.get_fd(), (struct sockaddr *)&sockaddr, sizeof(sockaddr)) <
+    if (::connect(fd.get_fd(), (struct sockaddr *)&address, sizeof(address)) <
         0) {
       std::cerr << ("connect");
       return -2;
@@ -161,6 +163,8 @@ public:
               << "\n";
     return 0;
   }
+
+  sockaddr_in get_peer_address() const override { return address; }
 
   int get_fd() const override { return fd.get_fd(); }
 

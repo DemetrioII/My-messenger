@@ -63,6 +63,8 @@ public:
   virtual int get_fd() const = 0;
   virtual void close() = 0;
   virtual void make_address_reusable() = 0;
+  virtual int setup_connection(const std::string &ip, uint16_t port) = 0;
+  virtual sockaddr_in get_peer_address() const = 0;
   virtual ~ISocket() = default;
 };
 
