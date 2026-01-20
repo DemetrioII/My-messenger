@@ -12,7 +12,12 @@ public:
   }
 
   void handleMessageOnServer(const Message &msg,
-                             std::shared_ptr<ServerContext> context) override {}
+                             std::shared_ptr<ServerContext> context) override {
+    auto bytes = msg.get_payload();
+    auto payload = std::string(bytes.begin(), bytes.end());
+    std::cout << "Client " << context->fd << " sent message: " << payload
+              << std::endl;
+  }
 
   MessageType getMessageType() const override { return MessageType::Text; }
 };
