@@ -11,6 +11,7 @@
 
 #define MAX_EVENTS 10
 
+enum class SocketType { TCP, UDP };
 class ClientConnection;
 
 class Fd {
@@ -65,6 +66,7 @@ public:
   virtual void make_address_reusable() = 0;
   virtual int setup_connection(const std::string &ip, uint16_t port) = 0;
   virtual sockaddr_in get_peer_address() const = 0;
+  virtual SocketType get_type() const = 0;
   virtual ~ISocket() = default;
 };
 

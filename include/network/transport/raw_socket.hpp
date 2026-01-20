@@ -95,6 +95,8 @@ public:
 
   void close() override { fd.reset_fd(-1); }
 
+  SocketType get_type() const override { return SocketType::TCP; }
+
   ~TCPSocket() override {}
 };
 
@@ -165,6 +167,8 @@ public:
   }
 
   sockaddr_in get_peer_address() const override { return address; }
+
+  SocketType get_type() const override { return SocketType::UDP; }
 
   int get_fd() const override { return fd.get_fd(); }
 

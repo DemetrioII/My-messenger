@@ -37,8 +37,6 @@ private:
   }
 
 public:
-  enum class SocketType { TCP, UDP };
-
   static std::shared_ptr<Server> create(SocketType type = SocketType::TCP) {
     std::unique_ptr<ISocket> socket;
     switch (type) {
