@@ -80,6 +80,8 @@ public:
       command_type = CommandType::EXIT;
     else if (cmd_struct.name == "sendfile")
       command_type = CommandType::SEND_FILE;
+    else if (cmd_struct.name == "send")
+      command_type = CommandType::SEND;
     else
       command_type = CommandType::UNKNOWN;
     msg.metadata.push_back({static_cast<uint8_t>(command_type)});

@@ -5,43 +5,68 @@
 
 class SendGroupMessageCommand : public ICommandHandler {
   std::vector<uint8_t> sender;
-  std::vector<uint8_t> recipient;
+  std::vector<uint8_t> chat_name;
   std::vector<uint8_t> pubkey_bytes;
   std::vector<uint8_t> payload;
 
-  void process_encrypted_message(EncryptionService *encryption_service) {
-    try {
-      encryption_service->cache_public_key(recipient, pubkey_bytes);
-      auto decrypted_msg = encryption_service->decrypt_for(recipient, payload);
-      std::string plaintext(decrypted_msg.begin(), decrypted_msg.end());
-
-      std::cout << "\n[Личное]: " << plaintext << std::endl;
-    } catch (const std::exception &e) {
-      std::cerr << "[Crypto] Decryption failed: " << e.what() << std::endl;
-    }
-  }
-
 public:
-  CommandType getType() const override { return CommandType::PRIVATE_MESSAGE; }
+  CommandType getType() const override { return CommandType::SEND; }
 
   void fromParsedCommand(const ParsedCommand &pc) override {}
 
-  Message toMessage() const override {}
+  Message toMessage() const override {
+    return Message{payload, 0, {}, MessageType::Text};
+  }
 
   void execeuteOnServer(std::shared_ptr<ServerContext> context) override {
-    // ДОПИСАТЬ
+    auto service = context->messaging_service;
+    auto sender_id = service->get_user_id_by_fd(context->fd);
+    if (sender_id.empty()) {
+      std::string error_msg = "[Error]: You must logged in first";
+      context->transport_server->send(
+          context->fd,
+          context->serializer.serialize(
+              Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()),
+                      0, {}, MessageType::Text)));
+      return;
+    }
+
+    auto chat_name_str = std::string(chat_name.begin(), chat_name.end());
+    auto chat_id = service->get_chat_id_by_name(chat_name_str);
+    if (chat_id.empty()) {
+      std::string error_msg = "[Error]: Chat not found";
+      context->transport_server->send(
+          context->fd,
+          context->serializer.serialize(
+              Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()),
+                      0, {}, MessageType::Text)));
+      return;
+    }
+
+    if (!service->is_member_of_chat(chat_name_str, sender_id)) {
+      std::string error_msg = "[Error]: You must be a member of that chat!";
+      context->transport_server->send(
+          context->fd,
+          context->serializer.serialize(
+              Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()),
+                      0, {}, MessageType::Text)));
+      return;
+    }
+
+    service->send_message(sender_id, chat_id, toMessage());
   }
 
   void executeOnClient(std::shared_ptr<ClientContext> context) override {
     auto encryption_service = context->encryption_service;
-    // process_encrypted_message(encryption_service);
+    auto client = context->client;
+    client->send_to_server(context->serializer->serialize(Message(
+        payload, 2, {{static_cast<uint8_t>(CommandType::SEND)}, chat_name},
+        MessageType::Command)));
   }
 
   void fromMessage(const Message &msg) override {
-    recipient = msg.get_meta(0);
-    sender = msg.get_meta(1);
+    chat_name = msg.get_meta(1);
     payload = msg.get_payload();
-    pubkey_bytes = msg.get_meta(2);
   }
 
   ~SendGroupMessageCommand() override {}

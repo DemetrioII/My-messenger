@@ -57,10 +57,10 @@ public:
   }
 
   void fromMessage(const Message &msg) override {
-    recipient = msg.get_meta(0);
-    sender = msg.get_meta(1);
+    recipient = msg.get_meta(1);
+    // sender = msg.get_meta(1);
     payload = msg.get_payload();
-    pubkey_bytes = msg.get_meta(2);
+    // pubkey_bytes = msg.get_meta(2);
   }
 
   ~PrivateMessageCommand() override {}

@@ -84,7 +84,7 @@ public:
   handleMessageOnClient(const Message &msg,
                         const std::shared_ptr<ClientContext> context) override {
     auto cmd_struct = parser.make_struct_from_command(msg);
-    clientCommandBus.dispatch(cmd_struct, context);
+    clientCommandBus.dispatch(msg, context);
   }
 
   void handleMessageOnServer(const Message &msg,

@@ -114,15 +114,16 @@ class ClientCommandBus {
 
 public:
   ClientCommandBus(ClientCommandRegistry &registry_) : registry(registry_) {}
-  void dispatch(const ParsedCommand &cmd,
+  void dispatch(const Message &msg,
                 const std::shared_ptr<ClientContext> context) {
+    ParsedCommand cmd = context->parser.make_struct_from_command(msg);
     auto handler = registry.find(cmd.name);
     if (!handler) {
       std::cerr << "[CommandBus] Unknown command type: " << cmd.name
                 << std::endl;
       return;
     }
-    handler->fromParsedCommand(cmd);
+    handler->fromMessage(msg);
     handler->executeOnClient(context);
   }
 };

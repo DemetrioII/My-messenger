@@ -42,7 +42,6 @@ public:
                                std::make_unique<MessageCommandHandler>());
     dispatcher.registerHandler(MessageType::Response,
                                std::make_unique<ResponseMessageHandler>());
-
     dispatcher.registerHandler(MessageType::CipherMessage,
                                std::make_unique<CipherMessageHandler>());
     dispatcher.registerHandler(MessageType::FileStart,
