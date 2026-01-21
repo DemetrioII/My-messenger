@@ -20,7 +20,8 @@ public:
     return identity_key.public_bytes();
   }
 
-  std::vector<uint8_t> encrypt_for(const std::vector<uint8_t> &username,
+  std::vector<uint8_t> encrypt_for(const std::vector<uint8_t> &sender,
+                                   const std::vector<uint8_t> &username,
                                    const std::vector<uint8_t> &plaintext) {
 
     // auto encryption_key = HKDF::derive_for_messaging(
@@ -28,16 +29,21 @@ public:
     if (keys.find(username) == keys.end())
       throw std::runtime_error("User public key not found");
     auto shared_secret = identity_key.compute_shared_secret(keys[username]);
-    auto ciphertext = aes_gcm_encryptor.encrypt(shared_secret, plaintext);
+    auto encryption_key = HKDF::derive_for_messaging(shared_secret, sender,
+                                                     username, "encryption");
+    auto ciphertext = aes_gcm_encryptor.encrypt(encryption_key, plaintext);
     return ciphertext;
   }
 
-  std::vector<uint8_t> decrypt_for(const std::vector<uint8_t> &username,
+  std::vector<uint8_t> decrypt_for(const std::vector<uint8_t> &sender,
+                                   const std::vector<uint8_t> &username,
                                    const std::vector<uint8_t> &ciphertext) {
     if (keys.find(username) == keys.end())
       throw std::runtime_error("User public key not found");
     auto shared_secret = identity_key.compute_shared_secret(keys[username]);
-    auto plaintext = aes_gcm_encryptor.decrypt(shared_secret, ciphertext);
+    auto decryption_key = HKDF::derive_for_messaging(shared_secret, sender,
+                                                     username, "encryption");
+    auto plaintext = aes_gcm_encryptor.decrypt(decryption_key, ciphertext);
     return plaintext;
   }
 

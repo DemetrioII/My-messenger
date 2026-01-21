@@ -4,8 +4,6 @@
 #include "../message_queue.hpp"
 
 class ResponseMessageHandler : public IMessageHandler {
-  std::vector<uint8_t> my_username;
-
 public:
   void
   handleMessageOnClient(const Message &msg,
@@ -17,7 +15,7 @@ public:
     auto cmd_type = static_cast<CommandType>(meta0[0]);
     switch (cmd_type) {
     case CommandType::GET_ID: {
-      my_username = msg.get_meta(1);
+      auto my_username = msg.get_meta(1);
       std::string username(my_username.begin(), my_username.end());
       std::cout << "Your username is " << username << std::endl;
       break;
@@ -34,10 +32,10 @@ public:
       if (pending_it) {
         auto msg_to_send = *pending_it;
         auto ciphertext = context->encryption_service->encrypt_for(
-            username, msg_to_send.bytes);
+            context->my_username, username, msg_to_send.bytes);
         Message cipher_msg{ciphertext,
                            2,
-                           {msg_to_send.recipient_id, my_username},
+                           {msg_to_send.recipient_id, context->my_username},
                            MessageType::CipherMessage};
 
         context->client->send_to_server(
@@ -61,7 +59,7 @@ public:
         context->encryption_service->cache_public_key(username,
                                                       msg.get_payload());
         auto plaintext = context->encryption_service->decrypt_for(
-            my_username, pending_ciphertext);
+            context->my_username, context->my_username, pending_ciphertext);
         auto plain_str = std::string(plaintext.begin(), plaintext.end());
         std::cout << plain_str << std::endl;
       }

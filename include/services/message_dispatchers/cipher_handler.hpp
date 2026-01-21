@@ -10,7 +10,8 @@ class CipherMessageHandler : public IMessageHandler {
                                  const std::vector<uint8_t> &payload) {
     try {
       encryption_service->cache_public_key(recipient, pubkey_bytes);
-      auto decrypted_msg = encryption_service->decrypt_for(recipient, payload);
+      auto decrypted_msg =
+          encryption_service->decrypt_for(sender, recipient, payload);
       std::string plaintext(decrypted_msg.begin(), decrypted_msg.end());
 
       std::cout << "\n[Личное]: " << plaintext << std::endl;

@@ -14,7 +14,8 @@ class PrivateMessageCommand : public ICommandHandler {
       std::shared_ptr<EncryptionService> encryption_service) {
     try {
       encryption_service->cache_public_key(recipient, pubkey_bytes);
-      auto decrypted_msg = encryption_service->decrypt_for(recipient, payload);
+      auto decrypted_msg =
+          encryption_service->decrypt_for(sender, recipient, payload);
       std::string plaintext(decrypted_msg.begin(), decrypted_msg.end());
 
       std::string sender_username(sender.begin(), sender.end());

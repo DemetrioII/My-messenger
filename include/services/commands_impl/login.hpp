@@ -79,6 +79,7 @@ public:
     std::shared_ptr<EncryptionService> encryptionService =
         context->encryption_service;
     pubkey_bytes = encryptionService->get_public_bytes();
+    context->my_username = username;
 
     Serializer serializer;
     client->send_to_server(serializer.serialize(toMessage()));
