@@ -22,9 +22,11 @@ public:
     }
 
     case CommandType::GET_PUBKEY: {
-      std::cout << "You got a public key" << std::endl;
       auto other_pubkey = IdentityKey::from_public_bytes(msg.get_payload());
       auto username = msg.get_meta(1);
+
+      std::cout << "You got a public key of "
+                << std::string(username.begin(), username.end()) << std::endl;
       context->encryption_service->cache_public_key(username,
                                                     msg.get_payload());
 

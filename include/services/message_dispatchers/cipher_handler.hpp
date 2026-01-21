@@ -14,7 +14,8 @@ class CipherMessageHandler : public IMessageHandler {
           encryption_service->decrypt_for(sender, recipient, payload);
       std::string plaintext(decrypted_msg.begin(), decrypted_msg.end());
 
-      std::cout << "\n[Личное]: " << plaintext << std::endl;
+      std::cout << "\n[Личное от " << std::string(sender.begin(), sender.end())
+                << "]: " << plaintext << std::endl;
     } catch (const std::exception &e) {
       std::cerr << "[Crypto] Decryption failed: " << e.what() << std::endl;
     }

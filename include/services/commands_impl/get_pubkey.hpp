@@ -14,12 +14,8 @@ public:
   }
 
   Message toMessage() const override {
-    ParsedCommand pc;
-    pc.name = "getpub";
-    pc.args.push_back(username);
-
-    Parser parser;
-    return parser.make_command_from_struct(pc);
+    return Message({}, 2, {{static_cast<uint8_t>(getType())}, username},
+                   MessageType::Command);
   }
 
   void fromMessage(const Message &msg) override { username = msg.get_meta(1); }

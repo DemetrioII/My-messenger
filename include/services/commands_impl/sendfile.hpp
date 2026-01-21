@@ -76,9 +76,13 @@ public:
       if (read_bytes == 0)
         break;
 
-      std::vector<uint8_t> chunk(buffer.begin(), buffer.begin() + read_bytes);
+      auto cipher_bytes = context->encryption_service->encrypt_for(
+          context->my_username, recipient, buffer);
 
-      Message chunk_msg(chunk, 2, {recipient, fname_bytes},
+      std::vector<uint8_t> chunk(cipher_bytes.begin(), cipher_bytes.end());
+
+      Message chunk_msg(chunk, 3,
+                        {recipient, fname_bytes, context->my_username},
                         MessageType::FileChunk);
 
       client->send_to_server(serializer.serialize(chunk_msg));
