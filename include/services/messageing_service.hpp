@@ -21,7 +21,7 @@ public:
     subscribers.push_back({std::move(when), std::move(then)});
   }
 
-  void emit(const T &value) {
+  void emit_subsriber_event(const T &value) {
     for (auto &s : subscribers)
       if (s.when(value))
         s.then(value);
@@ -129,7 +129,7 @@ public:
       return false;
 
     chat.addMessage(message);
-    message_sent.emit({from_user_id, to_chat_id, message});
+    message_sent.emit_subsriber_event({from_user_id, to_chat_id, message});
     std::cout << "Пользователь (ID: " << from_user_id
               << ") отправил сообщение в чат " << "(ID: " << to_chat_id << ")"
               << std::endl;

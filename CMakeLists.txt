@@ -5,11 +5,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_AUTOMOC ON) # Генерация кода для сигналов и слотов
+set(CMAKE_AUTORCC ON) # Ресурсы (.qrc)
+set(CMAKE_AUTOUIC ON) # Дизайн форм (.ui)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS -g)
 
 # Находим OpenSSL
 find_package(OpenSSL REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 # Все заголовки
 set(HEADERS
@@ -32,6 +37,8 @@ set(HEADERS
     include/services/messageing_service.hpp
     include/services/messaging_server.hpp
     include/services/messaging_client.hpp
+	include/services/message_bridge.hpp
+	include/ui/simple_window.hpp
     common.hpp
 )
 
@@ -42,7 +49,11 @@ add_executable(messenger_server
 )
 
 target_include_directories(messenger_server PRIVATE src)
-target_link_libraries(messenger_server PRIVATE OpenSSL::SSL OpenSSL::Crypto pthread)
+target_link_libraries(messenger_server PRIVATE 
+	OpenSSL::SSL 
+	OpenSSL::Crypto 
+	Qt6::Widgets
+	pthread)
 
 # Клиент
 add_executable(messenger_client
@@ -51,7 +62,11 @@ add_executable(messenger_client
 )
 
 target_include_directories(messenger_client PRIVATE src)
-target_link_libraries(messenger_client PRIVATE OpenSSL::SSL OpenSSL::Crypto pthread)
+target_link_libraries(messenger_client PRIVATE 
+	OpenSSL::SSL 
+	OpenSSL::Crypto
+	Qt6::Widgets
+	pthread)
 
 # Для Windows
 if(WIN32)
