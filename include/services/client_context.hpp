@@ -1,4 +1,5 @@
 #pragma once
+#include "../network/protocol/parser.hpp"
 #include "../network/transport/interface.hpp"
 #include "../network/transport/server.hpp"
 #include "encryption_service.hpp"
@@ -29,7 +30,10 @@ struct ClientContext {
         encryption_service(std::make_shared<EncryptionService>()),
         serializer(std::make_shared<Serializer>()),
         pending_files(std::make_shared<std::unordered_map<
-                          std::string, std::unique_ptr<std::ofstream>>>()) {
+                          std::string, std::unique_ptr<std::ofstream>>>()),
+        pending_messages(
+            std::make_shared<std::unordered_map<
+                std::vector<uint8_t>, std::vector<std::vector<uint8_t>>>>()) {
 
     encryption_service->set_identity_key();
   }
