@@ -5,6 +5,7 @@ include/network/.tmpobject
 .tmpobject
 build/
 a.out
+compile_commands.json
 client
 OLDMESSSERVER
 CMakeFiles/

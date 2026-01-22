@@ -78,6 +78,7 @@ public:
     pending_files = context->pending_files;
     auto recipient = msg.get_meta(0);
     auto fname = msg.get_meta(1);
+    auto sender = msg.get_meta(2);
     auto name = std::string(fname.begin(), fname.end());
 
     std::string recipient_username_str =
@@ -85,9 +86,13 @@ public:
 
     if (pending_files->find(recipient_username_str + " " + name) !=
         pending_files->end()) {
+
+      auto payload = msg.get_payload();
+      std::vector<uint8_t> cipher_bytes(payload.begin(), payload.end());
+      payload = context->encryption_service->decrypt_for(sender, recipient,
+                                                         cipher_bytes);
       (*pending_files)[recipient_username_str + " " + name]->write(
-          reinterpret_cast<const char *>(msg.get_payload().data()),
-          msg.get_payload().size());
+          reinterpret_cast<const char *>(payload.data()), payload.size());
     }
 
     std::cout << "[File] File chunk has been received " << name << std::endl;

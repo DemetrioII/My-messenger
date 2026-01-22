@@ -14,10 +14,13 @@ class PrivateMessageCommand : public ICommandHandler {
       std::shared_ptr<EncryptionService> encryption_service) {
     try {
       encryption_service->cache_public_key(recipient, pubkey_bytes);
-      auto decrypted_msg = encryption_service->decrypt_for(recipient, payload);
+      auto decrypted_msg =
+          encryption_service->decrypt_for(sender, recipient, payload);
       std::string plaintext(decrypted_msg.begin(), decrypted_msg.end());
 
-      std::cout << "\n[Личное]: " << plaintext << std::endl;
+      std::string sender_username(sender.begin(), sender.end());
+      std::cout << "\n[Личное]: (" << sender_username << "): " << plaintext
+                << std::endl;
     } catch (const std::exception &e) {
       std::cerr << "[Crypto] Decryption failed: " << e.what() << std::endl;
     }
@@ -55,10 +58,10 @@ public:
   }
 
   void fromMessage(const Message &msg) override {
-    recipient = msg.get_meta(0);
-    sender = msg.get_meta(1);
+    recipient = msg.get_meta(1);
+    // sender = msg.get_meta(1);
     payload = msg.get_payload();
-    pubkey_bytes = msg.get_meta(2);
+    // pubkey_bytes = msg.get_meta(2);
   }
 
   ~PrivateMessageCommand() override {}

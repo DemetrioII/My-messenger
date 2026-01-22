@@ -9,6 +9,18 @@
 #include <unordered_map>
 #include <vector>
 
+namespace std {
+template <> struct hash<std::vector<uint8_t>> {
+  size_t operator()(const std::vector<uint8_t> &v) const noexcept {
+    size_t h = 0xcbf29ce484222325;
+    for (auto b : v) {
+      h ^= b;
+      h *= 0x100000001b3;
+    }
+    return h;
+  }
+};
+} // namespace std
 struct ParsedCommand {
   std::string name;
   std::vector<std::vector<uint8_t>> args;
@@ -68,6 +80,8 @@ public:
       command_type = CommandType::EXIT;
     else if (cmd_struct.name == "sendfile")
       command_type = CommandType::SEND_FILE;
+    else if (cmd_struct.name == "send")
+      command_type = CommandType::SEND;
     else
       command_type = CommandType::UNKNOWN;
     msg.metadata.push_back({static_cast<uint8_t>(command_type)});

@@ -21,7 +21,7 @@ public:
     subscribers.push_back({std::move(when), std::move(then)});
   }
 
-  void emit(const T &value) {
+  void emit_subsriber_event(const T &value) {
     for (auto &s : subscribers)
       if (s.when(value))
         s.then(value);
@@ -57,6 +57,10 @@ public:
                            [&](const std::pair<std::string, User> &p) {
                              return p.second.get_username() == username;
                            });
+
+    if (it != users.end()) {
+      return "";
+    }
 
     User user;
     std::string token = generate_token();
@@ -125,7 +129,7 @@ public:
       return false;
 
     chat.addMessage(message);
-    message_sent.emit({from_user_id, to_chat_id, message});
+    message_sent.emit_subsriber_event({from_user_id, to_chat_id, message});
     std::cout << "Пользователь (ID: " << from_user_id
               << ") отправил сообщение в чат " << "(ID: " << to_chat_id << ")"
               << std::endl;
@@ -167,7 +171,22 @@ public:
     return "chat_" + std::to_string(chats.size() + 1);
   }
 
-  auto &get_chat(const std::string &chat_id) { return chats[chat_id]; }
+  auto &get_chat_by_id(const std::string &chat_id) { return chats[chat_id]; }
+
+  std::string get_chat_id_by_name(const std::string &chat_name) {
+    for (auto &[chat_id, chat_obj] : chats) {
+      if (chat_obj.get_name() == chat_name) {
+        return chat_id;
+      }
+    }
+    return "";
+  }
+
+  bool is_member_of_chat(const std::string &chat_name,
+                         const std::string &user_id) {
+    Chat &chat = get_chat_by_id(get_chat_id_by_name(chat_name));
+    return chat.is_member(user_id);
+  }
 
   std::string create_chat(const std::string &creator_id,
                           const std::string &name, ChatType type,

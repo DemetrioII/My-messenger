@@ -1,4 +1,5 @@
 #pragma once
+#include "../network/protocol/parser.hpp"
 #include "../network/transport/interface.hpp"
 #include "../network/transport/server.hpp"
 #include "encryption_service.hpp"
@@ -25,18 +26,21 @@ struct ClientContext {
       pending_files;
 
   ClientContext()
-      : client(TCPClient::create()), mq(std::make_shared<MessageQueue>(client)),
+      : client(Client::create()), mq(std::make_shared<MessageQueue>(client)),
         encryption_service(std::make_shared<EncryptionService>()),
         serializer(std::make_shared<Serializer>()),
         pending_files(std::make_shared<std::unordered_map<
-                          std::string, std::unique_ptr<std::ofstream>>>()) {
+                          std::string, std::unique_ptr<std::ofstream>>>()),
+        pending_messages(
+            std::make_shared<std::unordered_map<
+                std::vector<uint8_t>, std::vector<std::vector<uint8_t>>>>()) {
 
     encryption_service->set_identity_key();
   }
 };
 
 struct ServerContext {
-  std::shared_ptr<TCPServer> transport_server;
+  std::shared_ptr<Server> transport_server;
   std::shared_ptr<MessagingService> messaging_service;
   Serializer serializer;
 
@@ -46,6 +50,6 @@ struct ServerContext {
   Stream<std::pair<int, Message>> command_stream;
 
   ServerContext()
-      : transport_server(TCPServer::create()),
+      : transport_server(Server::create()),
         messaging_service(std::make_shared<MessagingService>()) {}
 };

@@ -1,67 +1,92 @@
-#include "include/services/messageing_service.hpp"
+#pragma once
+
+#include <QApplication>
+#include <atomic>
+#include <iostream>
+#include <thread>
+
+// UI и Мост
+#include "include/services/message_bridge.hpp"
+#include "include/ui/simple_window.hpp"
+
 #include "include/services/messaging_client.hpp"
 #include "include/services/messaging_server.hpp"
 
+// Глобальный флаг для потоков
+std::atomic<bool> is_running{true};
+
+// -----------------------------------------------------------
+// СЕРВЕР (Оставляем как было, тут консоль ок)
+// -----------------------------------------------------------
 void start_server() {
   MessagingServer messaging_server;
   messaging_server.start_server(8080);
+  std::cout << "Server started on port 8080..." << std::endl;
   messaging_server.run();
 }
 
-#include <atomic>
-#include <iostream>
-#include <string>
-#include <thread>
+// -----------------------------------------------------------
+// КЛИЕНТ (Теперь с Qt UI)
+// -----------------------------------------------------------
+void start_gui_client(int argc, char *argv[]) {
+  // 1. Инициализация Qt (Главный цикл)
+  QApplication app(argc, argv);
 
-// Флаг для корректного завершения потоков
-std::atomic<bool> is_running{true};
+  // 2. Создаем объекты: Мост и Окно
+  MessageBridge bridge;
+  MessengerUI window;
 
-void input_thread_func(MessagingClient &client) {
-  std::string input;
-  std::cout << "--- Режим чата запущен. Введите сообщение и нажмите Enter ---"
-            << std::endl;
+  // 3. Соединяем: Когда Мост получает данные -> Окно обновляет текст
+  QObject::connect(&bridge, &MessageBridge::responseReceived, &window,
+                   &MessengerUI::updateResponse);
 
-  while (is_running) {
-    std::cout << "> " << std::flush;
-    if (!std::getline(std::cin, input)) {
-      is_running = false;
-      break;
+  QObject::connect(&window, &MessengerUI::sendMessage, &bridge,
+                   &MessageBridge::postSend);
+
+  // 4. Показываем окно
+  window.resize(400, 300);
+  window.show();
+
+  // 5. ЗАПУСКАЕМ СЕТЬ В ОТДЕЛЬНОМ ПОТОКЕ 🧵
+  // Qt крутится в main, а socket read/write будет здесь
+  std::thread net_thread([&bridge]() {
+    MessagingClient client;
+
+    // Эмуляция/Подключение
+    if (!client.init_client("127.0.0.1", 8080)) {
+      bridge.postResponse("Ошибка: Сервер недоступен!");
+      return;
     }
+    bridge.postResponse("Подключено к серверу! 🐧");
 
-    if (input == "/exit") {
-      client.get_data(input);
-      is_running = false;
-      break;
-    }
+    // ВАЖНО:
+    // Чтобы клиент мог писать в окно, нам нужно передать ему callback.
+    // Добавь в MessagingClient поле: std::function<void(std::string)> on_msg;
+    // И вызывай его, когда read() возвращает данные.
 
-    // Вызываем твою функцию-обработчик
-    // Она упакует строку в Message, пропустит через Parser и отправит в сокет
-    client.get_data(input);
-  }
-}
+    // Пример (псевдокод интеграции):
+    /*
+    client.on_msg = [&bridge](const std::string& msg) {
+        bridge.postResponse(msg);
+    };
+    */
 
-void conn_client() {
-  MessagingClient messaging_client;
+    QObject::connect(&bridge, &MessageBridge::sendToClient,
+                     [&client](const QString &text) {
+                       client.get_data(text.toStdString());
+                     });
 
-  // 1. Инициализируем соединение
-  if (!messaging_client.init_client("127.0.0.1", 8080)) {
-    std::cerr << "Не удалось подключиться к серверу!" << std::endl;
-    return;
-  }
+    // Пока просто запустим цикл клиента
+    // Если твой client.run() блокирующий, он будет жить здесь
+    client.run();
+  });
 
-  // 2. Запускаем поток ввода, передавая ссылку на клиент
-  std::thread input_worker(input_thread_func, std::ref(messaging_client));
+  // Отсоединяем поток, чтобы он жил своей жизнью (Daemon style)
+  net_thread.detach();
 
-  // 3. Основной поток отдаем под сетевой Event Loop
-  // Он будет крутиться здесь и вызывать callback-и при получении данных
+  // 6. Запуск Event Loop Qt (блокирует этот поток, пока окно открыто)
+  app.exec();
 
-  // Вызываем run_once (через твой сервис или напрямую у TCPClient)
-  // Чтобы сетевой поток не "ел" 100% CPU, ставим небольшой таймаут
-  messaging_client.run();
-
-  // Ждем завершения потока ввода перед выходом
-  if (input_worker.joinable()) {
-    input_worker.join();
-  }
-  std::cout << "Клиент остановлен." << std::endl;
+  // Когда окно закрыли — выходим
+  is_running = false;
 }

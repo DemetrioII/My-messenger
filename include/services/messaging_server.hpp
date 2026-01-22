@@ -75,14 +75,20 @@ public:
         [](auto &) { return true; },
         [this](auto &tpl) {
           auto [from_user_id, chat_id, msg] = tpl;
-          auto &chat = server_context->messaging_service->get_chat(chat_id);
+          auto &chat =
+              server_context->messaging_service->get_chat_by_id(chat_id);
           for (auto &member : chat.get_members()) {
             int fd =
                 server_context->messaging_service->get_fd_by_user_id(member);
-            Message m = server_context->parser.parse(
-                "Message from " + from_user_id + " in chat " + chat_id + " ");
+            std::string prefix =
+                "Message from " + from_user_id + " in chat " + chat_id + " ";
+            std::vector<uint8_t> msg_bytes =
+                std::vector<uint8_t>(prefix.begin(), prefix.end());
+            auto payload = msg.get_payload();
+            msg_bytes.insert(msg_bytes.end(), payload.begin(), payload.end());
+            Message msg_to_send{msg_bytes, 0, {}, MessageType::Text};
             server_context->transport_server->send(
-                fd, server_context->serializer.serialize(m));
+                fd, server_context->serializer.serialize(msg_to_send));
           }
         });
   }
