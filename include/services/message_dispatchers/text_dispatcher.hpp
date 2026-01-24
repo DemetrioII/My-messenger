@@ -8,6 +8,7 @@ public:
                         const std::shared_ptr<ClientContext> context) override {
     auto payload = msg.get_payload();
     std::string message(payload.begin(), payload.end());
+    context->ui_callback(message);
     std::cout << "[Server]: " << message << std::endl;
   }
 

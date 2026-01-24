@@ -38,13 +38,16 @@ void start_gui_client(int argc, char *argv[]) {
 
   // 3. Соединяем: Когда Мост получает данные -> Окно обновляет текст
   QObject::connect(&bridge, &MessageBridge::responseReceived, &window,
-                   &MessengerUI::updateResponse);
+                   &MessengerUI::updateResponse, Qt::QueuedConnection);
 
-  QObject::connect(&window, &MessengerUI::sendMessage, &bridge,
-                   &MessageBridge::postSend);
+  // QObject::connect(&window, &MessengerUI::sendMessage, &bridge,
+  //  &MessageBridge::postSend);
 
   QObject::connect(&window, &MessengerUI::loginAttempt, &bridge,
                    &MessageBridge::sendToServer);
+
+  QObject::connect(&bridge, &MessageBridge::responseReceived, &window,
+                   &MessengerUI::updateResponse);
 
   // 4. Показываем окно
   window.resize(400, 300);
@@ -82,6 +85,12 @@ void start_gui_client(int argc, char *argv[]) {
                      [&client](const QString &text) {
                        client.get_data(text.toStdString());
                      });
+
+    auto ctx = client.get_context();
+
+    ctx->ui_callback = [&bridge](const std::string &text) {
+      bridge.postResponse(text);
+    };
 
     // Пока просто запустим цикл клиента
     // Если твой client.run() блокирующий, он будет жить здесь

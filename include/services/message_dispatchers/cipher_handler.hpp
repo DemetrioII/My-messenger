@@ -7,7 +7,8 @@ class CipherMessageHandler : public IMessageHandler {
   void process_encrypted_message(const std::vector<uint8_t> &sender,
                                  const std::vector<uint8_t> &recipient,
                                  const std::vector<uint8_t> &pubkey_bytes,
-                                 const std::vector<uint8_t> &payload) {
+                                 const std::vector<uint8_t> &payload,
+                                 std::shared_ptr<ClientContext> context) {
     try {
       encryption_service->cache_public_key(recipient, pubkey_bytes);
       auto decrypted_msg =
@@ -16,6 +17,9 @@ class CipherMessageHandler : public IMessageHandler {
 
       std::cout << "\n[Личное от " << std::string(sender.begin(), sender.end())
                 << "]: " << plaintext << std::endl;
+      context->ui_callback("[Личное от " +
+                           std::string(sender.begin(), sender.end()) +
+                           "]: " + plaintext);
     } catch (const std::exception &e) {
       std::cerr << "[Crypto] Decryption failed: " << e.what() << std::endl;
     }
@@ -32,7 +36,8 @@ public:
     auto recipient_id = msg.get_meta(0);
     auto pubkey_opt = msg.get_meta(2);
 
-    process_encrypted_message(sender_id, recipient_id, pubkey_opt, payload);
+    process_encrypted_message(sender_id, recipient_id, pubkey_opt, payload,
+                              context);
   }
 
   void handleMessageOnServer(const Message &msg,

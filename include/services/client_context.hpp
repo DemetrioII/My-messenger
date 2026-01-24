@@ -5,9 +5,10 @@
 #include "encryption_service.hpp"
 #include "message_queue.hpp"
 #include "messageing_service.hpp"
+#include <functional>
 
 struct ClientContext {
-
+  std::function<void(const std::string &)> ui_callback = nullptr;
   std::shared_ptr<IClient> client;
   std::shared_ptr<MessageQueue> mq;
 

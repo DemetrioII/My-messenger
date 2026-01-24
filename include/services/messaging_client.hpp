@@ -66,7 +66,10 @@ public:
     Message msg = context->serializer->deserialize(raw_data);
     dispatcher.setContext(context);
     dispatcher.dispatch(msg);
+    // context->ui_callback(msg.get_payload());
   }
+
+  auto get_context() { return context; }
 
   std::vector<std::string> search_online_users(const std::string &pattern) {}
 
@@ -82,6 +85,7 @@ public:
     } else if (msg.get_type() == MessageType::Text) {
       context->client->send_to_server(bytes);
     }
+    // context->ui_callback(msg.get_payload());
   }
 
   void run() { context->client->run_event_loop(); }
