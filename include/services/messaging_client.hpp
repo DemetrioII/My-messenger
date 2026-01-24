@@ -68,6 +68,11 @@ public:
     dispatcher.dispatch(msg);
   }
 
+  std::vector<std::string> search_online_users(const std::string &pattern) {}
+
+  std::optional<std::vector<std::vector<uint8_t>>>
+  query_user_info(std::string &username) {}
+
   void get_data(const std::string &data) {
     Message msg = context->parser.parse(data);
     auto bytes = context->serializer->serialize(msg);

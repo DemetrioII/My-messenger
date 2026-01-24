@@ -43,6 +43,9 @@ void start_gui_client(int argc, char *argv[]) {
   QObject::connect(&window, &MessengerUI::sendMessage, &bridge,
                    &MessageBridge::postSend);
 
+  QObject::connect(&window, &MessengerUI::loginAttempt, &bridge,
+                   &MessageBridge::sendToServer);
+
   // 4. Показываем окно
   window.resize(400, 300);
   window.show();
@@ -70,6 +73,10 @@ void start_gui_client(int argc, char *argv[]) {
         bridge.postResponse(msg);
     };
     */
+
+    bridge.onOutboundMessage = [&client](const std::string &cmd) {
+      client.get_data(cmd);
+    };
 
     QObject::connect(&bridge, &MessageBridge::sendToClient,
                      [&client](const QString &text) {
