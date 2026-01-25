@@ -5,6 +5,7 @@ include/network/.tmpobject
 .tmpobject
 build/
 a.out
+src/
 compile_commands.json
 client
 OLDMESSSERVER

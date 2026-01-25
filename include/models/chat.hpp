@@ -17,54 +17,20 @@ class Chat {
 public:
   Chat() = default;
 
-  Chat(const std::string &id, const std::string &name, ChatType type)
-      : id(id), name(name), type(type) {}
+  Chat(const std::string &id, const std::string &name, ChatType type);
 
-  void addMessage(const Message &msg) { messages.push_back(msg); }
+  void addMessage(const Message &msg);
 
-  std::vector<Message> get_recent_message(size_t count = 50) const {
-    if (messages.size() <= count)
-      return messages;
+  std::vector<Message> get_recent_message(size_t count = 50) const;
 
-    return std::vector<Message>(messages.end() - count, messages.end());
-  }
+  bool add_member(const std::string &user_id);
 
-  bool add_member(const std::string &user_id) {
-    if (type == Private) {
-      return false;
-    }
+  bool is_member(const std::string &user_id);
 
-    if (members_id.find(user_id) != members_id.end())
-      return false;
+  const std::string get_id() const;
+  const std::string get_name() const;
+  ChatType get_type() const;
+  const std::vector<std::string> get_members() const;
 
-    members_id.insert(user_id);
-    return true;
-    // Мы не добавляем в пользовательские чаты идентификатор этого чата,
-    // поскольку чат не управляет пользователем
-  }
-
-  bool is_member(const std::string &user_id) {
-    return members_id.find(user_id) != members_id.end();
-  }
-
-  const std::string get_id() const { return id; }
-  const std::string get_name() const { return name; }
-  ChatType get_type() const { return type; }
-  const std::vector<std::string> get_members() const {
-    std::vector<std::string> members;
-    for (auto &i : members_id) {
-      members.push_back(i);
-    }
-
-    return members;
-  }
-
-  bool remove_member(const std::string &user_id) {
-    if (members_id.find(user_id) == members_id.end()) {
-      return false;
-    }
-
-    members_id.erase(user_id);
-    return true;
-  }
+  bool remove_member(const std::string &user_id);
 };

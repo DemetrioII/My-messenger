@@ -14,45 +14,18 @@ class EncryptionService {
   auto load_or_generate_key() { return IdentityKey::generate(); }
 
 public:
-  void set_identity_key() { identity_key = load_or_generate_key(); }
+  void set_identity_key();
 
-  std::vector<uint8_t> get_public_bytes() {
-    return identity_key.public_bytes();
-  }
+  std::vector<uint8_t> get_public_bytes();
 
   std::vector<uint8_t> encrypt_for(const std::vector<uint8_t> &sender,
                                    const std::vector<uint8_t> &username,
-                                   const std::vector<uint8_t> &plaintext) {
-
-    // auto encryption_key = HKDF::derive_for_messaging(
-    // shared_secret, userid, msg_to_send.recipient_id, "encryption");
-    if (keys.find(username) == keys.end())
-      throw std::runtime_error("User public " +
-                               std::string(username.begin(), username.end()) +
-                               " key not found");
-    auto shared_secret = identity_key.compute_shared_secret(keys[username]);
-    auto encryption_key = HKDF::derive_for_messaging(shared_secret, sender,
-                                                     username, "encryption");
-    auto ciphertext = aes_gcm_encryptor.encrypt(encryption_key, plaintext);
-    return ciphertext;
-  }
+                                   const std::vector<uint8_t> &plaintext);
 
   std::vector<uint8_t> decrypt_for(const std::vector<uint8_t> &sender,
                                    const std::vector<uint8_t> &username,
-                                   const std::vector<uint8_t> &ciphertext) {
-    if (keys.find(sender) == keys.end())
-      throw std::runtime_error("User public " +
-                               std::string(username.begin(), username.end()) +
-                               " key not found");
-    auto shared_secret = identity_key.compute_shared_secret(keys[sender]);
-    auto decryption_key = HKDF::derive_for_messaging(shared_secret, sender,
-                                                     username, "encryption");
-    auto plaintext = aes_gcm_encryptor.decrypt(decryption_key, ciphertext);
-    return plaintext;
-  }
+                                   const std::vector<uint8_t> &ciphertext);
 
   void cache_public_key(const std::vector<uint8_t> &username,
-                        const std::vector<uint8_t> &pubkey) {
-    keys[username] = IdentityKey::from_public_bytes(pubkey);
-  }
+                        const std::vector<uint8_t> &pubkey);
 };
