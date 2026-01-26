@@ -10,64 +10,17 @@ class SendGroupMessageCommand : public ICommandHandler {
   std::vector<uint8_t> payload;
 
 public:
-  CommandType getType() const override { return CommandType::SEND; }
+  CommandType getType() const override;
 
-  void fromParsedCommand(const ParsedCommand &pc) override {}
+  void fromParsedCommand(const ParsedCommand &parsed) override;
 
-  Message toMessage() const override {
-    return Message{payload, 0, {}, MessageType::Text};
-  }
+  Message toMessage() const override;
 
-  void execeuteOnServer(std::shared_ptr<ServerContext> context) override {
-    auto service = context->messaging_service;
-    auto sender_id = service->get_user_id_by_fd(context->fd);
-    if (sender_id.empty()) {
-      std::string error_msg = "[Error]: You must logged in first";
-      context->transport_server->send(
-          context->fd,
-          context->serializer.serialize(
-              Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()),
-                      0, {}, MessageType::Text)));
-      return;
-    }
+  void fromMessage(const Message &msg) override;
 
-    auto chat_name_str = std::string(chat_name.begin(), chat_name.end());
-    auto chat_id = service->get_chat_id_by_name(chat_name_str);
-    if (chat_id.empty()) {
-      std::string error_msg = "[Error]: Chat not found";
-      context->transport_server->send(
-          context->fd,
-          context->serializer.serialize(
-              Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()),
-                      0, {}, MessageType::Text)));
-      return;
-    }
+  void execeuteOnServer(std::shared_ptr<ServerContext> context) override;
 
-    if (!service->is_member_of_chat(chat_name_str, sender_id)) {
-      std::string error_msg = "[Error]: You must be a member of that chat!";
-      context->transport_server->send(
-          context->fd,
-          context->serializer.serialize(
-              Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()),
-                      0, {}, MessageType::Text)));
-      return;
-    }
+  void executeOnClient(std::shared_ptr<ClientContext> context) override;
 
-    service->send_message(sender_id, chat_id, toMessage());
-  }
-
-  void executeOnClient(std::shared_ptr<ClientContext> context) override {
-    auto encryption_service = context->encryption_service;
-    auto client = context->client;
-    client->send_to_server(context->serializer->serialize(Message(
-        payload, 2, {{static_cast<uint8_t>(CommandType::SEND)}, chat_name},
-        MessageType::Command)));
-  }
-
-  void fromMessage(const Message &msg) override {
-    chat_name = msg.get_meta(1);
-    payload = msg.get_payload();
-  }
-
-  ~SendGroupMessageCommand() override {}
+  ~SendGroupMessageCommand() override;
 };

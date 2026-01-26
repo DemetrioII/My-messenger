@@ -5,6 +5,7 @@
 #include "encryption_service.hpp"
 #include "message_queue.hpp"
 #include "messageing_service.hpp"
+#include <fstream>
 #include <functional>
 
 struct ClientContext {

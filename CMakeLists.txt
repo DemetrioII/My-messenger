@@ -5,70 +5,59 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_AUTOMOC ON) # Генерация кода для сигналов и слотов
-set(CMAKE_AUTORCC ON) # Ресурсы (.qrc)
-set(CMAKE_AUTOUIC ON) # Дизайн форм (.ui)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_FLAGS -g)
+add_compile_options(-g)
 
-# Находим OpenSSL
+# OpenSSL + Qt
 find_package(OpenSSL REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
-# Все заголовки
-set(HEADERS
-    include/models/chat.hpp
-    include/models/message.hpp
-    include/models/user.hpp
-    include/encryption/AESGCMEncryption.hpp
-    include/encryption/identity_key.hpp
-    include/network/transport/interface.hpp
-    include/network/transport/raw_socket.hpp
-    include/network/transport/transport.hpp
-    include/network/transport/connection.hpp
-    include/network/transport/event_loop.hpp
-    include/network/transport/acceptor.hpp
-    include/network/transport/server.hpp
-    include/network/transport/client.hpp
-    include/network/transport/handling.hpp
-    include/network/protocol/framing.hpp
-    include/network/protocol/parser.hpp
-    include/services/messageing_service.hpp
-    include/services/messaging_server.hpp
-    include/services/messaging_client.hpp
-	include/services/message_bridge.hpp
-	include/ui/simple_window.hpp
-    common.hpp
+# Пути к заголовкам
+include_directories(include)
+
+# Собираем cpp из src/
+file(GLOB_RECURSE SRC_FILES
+    src/*.cpp
+)
+
+# Заголовки (чисто чтобы IDE знали про них)
+file(GLOB_RECURSE HEADER_FILES
+    include/*.hpp
+    include/*.h
 )
 
 # Сервер
 add_executable(messenger_server
-    main.cpp
-    ${HEADERS}
+    main.cpp         # точка входа сервера
+    ${SRC_FILES}
+    ${HEADER_FILES}
 )
 
-target_include_directories(messenger_server PRIVATE src)
-target_link_libraries(messenger_server PRIVATE 
-	OpenSSL::SSL 
-	OpenSSL::Crypto 
-	Qt6::Widgets
-	pthread)
+target_link_libraries(messenger_server PRIVATE
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    Qt6::Widgets
+    pthread
+)
 
 # Клиент
 add_executable(messenger_client
-    client.cpp
-    ${HEADERS}
+    client.cpp       # точка входа клиента
+    ${SRC_FILES}
+    ${HEADER_FILES}
 )
 
-target_include_directories(messenger_client PRIVATE src)
-target_link_libraries(messenger_client PRIVATE 
-	OpenSSL::SSL 
-	OpenSSL::Crypto
-	Qt6::Widgets
-	pthread)
+target_link_libraries(messenger_client PRIVATE
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    Qt6::Widgets
+    pthread
+)
 
-# Для Windows
 if(WIN32)
     target_link_libraries(messenger_server ws2_32)
     target_link_libraries(messenger_client ws2_32)

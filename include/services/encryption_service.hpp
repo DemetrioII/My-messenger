@@ -1,4 +1,5 @@
 #pragma once
+#include "../bytes_hash.hpp"
 #include "../encryption/AESGCMEncryption.hpp"
 #include "../encryption/KDF.hpp"
 #include "../encryption/identity_key.hpp"
