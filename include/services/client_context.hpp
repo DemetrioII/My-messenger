@@ -42,7 +42,7 @@ struct ClientContext {
 };
 
 struct ServerContext {
-  std::shared_ptr<Server> transport_server;
+  std::shared_ptr<IServer> transport_server;
   std::shared_ptr<MessagingService> messaging_service;
   Serializer serializer;
 
@@ -52,6 +52,6 @@ struct ServerContext {
   Stream<std::pair<int, Message>> command_stream;
 
   ServerContext()
-      : transport_server(Server::create()),
+      : transport_server(ServerFabric::create_tcp_server()),
         messaging_service(std::make_shared<MessagingService>()) {}
 };

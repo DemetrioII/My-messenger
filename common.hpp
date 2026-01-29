@@ -7,7 +7,8 @@
 
 // UI и Мост
 #include "include/services/message_bridge.hpp"
-#include "include/ui/simple_window.hpp"
+#include "include/ui/chat_window.hpp"
+#include "include/ui/login_window.hpp"
 
 #include "include/services/messaging_client.hpp"
 #include "include/services/messaging_server.hpp"
@@ -29,78 +30,70 @@ void start_server() {
 // КЛИЕНТ (Теперь с Qt UI)
 // -----------------------------------------------------------
 void start_gui_client(int argc, char *argv[]) {
-  // 1. Инициализация Qt (Главный цикл)
+  // 1. Initialize QApplication (main loop)
   QApplication app(argc, argv);
 
-  // 2. Создаем объекты: Мост и Окно
-  MessageBridge bridge;
-  MessengerUI window;
+  // 2. Initialize main objects (bridge and windows)
+  std::shared_ptr<MessageBridge> bridge = std::make_shared<MessageBridge>();
+  LoginWindow *loginWindow = new LoginWindow();
+  ChatWindow *chatWindow = nullptr;
 
-  // 3. Соединяем: Когда Мост получает данные -> Окно обновляет текст
-  QObject::connect(&bridge, &MessageBridge::responseReceived, &window,
-                   &MessengerUI::updateResponse, Qt::QueuedConnection);
+  // When user enters we should open the chat window
+  QObject::connect(loginWindow, &LoginWindow::loginSuccess,
+                   [&](const QString &nickname) {
+                     if (chatWindow) {
+                       chatWindow->deleteLater();
+                     }
 
-  // QObject::connect(&window, &MessengerUI::sendMessage, &bridge,
-  //  &MessageBridge::postSend);
+                     chatWindow = new ChatWindow(nickname);
+                     chatWindow->show();
 
-  QObject::connect(&window, &MessengerUI::loginAttempt, &bridge,
-                   &MessageBridge::sendToServer);
+                     QString loginCmd = "/login " + nickname;
+                     bridge->sendToClient(loginCmd);
 
-  QObject::connect(&bridge, &MessageBridge::responseReceived, &window,
-                   &MessengerUI::updateResponse);
+                     QObject::connect(chatWindow, &ChatWindow::sendMessage,
+                                      [&](const std::string &message) {
+                                        bridge->sendToClient(
+                                            QString::fromStdString(message));
+                                      });
+                   });
 
-  // 4. Показываем окно
-  window.resize(400, 300);
-  window.show();
-
-  // 5. ЗАПУСКАЕМ СЕТЬ В ОТДЕЛЬНОМ ПОТОКЕ 🧵
   // Qt крутится в main, а socket read/write будет здесь
-  std::thread net_thread([&bridge]() {
-    MessagingClient client;
+  std::thread net_thread([bridge, &chatWindow]() {
+    auto client = std::make_shared<MessagingClient>();
 
-    // Эмуляция/Подключение
-    if (!client.init_client("127.0.0.1", 8080)) {
-      bridge.postResponse("Ошибка: Сервер недоступен!");
-      return;
-    }
-    bridge.postResponse("Подключено к серверу! 🐧");
-
-    // ВАЖНО:
-    // Чтобы клиент мог писать в окно, нам нужно передать ему callback.
-    // Добавь в MessagingClient поле: std::function<void(std::string)> on_msg;
-    // И вызывай его, когда read() возвращает данные.
-
-    // Пример (псевдокод интеграции):
-    /*
-    client.on_msg = [&bridge](const std::string& msg) {
-        bridge.postResponse(msg);
-    };
-    */
-
-    bridge.onOutboundMessage = [&client](const std::string &cmd) {
-      client.get_data(cmd);
-    };
-
-    QObject::connect(&bridge, &MessageBridge::sendToClient,
-                     [&client](const QString &text) {
-                       client.get_data(text.toStdString());
+    QObject::connect(bridge.get(), &MessageBridge::responseReceived,
+                     [&chatWindow](const QString &text) {
+                       if (chatWindow) {
+                         chatWindow->updateResponse(text);
+                       }
                      });
 
-    auto ctx = client.get_context();
+    // Эмуляция/Подключение
+    if (!client->init_client("127.0.0.1", 8080)) {
+      bridge->postResponse("Ошибка: Сервер недоступен!");
+      return;
+    }
+    bridge->postResponse("Подключено к серверу! 🐧");
 
+    auto ctx = client->get_context();
     ctx->ui_callback = [&bridge](const std::string &text) {
-      bridge.postResponse(text);
+      bridge->postResponse(text);
     };
 
-    // Пока просто запустим цикл клиента
-    // Если твой client.run() блокирующий, он будет жить здесь
-    client.run();
+    QObject::connect(bridge.get(), &MessageBridge::sendToClient,
+                     [&client](const QString &text) {
+                       client->get_data(text.toStdString());
+                     });
+
+    client->run();
   });
 
   // Отсоединяем поток, чтобы он жил своей жизнью (Daemon style)
   net_thread.detach();
 
   // 6. Запуск Event Loop Qt (блокирует этот поток, пока окно открыто)
+  loginWindow->show();
   app.exec();
 
   // Когда окно закрыли — выходим

@@ -80,6 +80,10 @@ public:
   virtual void on_client_disconnected(int fd) = 0;
   virtual void on_client_message(int fd, const std::vector<uint8_t> &data) = 0;
   virtual void on_client_writable(int fd) = 0;
+  virtual void send(int fd, const std::vector<uint8_t> &data) = 0;
+  virtual void set_data_callback(
+      std::function<void(int, std::vector<uint8_t>)> callback) = 0;
+  virtual void run_event_loop() = 0;
   virtual ~IServer() = default;
 };
 

@@ -31,18 +31,11 @@ private:
   void process_pending_messages();
 
 public:
-  static std::shared_ptr<Server> create(SocketType type = SocketType::TCP) {
+  static std::shared_ptr<Server> create(std::unique_ptr<ISocket> &socket_) {
     std::unique_ptr<ISocket> socket;
-    switch (type) {
-    case SocketType::TCP:
-      socket = std::make_unique<TCPSocket>();
-      break;
-    case SocketType::UDP:
-      socket = std::make_unique<UDPSocket>();
-      break;
-    default:
-      throw std::invalid_argument("Unknown socket type");
-    }
+
+    socket = std::move(socket_);
+
     struct make_shared_enabler : public Server {
       make_shared_enabler(std::unique_ptr<ISocket> sock)
           : Server(std::move(sock)) {}
@@ -53,12 +46,12 @@ public:
   // Удалить копирование
   Server(const Server &) = delete;
   Server &operator=(const Server &) = delete;
-  void
-  set_data_callback(std::function<void(int, std::vector<uint8_t>)> callback);
+  void set_data_callback(
+      std::function<void(int, std::vector<uint8_t>)> callback) override;
 
   void start(int port) override;
 
-  void run_event_loop();
+  void run_event_loop() override;
 
   void stop() override;
 
@@ -74,11 +67,21 @@ public:
 
   bool is_running() const override;
 
-  void send(int fd, const std::vector<uint8_t> &raw_data);
+  void send(int fd, const std::vector<uint8_t> &raw_data) override;
 
   void send(const std::string &message);
 
   int get_fd() const;
 
   ~Server() override;
+};
+
+class ServerFabric {
+public:
+  static std::shared_ptr<IServer> create_tcp_server() {
+    std::unique_ptr<ISocket> tcp_socket = std::make_unique<TCPSocket>();
+    std::shared_ptr<IServer> server = Server::create(tcp_socket);
+
+    return server;
+  }
 };
