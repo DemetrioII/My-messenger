@@ -31,7 +31,7 @@ ChatWindow::ChatWindow(const QString &nickname, QWidget *parent)
   setStyleSheet(R"(
 			QWidget {
 				background-color: 1e1e1e;
-				color: #dcdcdc;
+				color: #000000;
 				font-family: 'Consolas', 'Monaco', monospace;
 			}
 			QLineEdit {
@@ -57,16 +57,16 @@ ChatWindow::ChatWindow(const QString &nickname, QWidget *parent)
 }
 
 void ChatWindow::updateResponse(const QString &text) {
-	QString timestamp = QDateTime::currentDateTime().toString("[hh:mm::ss] ");
-	historyArea->append(timestamp + text);
+  QString timestamp = QDateTime::currentDateTime().toString("[hh:mm::ss] ");
+  historyArea->append(timestamp + text);
 }
 
 void ChatWindow::handleSend() {
-	QString text = inputField->text().trimmed();
-	if (text.isEmpty())
-		return;
+  QString text = inputField->text().trimmed();
+  if (text.isEmpty())
+    return;
 
-	emit sendMessage(text.toStdString());
+  emit sendMessage(text.toStdString());
 
-	inputField->clear();
+  inputField->clear();
 }

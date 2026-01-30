@@ -5,16 +5,19 @@
 #include <mutex>
 #include <unordered_map>
 
-class Acceptor;
+class TCPAcceptor;
 
 class AcceptHandler : public IEventHandler {
   std::weak_ptr<IServer> server;
-  Acceptor acceptor;
+  std::unique_ptr<IAcceptor> acceptor;
 
 public:
   AcceptHandler() = default;
 
-  void init(std::shared_ptr<IServer> server_, Acceptor acceptor_);
+  void init(std::shared_ptr<IServer> server_,
+            std::unique_ptr<IAcceptor> acceptor_);
+
+  void set_acceptor(std::unique_ptr<IAcceptor> acceptor);
 
   void handle_event(int fd, uint32_t event_mask) override;
 

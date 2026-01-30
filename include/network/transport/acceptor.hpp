@@ -15,13 +15,22 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-class Acceptor {
-  TransportFabric transport_fabric;
-
+class TCPAcceptor : public IAcceptor {
 public:
-  Acceptor() = default;
+  TCPAcceptor() = default;
 
-  std::optional<std::shared_ptr<ClientConnection>> accept(int server_fd);
+  std::optional<std::shared_ptr<ClientConnection>>
+  accept(int server_fd) override;
 
-  ~Acceptor() = default;
+  ~TCPAcceptor() override;
+};
+
+class UDPAcceptor : public IAcceptor {
+public:
+  UDPAcceptor() = default;
+
+  std::optional<std::shared_ptr<ClientConnection>>
+  accept(int server_fd) override;
+
+  ~UDPAcceptor() override;
 };

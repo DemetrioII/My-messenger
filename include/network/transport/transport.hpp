@@ -37,11 +37,11 @@ public:
 
 class TransportFabric {
 public:
-  std::unique_ptr<TCPTransport> create_tcp() {
+  static std::unique_ptr<TCPTransport> create_tcp() {
     return std::make_unique<TCPTransport>(TCPTransport());
   }
 
-  std::unique_ptr<UDPTransport> create_udp(struct sockaddr_in &addr) {
+  static std::unique_ptr<UDPTransport> create_udp(struct sockaddr_in &addr) {
     return std::make_unique<UDPTransport>(UDPTransport(addr));
   }
 };

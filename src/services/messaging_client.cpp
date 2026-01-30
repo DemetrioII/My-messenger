@@ -4,8 +4,8 @@ void MessagingClient::handle_command(const std::string &msg) {
   ParsedCommand cmd_struct = context->parser.parse_line(msg);
 }
 
-MessagingClient::MessagingClient()
-    : context(std::make_shared<ClientContext>()) {
+MessagingClient::MessagingClient(const std::string &server_ip, int port)
+    : context(std::make_shared<ClientContext>(server_ip, port)) {
   dispatcher.registerHandler(MessageType::Text,
                              std::make_unique<TextMessageHandler>());
   dispatcher.registerHandler(MessageType::Command,
@@ -23,8 +23,6 @@ MessagingClient::MessagingClient()
 }
 
 int MessagingClient::init_client(const std::string &server_ip, int port) {
-  if (!context->client->connect(server_ip, port))
-    return 0;
   context->client->set_data_callback(
       [this](const std::vector<uint8_t> &data) { on_tcp_data_received(data); });
   return 1;

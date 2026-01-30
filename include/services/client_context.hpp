@@ -27,8 +27,9 @@ struct ClientContext {
       std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
       pending_files;
 
-  ClientContext()
-      : client(Client::create()), mq(std::make_shared<MessageQueue>(client)),
+  ClientContext(const std::string &server_ip, uint16_t port)
+      : client(ClientFabric::create_tcp_client(server_ip, port)),
+        mq(std::make_shared<MessageQueue>(client)),
         encryption_service(std::make_shared<EncryptionService>()),
         serializer(std::make_shared<Serializer>()),
         pending_files(std::make_shared<std::unordered_map<

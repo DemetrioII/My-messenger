@@ -1,17 +1,22 @@
 #include "../../../include/network/transport/handling.hpp"
 
-void AcceptHandler::init(std::shared_ptr<IServer> server_, Acceptor acceptor_) {
+void AcceptHandler::init(std::shared_ptr<IServer> server_,
+                         std::unique_ptr<IAcceptor> acceptor_) {
   server = server_;
-  acceptor = acceptor_;
+  acceptor = std::move(acceptor_);
 }
 
 void AcceptHandler::handle_event(int fd, uint32_t event_mask) {
   if (event_mask & EPOLLIN) {
-    auto conn = acceptor.accept(fd);
+    auto conn = acceptor->accept(fd);
     if (conn != std::nullopt) {
       server.lock()->on_client_connected(conn.value());
     }
   }
+}
+
+void AcceptHandler::set_acceptor(std::unique_ptr<IAcceptor> acceptor_) {
+  acceptor = std::move(acceptor_);
 }
 
 AcceptHandler::~AcceptHandler() {}

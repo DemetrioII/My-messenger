@@ -60,7 +60,7 @@ void start_gui_client(int argc, char *argv[]) {
 
   // Qt крутится в main, а socket read/write будет здесь
   std::thread net_thread([bridge, &chatWindow]() {
-    auto client = std::make_shared<MessagingClient>();
+    auto client = std::make_shared<MessagingClient>("127.0.0.1", 8080);
 
     QObject::connect(bridge.get(), &MessageBridge::responseReceived,
                      [&chatWindow](const QString &text) {

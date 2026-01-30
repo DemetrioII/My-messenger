@@ -10,8 +10,8 @@
 #include <mutex>
 
 class Server : public IServer, public std::enable_shared_from_this<Server> {
-  Acceptor acceptor;
   std::atomic<bool> running{false};
+  std::unique_ptr<IAcceptor> acceptor;
 
   std::unique_ptr<EventLoop> event_loop;
   struct epoll_event ev, events[MAX_EVENTS];
@@ -26,21 +26,26 @@ class Server : public IServer, public std::enable_shared_from_this<Server> {
 
 private:
   std::unique_ptr<ISocket> socket_visitor;
-  Server(std::unique_ptr<ISocket> socket);
+  Server(std::unique_ptr<ISocket> socket, std::unique_ptr<IAcceptor> acceptor_);
 
   void process_pending_messages();
 
 public:
-  static std::shared_ptr<Server> create(std::unique_ptr<ISocket> &socket_) {
+  static std::shared_ptr<Server> create(std::unique_ptr<ISocket> &socket_,
+                                        std::unique_ptr<IAcceptor> &acceptor_) {
     std::unique_ptr<ISocket> socket;
+    std::unique_ptr<IAcceptor> accept;
 
     socket = std::move(socket_);
+    accept = std::move(acceptor_);
 
     struct make_shared_enabler : public Server {
-      make_shared_enabler(std::unique_ptr<ISocket> sock)
-          : Server(std::move(sock)) {}
+      make_shared_enabler(std::unique_ptr<ISocket> sock,
+                          std::unique_ptr<IAcceptor> acc)
+          : Server(std::move(sock), std::move(acc)) {}
     };
-    return std::make_shared<make_shared_enabler>(std::move(socket));
+    return std::make_shared<make_shared_enabler>(std::move(socket),
+                                                 std::move(accept));
   }
 
   // Удалить копирование
@@ -80,7 +85,16 @@ class ServerFabric {
 public:
   static std::shared_ptr<IServer> create_tcp_server() {
     std::unique_ptr<ISocket> tcp_socket = std::make_unique<TCPSocket>();
-    std::shared_ptr<IServer> server = Server::create(tcp_socket);
+    std::unique_ptr<IAcceptor> tcp_acceptor = std::make_unique<TCPAcceptor>();
+    std::shared_ptr<IServer> server = Server::create(tcp_socket, tcp_acceptor);
+
+    return server;
+  }
+
+  static std::shared_ptr<IServer> create_udp_server() {
+    std::unique_ptr<ISocket> udp_socket = std::make_unique<UDPSocket>();
+    std::unique_ptr<IAcceptor> udp_acceptor = std::make_unique<UDPAcceptor>();
+    std::shared_ptr<IServer> server = Server::create(udp_socket, udp_acceptor);
 
     return server;
   }

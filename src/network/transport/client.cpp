@@ -11,16 +11,18 @@ bool Client::connect(const std::string &server_ip, int port) {
     return false;
   if (socket_visitor->setup_connection(server_ip, port) < 0)
     return false;
-  if (socket_visitor->get_type() == SocketType::TCP) {
-    transport = std::move(transport_fabric.create_tcp());
-  } else {
-    auto serv_addr = socket_visitor->get_peer_address();
-    transport = std::move(transport_fabric.create_udp(serv_addr));
-  }
-  transport->connect(socket_visitor->get_fd());
-  framer = std::make_unique<FramerMessage>();
+
+  server_addr = socket_visitor->get_peer_address();
   event_loop->add_fd(socket_visitor->get_fd(), handler, EPOLLIN | EPOLLRDHUP);
   return true;
+}
+
+struct sockaddr_in Client::get_addr() { return server_addr; }
+
+void Client::init_transport(std::unique_ptr<ITransport> transport_) {
+  transport = std::move(transport_);
+  transport->connect(socket_visitor->get_fd());
+  framer = std::make_unique<FramerMessage>();
 }
 
 void Client::disconnect() {

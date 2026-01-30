@@ -33,7 +33,7 @@ private:
   void handle_command(const std::string &msg);
 
 public:
-  MessagingClient();
+  MessagingClient(const std::string &server_ip, int port);
 
   int init_client(const std::string &server_ip, int port);
 

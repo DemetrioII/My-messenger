@@ -1,10 +1,11 @@
 #include "../../../include/network/transport/server.hpp"
 
-Server::Server(std::unique_ptr<ISocket> socket)
+Server::Server(std::unique_ptr<ISocket> socket,
+               std::unique_ptr<IAcceptor> acceptor_)
     : event_loop(std::make_unique<EventLoop>()),
       acceptHandler(std::make_shared<AcceptHandler>()),
       handler(std::make_shared<ServerHandler>()),
-      socket_visitor(std::move(socket)) {}
+      socket_visitor(std::move(socket)), acceptor(std::move(acceptor_)) {}
 
 void Server::process_pending_messages() {
   // Для фоновых задач
@@ -23,7 +24,7 @@ void Server::start(int port) {
     socket_visitor->make_address_reusable();
 
     // acceptHandler = std::make_shared<AcceptHandler>();
-    acceptHandler->init(shared_from_this(), acceptor);
+    acceptHandler->init(shared_from_this(), std::move(acceptor));
     // handler = std::make_shared<ServerHandler>();
     handler->init(shared_from_this());
     event_loop->add_fd(socket_visitor->get_fd(), acceptHandler,

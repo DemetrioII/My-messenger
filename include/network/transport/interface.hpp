@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <stdint.h>
 #include <string>
 #include <sys/epoll.h>
@@ -49,6 +50,13 @@ struct ReceiveResult {
   int error_code;
 };
 
+class IAcceptor {
+public:
+  virtual std::optional<std::shared_ptr<ClientConnection>>
+  accept(int server_fd) = 0;
+  virtual ~IAcceptor() = default;
+};
+
 class ITransport {
 public:
   virtual ssize_t send(int fd, const std::vector<uint8_t> &data) const = 0;
@@ -92,6 +100,7 @@ public:
   virtual void on_writable(int fd) = 0;
   virtual void on_disconnected() = 0;
   virtual void run_event_loop() = 0;
+  virtual void init_transport(std::unique_ptr<ITransport> transport_) = 0;
   virtual void
   set_data_callback(std::function<void(const std::vector<uint8_t> &)> f) = 0;
   virtual void send_to_server(const std::vector<uint8_t> &data) = 0;
