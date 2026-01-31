@@ -27,20 +27,12 @@ void MakeRoomCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
   auto transport_server = context->transport_server;
   auto parser = context->parser;
   if (!service->is_authenticated(fd)) {
-    std::string error_msg = "[Error]: You need to authenticate first";
-    transport_server->send(
-        fd, context->serializer.serialize(Message(
-                std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
-                MessageType::Text)));
+    transport_server->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
 
   if (chat_name.empty()) {
-    std::string error_msg = "[Error]: Please enter non-empty chat name";
-    transport_server->send(
-        fd, context->serializer.serialize(Message(
-                std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
-                MessageType::Text)));
+    transport_server->send(fd, StaticResponses::EMPTY_CHAT_NAME);
     return;
   }
 
@@ -49,12 +41,7 @@ void MakeRoomCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
   std::vector<std::string> members{user_id};
   std::string chat_name_str(chat_name.begin(), chat_name.end());
   if (!service->get_chat_id_by_name(chat_name_str).empty()) {
-    std::string error_msg =
-        "[Error]: Chat " + chat_name_str + " is already exists";
-    transport_server->send(
-        fd, context->serializer.serialize(Message(
-                std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
-                MessageType::Text)));
+    transport_server->send(fd, StaticResponses::CHAT_ALREADY_EXISTS);
     return;
   }
   service->create_chat(user_id, chat_name_str, ChatType::Group, members);

@@ -42,9 +42,9 @@ void Client::send_to_server(const std::vector<uint8_t> &data) {
 
 void Client::on_server_message() {
   auto result = transport->receive(socket_visitor->get_fd());
-  if (result.status == ReceiveStatus::OK && !result.data.empty()) {
-    recv_buffer.insert(recv_buffer.end(), result.data.begin(),
-                       result.data.end());
+  if (result.status == ReceiveStatus::OK && result.data.data()) {
+    recv_buffer.insert(recv_buffer.end(), result.data.data(),
+                       result.data.data() + result.data.length);
 
     // Обрабатываем все накопившиеся полные сообщения
     // while (recv_buffer.size() >= sizeof(uint32_t)) {

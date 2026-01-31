@@ -39,33 +39,47 @@ ssize_t TCPTransport::send(int fd, const std::vector<uint8_t> &data) const {
 
 ReceiveResult TCPTransport::receive(int fd) const {
   char temp[4096]; // Больше для эффективности
-  std::vector<uint8_t> buffer;
+  std::vector<uint8_t> accumulation_buffer;
 
   while (true) {
     ssize_t bytes = ::recv(fd, temp, sizeof(temp), 0);
 
     if (bytes > 0) {
-      buffer.insert(buffer.end(), temp, temp + bytes);
+      accumulation_buffer.insert(accumulation_buffer.end(), temp, temp + bytes);
 
-      auto message = extract_complete_message(fd, buffer);
+      auto message = extract_complete_message(fd, accumulation_buffer);
       if (message.has_value()) {
-        // Возвращаем то, что уже прочитали
-        return {ReceiveStatus::OK, message.value(), 0};
+        ReceiveResult res;
+        res.status = ReceiveStatus::OK;
+        res.data.set_data(message->data(), message->size());
+        res.error_code = 0;
+
+        return res;
       }
       // Иначе продолжаем читать (в буфере может быть больше данных)
     } else if (bytes == 0) {
       // Соединение закрыто
-      return {ReceiveStatus::CLOSED, buffer,
-              0}; // Возвращаем то, что успели прочитать
-    } else { // bytes == -1
+      ReceiveResult res;
+      res.status = ReceiveStatus::CLOSED;
+      res.data.set_data(accumulation_buffer.data(), accumulation_buffer.size());
+      res.error_code = 0;
+      return res; // Возвращаем то, что успели прочитать
+    } else {      // bytes == -1
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
         // Нет доступных данных прямо сейчас
-        return {ReceiveStatus::WOULDBLOCK, buffer,
-                0}; // Возвращаем уже прочитанное
+        ReceiveResult res;
+        res.status = ReceiveStatus::WOULDBLOCK;
+        res.data.set_data(accumulation_buffer.data(),
+                          accumulation_buffer.size());
+        res.error_code = 0;
+        return res; // Возвращаем уже прочитанное
       } else {
         // Ошибка
-        return {ReceiveStatus::ERROR, buffer,
-                errno}; // Возвращаем то, что успели
+        ReceiveResult res;
+        res.status = ReceiveStatus::ERROR;
+        res.data.set_data(accumulation_buffer.data(),
+                          accumulation_buffer.size());
+        res.error_code = errno; // Возвращаем то, что успели
       }
     }
   }
@@ -121,19 +135,35 @@ ReceiveResult UDPTransport::receive(int fd) const {
     }
 
     std::vector<uint8_t> message(temp + sizeof(uint32_t), temp + bytes);
-    return {ReceiveStatus::OK, message, 0};
+    ReceiveResult res;
+    res.status = ReceiveStatus::OK;
+    res.data.set_data(message.data(), message.size());
+    res.error_code = 0;
+    return res;
   } else if (bytes == 0) {
     // Соединение закрыто
-    return {ReceiveStatus::CLOSED, buffer,
-            0}; // Возвращаем то, что успели прочитать
-  } else {      // bytes == -1
+    ReceiveResult res;
+    res.status = ReceiveStatus::CLOSED;
+    res.data.set_data(buffer.data(), buffer.size());
+    res.error_code = 0;
+    return res;
+    // Возвращаем то, что успели прочитать
+  } else { // bytes == -1
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       // Нет доступных данных прямо сейчас
-      return {ReceiveStatus::WOULDBLOCK, buffer,
-              0}; // Возвращаем уже прочитанное
+      ReceiveResult res;
+      res.status = ReceiveStatus::WOULDBLOCK;
+      res.data.set_data(buffer.data(), buffer.size());
+      res.error_code = 0;
+      return res;
+      // Возвращаем уже прочитанное
     } else {
       // Ошибка
-      return {ReceiveStatus::ERROR, buffer, errno}; // Возвращаем то, что успели
+      ReceiveResult res;
+      res.status = ReceiveStatus::ERROR;
+      res.data.set_data(buffer.data(), buffer.size());
+      res.error_code = errno;
+      return res; // Возвращаем то, что успели
     }
   }
 }

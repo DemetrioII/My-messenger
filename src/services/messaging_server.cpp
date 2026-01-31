@@ -42,8 +42,8 @@ MessagingServer::MessagingServer()
               "Message from " + from_user_id + " in chat " + chat_id + " ";
           std::vector<uint8_t> msg_bytes =
               std::vector<uint8_t>(prefix.begin(), prefix.end());
-          auto payload = msg.get_payload();
-          msg_bytes.insert(msg_bytes.end(), payload.begin(), payload.end());
+          msg_bytes.insert(msg_bytes.end(), msg.get_payload().begin(),
+                           msg.get_payload().end());
           Message msg_to_send{msg_bytes, 0, {}, MessageType::Text};
           server_context->transport_server->send(
               fd, server_context->serializer.serialize(msg_to_send));

@@ -20,12 +20,13 @@ void Message::set_payload(const std::vector<uint8_t> &new_payload) {
   payload = new_payload;
 }
 
-std::vector<uint8_t> Message::get_payload() const { return payload; }
+const std::vector<uint8_t> &Message::get_payload() const { return payload; }
 
-std::vector<uint8_t> Message::get_meta(size_t index) const {
+const std::vector<uint8_t> &Message::get_meta(size_t index) const {
+  static const std::vector<uint8_t> empty_vector = {};
   if (index < metalen)
     return metadata[index];
-  return {};
+  return empty_vector;
 }
 
 void Message::insert_metadata(const std::vector<uint8_t> &meta) {

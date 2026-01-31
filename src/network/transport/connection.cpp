@@ -47,9 +47,9 @@ bool ClientConnection::flush() {
 
 bool ClientConnection::try_receive() {
   auto result = transport->receive(fd.get_fd());
-  if (!result.data.empty()) {
-    recv_buffer.insert(recv_buffer.end(), result.data.begin(),
-                       result.data.end());
+  if (result.data.data()) {
+    recv_buffer.insert(recv_buffer.end(), result.data.data(),
+                       result.data.data() + result.data.length);
   }
   return (result.status == ReceiveStatus::OK ||
           result.status == ReceiveStatus::WOULDBLOCK);

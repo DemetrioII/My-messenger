@@ -1,6 +1,7 @@
 // interface.hpp
 #pragma once
 #include <arpa/inet.h>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -8,6 +9,7 @@
 #include <string>
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <variant>
 #include <vector>
 
 #define MAX_EVENTS 10
@@ -42,11 +44,39 @@ public:
 
   ~Fd() { reset_fd(-1); }
 };
+
+struct NetBuffer {
+  static constexpr size_t SBO_SIZE = 128;
+  size_t length = 0;
+  bool is_large = false;
+
+  std::variant<std::array<uint8_t, SBO_SIZE>, std::vector<uint8_t>> storage;
+
+  NetBuffer() : storage(std::array<uint8_t, SBO_SIZE>{}), length(0) {}
+
+  void set_data(const uint8_t *src, size_t len) {
+    length = len;
+    if (len <= SBO_SIZE) {
+      auto &arr = std::get<std::array<uint8_t, SBO_SIZE>>(storage);
+      std::memcpy(arr.data(), src, len);
+    } else {
+      storage.emplace<std::vector<uint8_t>>(src, src + len);
+    }
+  }
+
+  const uint8_t *data() const {
+    if (auto *arr = std::get_if<std::array<uint8_t, SBO_SIZE>>(&storage)) {
+      return arr->data();
+    }
+    return std::get<std::vector<uint8_t>>(storage).data();
+  }
+};
+
 enum class ReceiveStatus { OK, WOULDBLOCK, CLOSED, ERROR };
 
 struct ReceiveResult {
   ReceiveStatus status;
-  std::vector<uint8_t> data;
+  NetBuffer data;
   int error_code;
 };
 

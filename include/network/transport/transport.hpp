@@ -1,8 +1,10 @@
 // transport.hpp
 #pragma once
 #include "interface.hpp"
+#include <cstring>
 #include <memory.h>
 #include <optional>
+#include <variant>
 
 class TCPTransport : public ITransport {
   std::optional<std::vector<uint8_t>>

@@ -52,11 +52,8 @@ void LoginCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
   auto &user = service->get_user_by_id(user_id);
   user.set_public_key(pubkey_bytes);
   if (user.get_public_key().empty()) {
-    std::string error_msg = "[Error]: Public key has not been set";
-    context->transport_server->send(
-        fd, context->serializer.serialize(Message(
-                std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
-                MessageType::Text)));
+    context->transport_server->send(fd,
+                                    StaticResponses::PUBLIC_KEY_HAS_NOT_SET);
     return;
   }
   std::string response_string = "Hello, " + username_string + "!";

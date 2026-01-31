@@ -27,12 +27,8 @@ void SendGroupMessageCommand::execeuteOnServer(
   auto chat_name_str = std::string(chat_name.begin(), chat_name.end());
   auto chat_id = service->get_chat_id_by_name(chat_name_str);
   if (chat_id.empty()) {
-    std::string error_msg = "[Error]: Chat not found";
-    context->transport_server->send(
-        context->fd,
-        context->serializer.serialize(
-            Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0,
-                    {}, MessageType::Text)));
+    context->transport_server->send(context->fd,
+                                    StaticResponses::CHAT_NOT_FOUND);
     return;
   }
 

@@ -27,29 +27,17 @@ void JoinCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
   auto fd = context->fd;
   auto chat_name_string = std::string(chat_name.begin(), chat_name.end());
   if (service->chat_id_by_name(chat_name_string) == "") {
-    std::string error_msg = "Chat not found";
-    transport_server->send(
-        fd, context->serializer.serialize(Message(
-                std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
-                MessageType::Text)));
+    context->transport_server->send(fd, StaticResponses::CHAT_NOT_FOUND);
     return;
   }
   auto user_id = service->get_user_id_by_fd(fd);
   if (user_id == "") {
-    std::string error_msg = "Please /login first";
-    transport_server->send(
-        fd, context->serializer.serialize(Message(
-                std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
-                MessageType::Text)));
+    transport_server->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
   auto username = service->get_user_by_id(user_id).get_username();
   if (service->is_member_of_chat(chat_name_string, user_id)) {
-    std::string error_msg = "[Error]: You are already member of this chat";
-    transport_server->send(
-        fd, context->serializer.serialize(Message(
-                std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
-                MessageType::Text)));
+    transport_server->send(fd, StaticResponses::YOU_ARE_ALREADY_MEMBER);
     return;
   }
   service->join_chat_by_name(user_id, chat_name_string);
