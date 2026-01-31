@@ -26,7 +26,7 @@ void CipherMessageHandler::handleMessageOnServer(
       context->messaging_service->get_fd_by_user_id(recipient_id);
   auto &sender = context->messaging_service->get_user_by_id(user_id);
   Message msg_to_send(
-      {msg.get_payload(),
+      {std::move(msg.get_payload()),
        3,
        {msg.get_meta(0), msg.get_meta(1), sender.get_public_key()},
        MessageType::CipherMessage});

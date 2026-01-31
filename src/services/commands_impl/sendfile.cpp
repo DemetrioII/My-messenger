@@ -60,7 +60,7 @@ void SendFileCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
     auto cipher_bytes = context->encryption_service->encrypt_for(
         context->my_username, recipient, buffer);
 
-    Message chunk_msg(cipher_bytes, 3,
+    Message chunk_msg(std::move(cipher_bytes), 3,
                       {recipient, fname_bytes, context->my_username},
                       MessageType::FileChunk);
 

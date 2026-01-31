@@ -62,6 +62,10 @@ public:
           const std::vector<std::vector<uint8_t>> &metadata_,
           MessageType type = MessageType::Text);
 
+  Message(std::vector<uint8_t> &&payload_, uint8_t metalen_,
+          std::vector<std::vector<uint8_t>> &&metadata_,
+          MessageType type = MessageType::Text);
+
   MessageType get_type() const;
 
   void set_payload(const std::vector<uint8_t> &new_payload);

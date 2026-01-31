@@ -14,6 +14,20 @@ Message::Message(const std::vector<uint8_t> &payload_, uint8_t metalen_,
   payload = payload_;
 }
 
+Message::Message(std::vector<uint8_t> &&payload_, uint8_t metalen_,
+                 std::vector<std::vector<uint8_t>> &&metadata_,
+                 MessageType type) {
+  header.type = type;
+  header.length = payload_.size() + metalen_;
+  header.timestamp = std::chrono::time_point_cast<std::chrono::seconds>(
+                         std::chrono::system_clock::now())
+                         .time_since_epoch()
+                         .count();
+  metalen = metalen_;
+  metadata = std::move(metadata_);
+  payload = std::move(payload_);
+}
+
 MessageType Message::get_type() const { return header.type; }
 
 void Message::set_payload(const std::vector<uint8_t> &new_payload) {

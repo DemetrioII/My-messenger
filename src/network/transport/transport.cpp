@@ -79,7 +79,9 @@ ReceiveResult TCPTransport::receive(int fd) const {
         res.status = ReceiveStatus::ERROR;
         res.data.set_data(accumulation_buffer.data(),
                           accumulation_buffer.size());
-        res.error_code = errno; // Возвращаем то, что успели
+        res.error_code = errno;
+        return res;
+        // Возвращаем то, что успели
       }
     }
   }
