@@ -139,14 +139,16 @@ ReceiveResult UDPTransport::receive(int fd) const {
     std::vector<uint8_t> message(temp + sizeof(uint32_t), temp + bytes);
     ReceiveResult res;
     res.status = ReceiveStatus::OK;
-    res.data.set_data(message.data(), message.size());
+    res.data.set_data(
+        reinterpret_cast<const uint8_t *>(temp + sizeof(uint32_t)),
+        declared_len);
     res.error_code = 0;
     return res;
   } else if (bytes == 0) {
     // Соединение закрыто
     ReceiveResult res;
     res.status = ReceiveStatus::CLOSED;
-    res.data.set_data(buffer.data(), buffer.size());
+    res.data = {};
     res.error_code = 0;
     return res;
     // Возвращаем то, что успели прочитать
@@ -155,7 +157,7 @@ ReceiveResult UDPTransport::receive(int fd) const {
       // Нет доступных данных прямо сейчас
       ReceiveResult res;
       res.status = ReceiveStatus::WOULDBLOCK;
-      res.data.set_data(buffer.data(), buffer.size());
+      res.data = {};
       res.error_code = 0;
       return res;
       // Возвращаем уже прочитанное
@@ -163,7 +165,7 @@ ReceiveResult UDPTransport::receive(int fd) const {
       // Ошибка
       ReceiveResult res;
       res.status = ReceiveStatus::ERROR;
-      res.data.set_data(buffer.data(), buffer.size());
+      res.data = {};
       res.error_code = errno;
       return res; // Возвращаем то, что успели
     }
