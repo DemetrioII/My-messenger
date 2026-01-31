@@ -55,15 +55,18 @@ void SendFileCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
     if (read_bytes == 0)
       break;
 
+    buffer.resize(read_bytes);
+
     auto cipher_bytes = context->encryption_service->encrypt_for(
         context->my_username, recipient, buffer);
 
-    std::vector<uint8_t> chunk(cipher_bytes.begin(), cipher_bytes.end());
-
-    Message chunk_msg(chunk, 3, {recipient, fname_bytes, context->my_username},
+    Message chunk_msg(cipher_bytes, 3,
+                      {recipient, fname_bytes, context->my_username},
                       MessageType::FileChunk);
 
     client->send_to_server(serializer.serialize(chunk_msg));
+
+    buffer.resize(CHUNK);
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));

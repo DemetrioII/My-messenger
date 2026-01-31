@@ -30,7 +30,7 @@ EncryptionService::decrypt_for(const std::vector<uint8_t> &sender,
                                const std::vector<uint8_t> &ciphertext) {
   if (keys.find(sender) == keys.end())
     throw std::runtime_error("User public " +
-                             std::string(username.begin(), username.end()) +
+                             std::string(sender.begin(), sender.end()) +
                              " key not found");
   auto shared_secret = identity_key.compute_shared_secret(keys[sender]);
   auto decryption_key =
