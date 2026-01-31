@@ -30,7 +30,7 @@ void ResponseMessageHandler::handleMessageOnClient(
           context->my_username, username, msg_to_send.bytes);
       Message cipher_msg{ciphertext,
                          2,
-                         {msg_to_send.recipient_id, context->my_username},
+                         {username, context->my_username},
                          MessageType::CipherMessage};
 
       context->client->send_to_server(

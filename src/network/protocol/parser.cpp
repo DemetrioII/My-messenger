@@ -30,7 +30,7 @@ Message Parser::make_command_from_struct(const ParsedCommand &cmd_struct) {
   Message msg;
   msg.header.type = MessageType::Command;
   CommandType command_type;
-  if (cmd_struct.name == "login")
+  /*if (cmd_struct.name == "login")
     command_type = CommandType::LOGIN;
   else if (cmd_struct.name == "pmess")
     command_type = CommandType::PRIVATE_MESSAGE;
@@ -47,7 +47,9 @@ Message Parser::make_command_from_struct(const ParsedCommand &cmd_struct) {
   else if (cmd_struct.name == "sendfile")
     command_type = CommandType::SEND_FILE;
   else if (cmd_struct.name == "send")
-    command_type = CommandType::SEND;
+    command_type = CommandType::SEND; */
+  if (command_types.find(cmd_struct.name) != command_types.end())
+    command_type = command_types.find(cmd_struct.name)->second;
   else
     command_type = CommandType::UNKNOWN;
   msg.metadata.push_back({static_cast<uint8_t>(command_type)});
@@ -121,32 +123,10 @@ ParsedCommand Parser::parse_line(const std::string &line) {
 ParsedCommand Parser::make_struct_from_command(const Message &msg) {
   ParsedCommand res;
   auto cmd_type = static_cast<CommandType>(msg.get_meta(0)[0]);
-  switch (cmd_type) {
-  case CommandType::LOGIN:
-    res.name = "login";
-    break;
-  case CommandType::EXIT:
-    res.name = "exit";
-    break;
-  case CommandType::JOIN:
-    res.name = "join";
-    break;
-  case CommandType::GET_PUBKEY:
-    res.name = "getpub";
-    break;
-  case CommandType::MAKE_ROOM:
-    res.name = "room";
-    break;
-  case CommandType::PRIVATE_MESSAGE:
-    res.name = "pmess";
-    break;
-  case CommandType::SEND:
-    res.name = "send";
-    break;
-  case CommandType::SEND_FILE:
-    res.name = "sendfile";
-    break;
-  }
+  if (command_names.find(cmd_type) != command_names.end())
+    res.name = command_names.find(cmd_type)->second;
+  else
+    res.name = "unknown";
 
   for (size_t i = 1; i < msg.metalen; ++i) {
     res.args.push_back(msg.get_meta(i));
