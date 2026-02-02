@@ -22,25 +22,30 @@ void JoinCommand::fromMessage(const Message &msg) {
 }
 
 void JoinCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
-  auto service = context->messaging_service;
+  auto user_service = context->user_service;
+  auto chat_service = context->chat_service;
+  auto session_manager = context->session_manager;
   auto transport_server = context->transport_server;
   auto fd = context->fd;
   auto chat_name_string = std::string(chat_name.begin(), chat_name.end());
-  if (service->chat_id_by_name(chat_name_string) == "") {
-    context->transport_server->send(fd, StaticResponses::CHAT_NOT_FOUND);
-    return;
-  }
-  auto user_id = service->get_user_id_by_fd(fd);
-  if (user_id == "") {
+
+  auto user_id = session_manager->get_username(fd);
+  if (!user_id.has_value()) {
     transport_server->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
-  auto username = service->get_user_by_id(user_id).get_username();
-  if (service->is_member_of_chat(chat_name_string, user_id)) {
-    transport_server->send(fd, StaticResponses::YOU_ARE_ALREADY_MEMBER);
-    return;
+  auto res = chat_service->add_member(chat_name_string, *user_id);
+
+  if (!res.has_value()) {
+    if (res.error() == ServiceError::ChatNotFound) {
+      transport_server->send(fd, StaticResponses::CHAT_NOT_FOUND);
+      return;
+    }
+    if (res.error() == ServiceError::AlreadyMember) {
+      transport_server->send(fd, StaticResponses::YOU_ARE_ALREADY_MEMBER);
+      return;
+    }
   }
-  service->join_chat_by_name(user_id, chat_name_string);
 
   std::string response = "You joined the room " + chat_name_string;
   transport_server->send(

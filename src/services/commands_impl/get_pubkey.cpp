@@ -21,26 +21,22 @@ void GetPubkeyCommand::fromMessage(const Message &msg) {
 
 void GetPubkeyCommand::execeuteOnServer(
     std::shared_ptr<ServerContext> context) {
-  auto service = context->messaging_service;
   auto transport_server = context->transport_server;
   int fd = context->fd;
-  if (!service->is_authenticated(fd)) {
-    transport_server->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
-    return;
-  }
   if (username.empty()) {
     transport_server->send(fd, StaticResponses::WRONG_COMMAND_USAGE);
     return;
   }
-  auto user_id_str =
-      service->get_user_by_name(std::string(username.begin(), username.end()));
-  if (user_id_str == "") {
+
+  auto user_service = context->user_service;
+  auto session_manager = context->session_manager;
+  auto username_res = session_manager->get_username(context->fd);
+  if (!username_res.has_value()) {
     transport_server->send(fd, StaticResponses::USER_NOT_FOUND);
-    return;
   }
-  auto &user = service->get_user_by_id(user_id_str);
+  auto user = user_service->find_user(*username_res);
   Message msg(
-      {user.get_public_key(),
+      {(*user)->get_public_key(),
        2,
        {std::vector<uint8_t>{static_cast<uint8_t>(CommandType::GET_PUBKEY)},
         username},

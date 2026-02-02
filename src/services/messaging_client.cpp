@@ -48,13 +48,15 @@ MessagingClient::query_user_info(std::string &username) {}
 
 void MessagingClient::get_data(const std::string &data) {
   Message msg = context->parser.parse(data);
-  auto bytes = context->serializer->serialize(msg);
+  /*auto bytes = context->serializer->serialize(msg);
   if (msg.get_type() == MessageType::Command) {
     dispatcher.setContext(context);
     dispatcher.dispatch(msg);
   } else if (msg.get_type() == MessageType::Text) {
     context->client->send_to_server(bytes);
-  }
+  } */
+  dispatcher.setContext(context);
+  dispatcher.dispatch(msg);
   // context->ui_callback(msg.get_payload());
 }
 

@@ -20,7 +20,7 @@ MessagingServer::MessagingServer()
   dispatcher.registerHandler(MessageType::FileEnd,
                              std::make_unique<FileEndHandler>());
 
-  server_context->messaging_service->user_logged_in.subscribe(
+  /*server_context->messaging_service->user_logged_in.subscribe(
       [](const User &) { return true; },
       [this](const User &user) {
         int fd =
@@ -48,7 +48,7 @@ MessagingServer::MessagingServer()
           server_context->transport_server->send(
               fd, server_context->serializer.serialize(msg_to_send));
         }
-      });
+      }); */
 }
 
 void MessagingServer::start_server(int port) {

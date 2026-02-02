@@ -44,7 +44,9 @@ struct ClientContext {
 
 struct ServerContext {
   std::shared_ptr<IServer> transport_server;
-  std::shared_ptr<MessagingService> messaging_service;
+  std::shared_ptr<UserService> user_service;
+  std::shared_ptr<ChatService> chat_service;
+  std::shared_ptr<SessionManager> session_manager;
   Serializer serializer;
 
   int fd;
@@ -54,5 +56,7 @@ struct ServerContext {
 
   ServerContext()
       : transport_server(ServerFabric::create_tcp_server()),
-        messaging_service(std::make_shared<MessagingService>()) {}
+        user_service(std::make_shared<UserService>()),
+        chat_service(std::make_shared<ChatService>()),
+        session_manager(std::make_shared<SessionManager>()) {}
 };

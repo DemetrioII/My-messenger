@@ -22,11 +22,14 @@ void MakeRoomCommand::fromMessage(const Message &msg) {
 }
 
 void MakeRoomCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
-  auto service = context->messaging_service;
+  auto user_service = context->user_service;
+  auto chat_service = context->chat_service;
+  auto session_manager = context->session_manager;
   auto fd = context->fd;
   auto transport_server = context->transport_server;
   auto parser = context->parser;
-  if (!service->is_authenticated(fd)) {
+  auto username = session_manager->get_username(fd);
+  if (username.has_value()) {
     transport_server->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
@@ -36,15 +39,13 @@ void MakeRoomCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
     return;
   }
 
-  std::string user_id = service->get_user_id_by_fd(fd);
-
-  std::vector<std::string> members{user_id};
+  std::vector<std::string> members{*username};
   std::string chat_name_str(chat_name.begin(), chat_name.end());
-  if (!service->get_chat_id_by_name(chat_name_str).empty()) {
+  auto chat_res = chat_service->create_chat(chat_name_str, *username);
+  if (!chat_res.has_value()) {
     transport_server->send(fd, StaticResponses::CHAT_ALREADY_EXISTS);
     return;
   }
-  service->create_chat(user_id, chat_name_str, ChatType::Group, members);
 
   std::string response_str = "Room " + chat_name_str + " was created!";
 

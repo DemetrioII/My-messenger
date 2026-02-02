@@ -10,7 +10,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_compile_options(-g)
+add_compile_options(-g -std=c++23)
 
 # OpenSSL + Qt
 find_package(OpenSSL REQUIRED)

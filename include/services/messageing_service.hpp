@@ -7,6 +7,7 @@
 #include "../network/protocol/parser.hpp"
 #include "../network/transport/client.hpp"
 #include "../network/transport/server.hpp"
+#include <expected>
 #include <random>
 #include <sstream>
 #include <string>
@@ -36,13 +37,80 @@ private:
   std::vector<Subscriber> subscribers;
 };
 
-class MessagingService {
+enum class ServiceError {
+  UserNotFound,
+  ChatNotFound,
+  AccessDenied,
+  InvalidToken,
+  AlreadyExists,
+  AlreadyMember
+};
+
+template <typename T> using ServiceResult = std::expected<T, ServiceError>;
+
+using UserIdentifier = std::string;
+
+class UserService {
+public:
+  ServiceResult<std::string> register_user(const std::string &name,
+                                           const std::vector<uint8_t> &pubkey);
+
+  ServiceResult<User *> find_user(const UserIdentifier &id);
+
+  void set_public_key(const UserIdentifier &id,
+                      const std::vector<uint8_t> &key);
+
+  void remove_user(const UserIdentifier &id);
+
+private:
+  std::unordered_map<std::string, std::unique_ptr<User>> users_;
+  std::unordered_map<std::string, std::string> name_to_id_;
+};
+
+class ChatService {
+public:
+  ServiceResult<std::string> create_chat(const std::string &name,
+                                         const std::string &creator_id);
+
+  ServiceResult<void> add_member(const std::string &chat_id,
+                                 const std::string &user_id);
+  ServiceResult<void> post_message(const std::string &chat_id,
+                                   const std::string &username,
+                                   const Message &msg);
+
+  void remove_chat(const std::string &chat_id);
+
+  void remove_user_from_all_chats(const std::string &username);
+
+private:
+  std::unordered_map<std::string, std::unique_ptr<Chat>> chats_;
+  std::unordered_map<std::string, std::string> chat_name_to_id_;
+};
+
+class SessionManager {
+public:
+  void bind(int fd, const std::string &username);
+
+  void unbind(int fd);
+
+  ServiceResult<std::string> get_username(int fd) const;
+
+  ServiceResult<int> get_fd(const std::string &username) const;
+
+private:
+  std::unordered_map<int, std::string> fd_to_name_;
+  std::unordered_map<std::string, int> name_to_fd_;
+};
+
+/*class MessagingService {
 private:
   std::unordered_map<std::string, User> users;
   std::unordered_map<std::string, Chat> chats;
   std::unordered_map<std::string, std::string> auth_tokens;
   std::unordered_map<int, std::string> connections;
   std::unordered_map<std::string, int> fds;
+  std::unordered_map<std::string, std::string> username_to_id;
+  std::unordered_map<std::string, std::string> chat_name_to_id;
 
 public:
   Stream<User> user_logged_in;
@@ -64,25 +132,33 @@ public:
 
   int get_fd_by_user_id(const std::string &user_id);
 
-  std::string chat_id_by_name(std::string &chat_name);
-
   bool send_message(const std::string &from_user_id,
                     const std::string &to_chat_id, const Message &message);
 
-  bool join_chat_by_name(const std::string &user_id,
-                         const std::string &chat_name);
+  std::expected<bool, ServiceError>
+  join_chat_by_name(const std::string &user_id, const std::string &chat_name);
 
-  User &get_user_by_id(std::string user_id);
+  std::expected<User *, ServiceError>
+  get_user_by_id(const std::string &user_id);
 
-  std::string get_user_by_name(std::string username);
+  std::expected<User *, ServiceError>
+  get_user_by_name(const std::string &username);
 
-  std::string get_user_id_by_fd(int fd);
+  std::expected<std::string, ServiceError>
+  get_user_id_by_name(const std::string &username);
+
+  std::expected<std::string, ServiceError> get_user_id_by_fd(int fd);
 
   std::string generate_chat_id();
 
-  Chat &get_chat_by_id(const std::string &chat_id);
+  std::expected<Chat *, ServiceError>
+  get_chat_by_id(const std::string &chat_id);
 
-  std::string get_chat_id_by_name(const std::string &chat_name);
+  std::expected<Chat *, ServiceError>
+  get_chat_by_name(const std::string &chat_name);
+
+  std::expected<std::string, ServiceError>
+  get_chat_id_by_name(const std::string &chat_name);
 
   bool is_member_of_chat(const std::string &chat_name,
                          const std::string &user_id);
@@ -93,4 +169,4 @@ public:
 
 private:
   std::string generate_token();
-};
+}; */

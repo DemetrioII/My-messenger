@@ -16,22 +16,33 @@ void CipherMessageHandler::handleMessageOnClient(
 
 void CipherMessageHandler::handleMessageOnServer(
     const Message &msg, std::shared_ptr<ServerContext> context) {
-  std::string user_id =
-      context->messaging_service->get_user_id_by_fd(context->fd);
-  auto recipient_username = msg.get_meta(0);
-  auto recipient_id =
-      std::string(recipient_username.begin(), recipient_username.end());
-  recipient_id = context->messaging_service->get_user_by_name(recipient_id);
-  auto recipient_fd =
-      context->messaging_service->get_fd_by_user_id(recipient_id);
-  auto &sender = context->messaging_service->get_user_by_id(user_id);
+  auto username = context->session_manager->get_username(context->fd);
+  if (!username.has_value()) {
+    context->transport_server->send(context->fd,
+                                    StaticResponses::YOU_NEED_TO_LOGIN);
+    return;
+  }
+  auto recipient_username =
+      std::string(msg.get_meta(0).begin(), msg.get_meta(0).end());
+  auto recipient_fd = context->session_manager->get_fd(recipient_username);
+  if (!recipient_fd.has_value()) {
+    context->transport_server->send(context->fd,
+                                    StaticResponses::USER_NOT_FOUND);
+    return;
+  }
+  auto sender = context->user_service->find_user(*username);
+  if (!sender.has_value()) {
+    context->transport_server->send(context->fd,
+                                    StaticResponses::YOU_NEED_TO_LOGIN);
+    return;
+  }
   Message msg_to_send(
       {std::move(msg.get_payload()),
        3,
-       {msg.get_meta(0), msg.get_meta(1), sender.get_public_key()},
+       {msg.get_meta(0), msg.get_meta(1), (*sender)->get_public_key()},
        MessageType::CipherMessage});
-  std::cout << "Message was sent to " << recipient_id << std::endl;
-  context->transport_server->send(recipient_fd,
+  std::cout << "Message was sent to " << recipient_username << std::endl;
+  context->transport_server->send(*recipient_fd,
                                   context->serializer.serialize(msg_to_send));
 }
 

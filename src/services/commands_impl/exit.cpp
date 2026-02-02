@@ -13,8 +13,13 @@ Message ExitCommand::toMessage() const {
 void ExitCommand::fromMessage(const Message &msg) {}
 
 void ExitCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
-  auto service = context->messaging_service;
-  service->remove_user_by_fd(context->fd);
+  auto user_service = context->user_service;
+  auto session_manager = context->session_manager;
+  auto chat_service = context->chat_service;
+  auto username = session_manager->get_username(context->fd);
+  user_service->remove_user(*username);
+  chat_service->remove_user_from_all_chats(*username);
+  session_manager->unbind(context->fd);
 }
 
 void ExitCommand::executeOnClient(std::shared_ptr<ClientContext> context) {

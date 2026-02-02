@@ -75,6 +75,43 @@ std::vector<uint8_t> Serializer::serialize(const Message &msg) const {
   return out;
 }
 
+std::vector<uint8_t> Serializer::serialize(Message &&msg) const {
+  std::vector<uint8_t> out;
+
+  size_t total_size = 2;
+  for (const auto &m : msg.metadata) {
+    total_size += 2 + m.size();
+  }
+  total_size += 4 + msg.payload.size();
+
+  out.reserve(total_size);
+
+  // type
+  out.push_back(static_cast<uint8_t>(msg.header.type));
+
+  // metadata count
+  out.push_back(msg.metalen);
+
+  // metadata
+  for (auto &m : msg.metadata) {
+    uint16_t len = m.size();
+    out.push_back(len >> 8);
+    out.push_back(len & 0xFF);
+    out.insert(out.end(), m.begin(), m.end());
+  }
+
+  // payload
+  uint32_t plen = msg.payload.size();
+  out.push_back((plen >> 24) & 0xFF);
+  out.push_back((plen >> 16) & 0xFF);
+  out.push_back((plen >> 8) & 0xFF);
+  out.push_back(plen & 0xFF);
+  out.insert(out.end(), std::make_move_iterator(msg.payload.begin()),
+             std::make_move_iterator(msg.payload.end()));
+
+  return out;
+}
+
 Message Serializer::deserialize(const std::vector<uint8_t> &raw) const {
   Message msg;
   size_t off = 0;
@@ -104,5 +141,32 @@ Message Serializer::deserialize(const std::vector<uint8_t> &raw) const {
     msg.payload.insert(msg.payload.end(), raw.begin() + off,
                        raw.begin() + off + plen);
 
+  return msg;
+}
+
+Message Serializer::deserialize(std::vector<uint8_t> &&raw) const {
+  Message msg;
+  size_t off = 0;
+
+  msg.header.type = static_cast<MessageType>(raw[off++]);
+  msg.metalen = raw[off++];
+  msg.metadata.reserve(msg.metalen);
+
+  for (int i = 0; i < msg.metalen; ++i) {
+    uint16_t len = (raw[off] << 8) | raw[off + 1];
+    off += 2;
+    msg.metadata.emplace_back(raw.begin() + off, raw.begin() + off + len);
+    off += len;
+  }
+
+  uint32_t plen = (raw[off] << 24) | (raw[off + 1] << 16) |
+                  (raw[off + 2] << 8) | raw[off + 3];
+  off += 4;
+
+  if (off + plen <= raw.size()) {
+    raw.erase(raw.begin(), raw.begin() + off);
+    raw.resize(plen);
+    msg.payload = std::move(raw);
+  }
   return msg;
 }

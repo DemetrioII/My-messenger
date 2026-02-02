@@ -12,37 +12,34 @@ Message SendGroupMessageCommand::toMessage() const {
 
 void SendGroupMessageCommand::execeuteOnServer(
     std::shared_ptr<ServerContext> context) {
-  auto service = context->messaging_service;
-  auto sender_id = service->get_user_id_by_fd(context->fd);
-  if (sender_id.empty()) {
-    std::string error_msg = "[Error]: You must logged in first";
-    context->transport_server->send(
-        context->fd,
-        context->serializer.serialize(
-            Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0,
-                    {}, MessageType::Text)));
+  auto user_service = context->user_service;
+  auto chat_service = context->chat_service;
+  auto session_manager = context->session_manager;
+
+  auto username_res = session_manager->get_username(context->fd);
+  if (!username_res.has_value()) {
+    context->transport_server->send(context->fd,
+                                    StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
 
   auto chat_name_str = std::string(chat_name.begin(), chat_name.end());
-  auto chat_id = service->get_chat_id_by_name(chat_name_str);
-  if (chat_id.empty()) {
+  if (chat_name_str.empty()) {
     context->transport_server->send(context->fd,
                                     StaticResponses::CHAT_NOT_FOUND);
     return;
   }
 
-  if (!service->is_member_of_chat(chat_name_str, sender_id)) {
-    std::string error_msg = "[Error]: You must be a member of that chat!";
-    context->transport_server->send(
-        context->fd,
-        context->serializer.serialize(
-            Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0,
-                    {}, MessageType::Text)));
-    return;
+  auto send_res =
+      chat_service->post_message(chat_name_str, *username_res, toMessage());
+  if (!send_res.has_value()) {
+    if (send_res.error() == ServiceError::AccessDenied) {
+      context->transport_server->send(
+          context->fd, StaticResponses::CHAT_NOT_FOUND); // добавить обработчик
+                                                         // ошибки доступа
+      return;
+    }
   }
-
-  service->send_message(sender_id, chat_id, toMessage());
 }
 
 void SendGroupMessageCommand::executeOnClient(

@@ -44,9 +44,13 @@ void FileStartHandler::handleMessageOnServer(
   std::string recipient_username_str =
       std::string(msg.get_meta(0).begin(), msg.get_meta(0).end());
 
-  int recipient_fd = context->messaging_service->get_fd_by_user_id(
-      context->messaging_service->get_user_by_name(recipient_username_str));
-  context->transport_server->send(recipient_fd,
+  auto recipient_fd_res =
+      context->session_manager->get_fd(recipient_username_str);
+  if (!recipient_fd_res.has_value()) {
+    context->transport_server->send(context->fd,
+                                    StaticResponses::USER_NOT_FOUND);
+  }
+  context->transport_server->send(*recipient_fd_res,
                                   context->serializer.serialize(msg));
 }
 
@@ -90,11 +94,17 @@ void FileChunkHandler::handleMessageOnServer(
   std::string recipient_username_str =
       std::string(msg.get_meta(0).begin(), msg.get_meta(0).end());
 
-  int recipient_fd = context->messaging_service->get_fd_by_user_id(
-      context->messaging_service->get_user_by_name(recipient_username_str));
+  auto recipient_fd_res =
+      context->session_manager->get_fd(recipient_username_str);
+
+  if (!recipient_fd_res.has_value()) {
+    context->transport_server->send(context->fd,
+                                    StaticResponses::USER_NOT_FOUND);
+    return;
+  }
 
   std::cout << "[File] Server file chunk is sending " << name << std::endl;
-  context->transport_server->send(recipient_fd,
+  context->transport_server->send(*recipient_fd_res,
                                   context->serializer.serialize(msg));
 }
 
@@ -140,10 +150,16 @@ void FileEndHandler::handleMessageOnServer(
   std::string recipient_username_str =
       std::string(msg.get_meta(0).begin(), msg.get_meta(0).end());
 
-  int recipient_fd = context->messaging_service->get_fd_by_user_id(
-      context->messaging_service->get_user_by_name(recipient_username_str));
+  auto recipient_fd_res =
+      context->session_manager->get_fd(recipient_username_str);
+
+  if (!recipient_fd_res.has_value()) {
+    context->transport_server->send(context->fd,
+                                    StaticResponses::USER_NOT_FOUND);
+    return;
+  }
 
   std::cout << "[File] Completed: " << name << std::endl;
-  context->transport_server->send(recipient_fd,
+  context->transport_server->send(*recipient_fd_res,
                                   context->serializer.serialize(msg));
 }

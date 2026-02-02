@@ -25,37 +25,27 @@ void LoginCommand::fromMessage(const Message &msg) {
 }
 
 void LoginCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
-  auto service = context->messaging_service;
+  auto user_service = context->user_service;
+  auto session_manager = context->session_manager;
   auto fd = context->fd;
   auto username_string = std::string(username.begin(), username.end());
-  if (service->is_authenticated(fd)) {
-    std::string error_msg = "[Error]: You are already logged in";
-    context->transport_server->send(
-        fd, context->serializer.serialize(Message(
-                std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
-                MessageType::Text)));
-    return;
-  }
-  auto token = service->authenticate(username_string, "", pubkey_bytes);
-  if (token == "") {
-    std::string error_msg =
-        "[Error]: User " + username_string + " is already exists";
-    context->transport_server->send(
-        fd, context->serializer.serialize(Message(
-                std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
-                MessageType::Text)));
+
+  auto username_fd_res = session_manager->get_username(fd);
+  if (username_fd_res.has_value()) {
+    context->transport_server->send(fd, StaticResponses::YOU_ARE_LOGGED_IN);
     return;
   }
 
-  auto user_id = service->get_user_id_by_token(token);
-  service->bind_connection(fd, user_id);
-  auto &user = service->get_user_by_id(user_id);
-  user.set_public_key(pubkey_bytes);
-  if (user.get_public_key().empty()) {
-    context->transport_server->send(fd,
-                                    StaticResponses::PUBLIC_KEY_HAS_NOT_SET);
+  auto username_res =
+      user_service->register_user(username_string, pubkey_bytes);
+  if (!username_res.has_value()) {
+    context->transport_server->send(
+        fd, StaticResponses::YOU_ARE_LOGGED_IN); // добавить новую ошибку потом
     return;
   }
+
+  session_manager->bind(fd, username_string);
+
   std::string response_string = "Hello, " + username_string + "!";
   context->transport_server->send(
       fd,
