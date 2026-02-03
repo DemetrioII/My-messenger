@@ -40,6 +40,14 @@ void SendGroupMessageCommand::execeuteOnServer(
       return;
     }
   }
+
+  for (auto username : *send_res) {
+    auto his_fd = session_manager->get_fd(username);
+    if (his_fd.has_value()) {
+      context->transport_server->send(
+          *his_fd, context->serializer.serialize(toMessage()));
+    }
+  }
 }
 
 void SendGroupMessageCommand::executeOnClient(

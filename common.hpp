@@ -87,15 +87,16 @@ void start_gui_client(int argc, char *argv[]) {
                      });
 
     client->run();
+
+    client->get_data("/exit");
   });
 
-  // Отсоединяем поток, чтобы он жил своей жизнью (Daemon style)
-  net_thread.detach();
-
-  // 6. Запуск Event Loop Qt (блокирует этот поток, пока окно открыто)
   loginWindow->show();
   app.exec();
 
   // Когда окно закрыли — выходим
   is_running = false;
+
+  if (net_thread.joinable())
+    net_thread.join();
 }

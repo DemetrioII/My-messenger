@@ -29,7 +29,7 @@ void MakeRoomCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
   auto transport_server = context->transport_server;
   auto parser = context->parser;
   auto username = session_manager->get_username(fd);
-  if (username.has_value()) {
+  if (!username.has_value()) {
     transport_server->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }

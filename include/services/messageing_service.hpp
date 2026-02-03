@@ -74,9 +74,9 @@ public:
 
   ServiceResult<void> add_member(const std::string &chat_id,
                                  const std::string &user_id);
-  ServiceResult<void> post_message(const std::string &chat_id,
-                                   const std::string &username,
-                                   const Message &msg);
+  ServiceResult<std::vector<std::string>>
+  post_message(const std::string &chat_id, const std::string &username,
+               const Message &msg);
 
   void remove_chat(const std::string &chat_id);
 
