@@ -28,7 +28,7 @@ void ResponseMessageHandler::handleMessageOnClient(
       auto msg_to_send = *pending_it;
       auto ciphertext = context->encryption_service->encrypt_for(
           context->my_username, username, msg_to_send.bytes);
-      Message cipher_msg{ciphertext,
+      Message cipher_msg{std::move(ciphertext), // ?
                          2,
                          {username, context->my_username},
                          MessageType::CipherMessage};

@@ -35,8 +35,9 @@ void SendGroupMessageCommand::execeuteOnServer(
   if (!send_res.has_value()) {
     if (send_res.error() == ServiceError::AccessDenied) {
       context->transport_server->send(
-          context->fd, StaticResponses::CHAT_NOT_FOUND); // добавить обработчик
-                                                         // ошибки доступа
+          context->fd,
+          StaticResponses::YOU_ARE_NOT_MEMBER); // добавить обработчик
+                                                // ошибки доступа
       return;
     }
   }

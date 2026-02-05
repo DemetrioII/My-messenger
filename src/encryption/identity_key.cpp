@@ -2,8 +2,10 @@
 
 IdentityKey::IdentityKey(void *pkey) : pkey_(pkey) {}
 IdentityKey::~IdentityKey() {
-  if (pkey_)
+  if (pkey_) {
     EVP_PKEY_free(AS_PKEY(pkey_));
+    pkey_ = nullptr;
+  }
 }
 
 IdentityKey::IdentityKey(const IdentityKey &key) {
@@ -57,6 +59,7 @@ std::vector<uint8_t> IdentityKey::private_bytes() const {
 
   std::vector<uint8_t> buf(len);
   if (EVP_PKEY_get_raw_private_key(AS_PKEY(pkey_), buf.data(), &len) <= 0) {
+    OPENSSL_cleanse(buf.data(), buf.size());
     return {};
   }
 
@@ -84,6 +87,8 @@ IdentityKey::compute_shared_secret(const IdentityKey &other_public_key) const {
 
   std::vector<uint8_t> secret(secret_len);
   if (EVP_PKEY_derive(ctx, secret.data(), &secret_len) <= 0) {
+    OPENSSL_cleanse(secret.data(), secret.size());
+    secret.clear();
     EVP_PKEY_CTX_free(ctx);
     return {};
   }

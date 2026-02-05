@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[]) {
   Serializer serializer;
-  std::string error_msg = "[Error]: You are already logged in";
+  std::string error_msg = "[Error]: You are not member of this chat";
   auto raw = serializer.serialize(
       Message(std::vector<uint8_t>(error_msg.begin(), error_msg.end()), 0, {},
               MessageType::Text));
