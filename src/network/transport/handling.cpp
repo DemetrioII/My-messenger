@@ -23,8 +23,8 @@ AcceptHandler::~AcceptHandler() {}
 
 void ServerHandler::init(std::shared_ptr<IServer> server_) { server = server_; }
 
-void ServerHandler::add_client(
-    int fd, std::shared_ptr<ClientConnection> client_connection) {
+void ServerHandler::add_client(int fd,
+                               std::shared_ptr<IConnection> client_connection) {
   std::lock_guard<std::recursive_mutex> lock(server_mutex);
   clients[fd] = client_connection;
 }

@@ -39,8 +39,8 @@ void LoginCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
   auto username_res =
       user_service->register_user(username_string, pubkey_bytes);
   if (!username_res.has_value()) {
-    context->transport_server->send(
-        fd, StaticResponses::YOU_ARE_LOGGED_IN); // добавить новую ошибку потом
+    context->transport_server->send(fd,
+                                    StaticResponses::PUBLIC_KEY_HAS_NOT_SET);
     return;
   }
 

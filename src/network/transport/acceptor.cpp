@@ -1,7 +1,6 @@
 #include "../../../include/network/transport/acceptor.hpp"
 
-std::optional<std::shared_ptr<ClientConnection>>
-TCPAcceptor::accept(int server_fd) {
+std::optional<std::shared_ptr<IConnection>> TCPAcceptor::accept(int server_fd) {
   struct sockaddr_in addr;
   socklen_t addr_len = sizeof(addr);
   int client_fd = ::accept(server_fd, (struct sockaddr *)&addr, &addr_len);
@@ -22,8 +21,7 @@ TCPAcceptor::accept(int server_fd) {
 
 TCPAcceptor::~TCPAcceptor() {}
 
-std::optional<std::shared_ptr<ClientConnection>>
-UDPAcceptor::accept(int server_fd) {
+std::optional<std::shared_ptr<IConnection>> UDPAcceptor::accept(int server_fd) {
   struct sockaddr_in addr;
   socklen_t addr_len = sizeof(addr);
   char buffer[1]; // dummy buffer to trigger recvfrom

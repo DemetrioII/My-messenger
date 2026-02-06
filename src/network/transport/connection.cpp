@@ -74,7 +74,7 @@ int ClientConnection::get_fd() const { return fd.get_fd(); }
 ClientConnection::~ClientConnection() {}
 
 void ConnectionManager::add_connection(int fd,
-                                       std::shared_ptr<ClientConnection> conn) {
+                                       std::shared_ptr<IConnection> conn) {
   std::lock_guard<std::mutex> lock(connections_mutex);
   connections[fd] = conn;
 }
@@ -98,7 +98,7 @@ void ConnectionManager::send_to_buffer(int fd,
   }
 }
 
-std::optional<std::shared_ptr<ClientConnection>>
+std::optional<std::shared_ptr<IConnection>>
 ConnectionManager::get_connection(int fd) {
   std::lock_guard<std::mutex> lock(connections_mutex);
   if (find_connection(fd))

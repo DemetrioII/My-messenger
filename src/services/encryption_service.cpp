@@ -21,6 +21,12 @@ EncryptionService::encrypt_for(const std::vector<uint8_t> &sender,
   auto encryption_key =
       HKDF::derive_for_messaging(shared_secret, sender, username, "encryption");
   auto ciphertext = aes_gcm_encryptor.encrypt(encryption_key, plaintext);
+
+  if (!shared_secret.empty())
+    OPENSSL_cleanse(shared_secret.data(), shared_secret.size());
+  if (!encryption_key.empty())
+    OPENSSL_cleanse(encryption_key.data(), encryption_key.size());
+
   return ciphertext;
 }
 
@@ -36,6 +42,12 @@ EncryptionService::decrypt_for(const std::vector<uint8_t> &sender,
   auto decryption_key =
       HKDF::derive_for_messaging(shared_secret, sender, username, "encryption");
   auto plaintext = aes_gcm_encryptor.decrypt(decryption_key, ciphertext);
+
+  if (!shared_secret.empty())
+    OPENSSL_cleanse(shared_secret.data(), shared_secret.size());
+  if (!decryption_key.empty())
+    OPENSSL_cleanse(decryption_key.data(), decryption_key.size());
+
   return plaintext;
 }
 

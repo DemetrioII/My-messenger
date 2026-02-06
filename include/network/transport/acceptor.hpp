@@ -19,8 +19,7 @@ class TCPAcceptor : public IAcceptor {
 public:
   TCPAcceptor() = default;
 
-  std::optional<std::shared_ptr<ClientConnection>>
-  accept(int server_fd) override;
+  std::optional<std::shared_ptr<IConnection>> accept(int server_fd) override;
 
   ~TCPAcceptor() override;
 };
@@ -29,8 +28,7 @@ class UDPAcceptor : public IAcceptor {
 public:
   UDPAcceptor() = default;
 
-  std::optional<std::shared_ptr<ClientConnection>>
-  accept(int server_fd) override;
+  std::optional<std::shared_ptr<IConnection>> accept(int server_fd) override;
 
   ~UDPAcceptor() override;
 };

@@ -62,7 +62,7 @@ void Server::stop() {
 
 void Server::on_client_error(int fd) {}
 
-void Server::on_client_connected(std::shared_ptr<ClientConnection> conn) {
+void Server::on_client_connected(std::shared_ptr<IConnection> conn) {
   // std::lock_guard<std::mutex> lock(server_mutex);
   std::cout << "Новое подключение от " << conn->get_fd() << '\n'
             << "IP=" << inet_ntoa(conn->get_addr().sin_addr) << ":"

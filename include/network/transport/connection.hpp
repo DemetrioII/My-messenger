@@ -30,16 +30,16 @@ public:
 
   ClientConnection &operator=(ClientConnection &&other) noexcept;
 
-  bool flush();
+  bool flush() override;
 
-  bool try_receive();
+  bool try_receive() override;
 
   // Проверяем, пришло ли сообщение целиком
-  bool has_complete_message() const;
+  bool has_complete_message() const override;
 
-  std::vector<uint8_t> extract_message();
+  std::vector<uint8_t> extract_message() override;
 
-  void queue_send(const std::vector<uint8_t> &data);
+  void queue_send(const std::vector<uint8_t> &data) override;
 
   struct sockaddr_in get_addr();
 
@@ -47,12 +47,39 @@ public:
   ~ClientConnection() override;
 };
 
-class ConnectionManager {
-  std::mutex connections_mutex;
-  std::unordered_map<int, std::shared_ptr<ClientConnection>> connections;
+class PeerConnection : IConnection {
+  int fd;
+  bool is_incoming;
+  std::string peer_id;
+  std::string ip_address;
+  uint16_t port;
+  ConnectionState state;
+  std::unique_ptr<ITransport> transport;
+  std::vector<uint8_t> receive_buffer;
 
 public:
-  void add_connection(int fd, std::shared_ptr<ClientConnection> conn);
+  bool flush() override;
+
+  bool try_receive() override;
+
+  bool has_complete_message() const override;
+
+  std::vector<uint8_t> extract_message() override;
+
+  void queue_send(const std::vector<uint8_t> &data) override;
+
+  struct sockaddr_in get_addr() override;
+
+  int get_fd() const override;
+  ~PeerConnection();
+};
+
+class ConnectionManager {
+  std::mutex connections_mutex;
+  std::unordered_map<int, std::shared_ptr<IConnection>> connections;
+
+public:
+  void add_connection(int fd, std::shared_ptr<IConnection> conn);
 
   void remove_connection(int fd);
 
@@ -60,7 +87,7 @@ public:
 
   void send_to_buffer(int fd, const std::vector<uint8_t> &data);
 
-  std::optional<std::shared_ptr<ClientConnection>> get_connection(int fd);
+  std::optional<std::shared_ptr<IConnection>> get_connection(int fd);
 
   ~ConnectionManager();
 };

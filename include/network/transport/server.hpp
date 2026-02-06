@@ -62,7 +62,7 @@ public:
 
   void on_client_error(int fd) override;
 
-  void on_client_connected(std::shared_ptr<ClientConnection> conn) override;
+  void on_client_connected(std::shared_ptr<IConnection> conn) override;
 
   void on_client_disconnected(int fd) override;
 

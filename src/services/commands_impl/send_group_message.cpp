@@ -34,10 +34,8 @@ void SendGroupMessageCommand::execeuteOnServer(
       chat_service->post_message(chat_name_str, *username_res, toMessage());
   if (!send_res.has_value()) {
     if (send_res.error() == ServiceError::AccessDenied) {
-      context->transport_server->send(
-          context->fd,
-          StaticResponses::YOU_ARE_NOT_MEMBER); // добавить обработчик
-                                                // ошибки доступа
+      context->transport_server->send(context->fd,
+                                      StaticResponses::YOU_ARE_NOT_MEMBER);
       return;
     }
   }

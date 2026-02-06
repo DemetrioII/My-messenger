@@ -14,8 +14,17 @@
 
 #define MAX_EVENTS 10
 
+enum class ConnectionState;
+
 enum class SocketType { TCP, UDP };
+
+enum class BroadcastType {
+  ALL,
+};
+
 class ClientConnection;
+
+class IConnection;
 
 class Fd {
   int fd;
@@ -82,8 +91,7 @@ struct ReceiveResult {
 
 class IAcceptor {
 public:
-  virtual std::optional<std::shared_ptr<ClientConnection>>
-  accept(int server_fd) = 0;
+  virtual std::optional<std::shared_ptr<IConnection>> accept(int server_fd) = 0;
   virtual ~IAcceptor() = default;
 };
 
@@ -114,7 +122,7 @@ public:
   virtual void stop() = 0;
   virtual bool is_running() const = 0;
   virtual void on_client_error(int fd) = 0;
-  virtual void on_client_connected(std::shared_ptr<ClientConnection> conn) = 0;
+  virtual void on_client_connected(std::shared_ptr<IConnection> conn) = 0;
   virtual void on_client_disconnected(int fd) = 0;
   virtual void on_client_message(int fd, const std::vector<uint8_t> &data) = 0;
   virtual void on_client_writable(int fd) = 0;
@@ -154,10 +162,33 @@ public:
 
 class INodeConnection {
 public:
-  virtual int get_fd() const = 0;
-  virtual std::string get_peer_address() const = 0;
-  virtual void send(const std::vector<uint8_t> &data) = 0;
-  virtual void close() = 0;
+  virtual bool connect_to_peer(int peer_fd, const std::string &ip_address,
+                               uint16_t port) = 0;
+
+  virtual void disconnect_from_peer(int peer_fd) = 0;
+
+  virtual void send_to_peer(int peer_fd, const std::vector<uint8_t> &data) = 0;
+
+  virtual void broadcast(const std::vector<uint8_t> &data,
+                         BroadcastType type = BroadcastType::ALL) = 0;
+
+  void start_listening(uint16_t port);
+  void stop_listening();
+
+  void start_event_loop();
+  void stop_event_loop();
+
+  virtual ConnectionState get_connection_state(int peer_fd) const = 0;
+  virtual std::vector<int> get_connected_peers() const = 0;
+  virtual size_t get_active_connections_count() const = 0;
+
+  virtual void set_message_callback(
+      std::function<void(const std::string &, const std::vector<uint8_t> &)>
+          callback) = 0;
+
+  virtual void set_state_callback(
+      std::function<void(const std::string &, ConnectionState)> callback) = 0;
+
   virtual ~INodeConnection() = default;
 };
 
@@ -178,5 +209,12 @@ public:
 
 class IConnection {
 public:
+  virtual bool flush() = 0;
+  virtual bool try_receive() = 0;
+  virtual bool has_complete_message() const = 0;
+  virtual std::vector<uint8_t> extract_message() = 0;
+  virtual void queue_send(const std::vector<uint8_t> &data) = 0;
+  virtual struct sockaddr_in get_addr() = 0;
+  virtual int get_fd() const = 0;
   virtual ~IConnection() = default;
 };
