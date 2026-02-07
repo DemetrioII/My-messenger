@@ -21,6 +21,28 @@ void AcceptHandler::set_acceptor(std::unique_ptr<IAcceptor> acceptor_) {
 
 AcceptHandler::~AcceptHandler() {}
 
+void PeerAcceptHandler::init(std::shared_ptr<INodeConnection> peer) {
+  peer_ = peer;
+}
+
+void PeerAcceptHandler::set_acceptor(std::unique_ptr<IAcceptor> acceptor) {
+  acceptor_ = std::move(acceptor);
+}
+
+void PeerAcceptHandler::handle_event(int fd, uint32_t event_mask) {
+  if (event_mask & EPOLLIN) {
+    auto client = acceptor_->accept(fd);
+    if (client) {
+      auto address = (*client)->get_addr();
+      char ip_str[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET, &address.sin_addr, ip_str, sizeof(ip_str));
+      std::string ip(ip_str);
+      auto fd = (*client)->get_fd();
+      peer_.lock()->register_peer_connection(fd, *client, ip);
+    }
+  }
+}
+
 void ServerHandler::init(std::shared_ptr<IServer> server_) { server = server_; }
 
 void ServerHandler::add_client(int fd,
@@ -67,6 +89,12 @@ void ServerHandler::handle_event(int fd, uint32_t event_mask) {
 void ServerHandler::clear() { clients.clear(); }
 
 ServerHandler::~ServerHandler() {}
+
+PeerEventHandler::PeerEventHandler(std::shared_ptr<INodeConnection> peer_node,
+                                   std::shared_ptr<IConnection> connection)
+    : peer_node_(peer_node), connection_(connection) {}
+
+void PeerEventHandler::handle_event(int fd, uint32_t event_mask) {}
 
 void ClientHandler::init(std::shared_ptr<IClient> client_) { client = client_; }
 

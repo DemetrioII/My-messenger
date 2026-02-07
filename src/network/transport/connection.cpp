@@ -71,7 +71,53 @@ void ClientConnection::queue_send(const std::vector<uint8_t> &data) {
 struct sockaddr_in ClientConnection::get_addr() { return addr; }
 
 int ClientConnection::get_fd() const { return fd.get_fd(); }
+
 ClientConnection::~ClientConnection() {}
+
+PeerConnection::PeerConnection(int fd, const struct sockaddr_in &addr)
+    : fd_(fd), addr_(addr) {}
+
+bool PeerConnection::has_complete_message() const {
+  return framer->has_message_in_buffer(recv_buffer);
+}
+
+void PeerConnection::init_transport(std::unique_ptr<ITransport> transport_) {
+  transport = std::move(transport_);
+  transport->connect(fd_.get_fd());
+}
+
+bool PeerConnection::flush() {
+  if (send_buffer.empty())
+    return true;
+  ssize_t sent = transport->send(fd_.get_fd(), send_buffer);
+  if (sent > 0) {
+    send_buffer.erase(send_buffer.begin(), send_buffer.begin() + sent);
+    return send_buffer.empty();
+  }
+  return (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
+}
+
+bool PeerConnection::try_receive() {
+  auto result = transport->receive(fd_.get_fd());
+  if (result.data.data()) {
+    recv_buffer.insert(recv_buffer.end(), result.data.data(),
+                       result.data.data() + result.data.length);
+  }
+  return (result.status == ReceiveStatus::OK ||
+          result.status == ReceiveStatus::WOULDBLOCK);
+}
+
+std::vector<uint8_t> PeerConnection::extract_message() {
+  return framer->extract_message(recv_buffer);
+}
+
+void PeerConnection::queue_send(const std::vector<uint8_t> &data) {
+  framer->form_message(data, send_buffer);
+}
+
+struct sockaddr_in PeerConnection::get_addr() { return addr_; }
+
+int PeerConnection::get_fd() const { return fd_.get_fd(); }
 
 void ConnectionManager::add_connection(int fd,
                                        std::shared_ptr<IConnection> conn) {
@@ -104,6 +150,11 @@ ConnectionManager::get_connection(int fd) {
   if (find_connection(fd))
     return connections[fd];
   return std::nullopt;
+}
+
+std::unordered_map<int, std::shared_ptr<IConnection>>
+ConnectionManager::get_all_connections() const {
+  return connections;
 }
 
 ConnectionManager::~ConnectionManager() { connections.clear(); }

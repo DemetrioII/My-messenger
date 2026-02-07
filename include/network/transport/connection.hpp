@@ -20,7 +20,7 @@ public:
   ClientConnection(int fd_);
   explicit ClientConnection(int fd_, const struct sockaddr_in &addr_);
 
-  void init_transport(std::unique_ptr<ITransport> transport_);
+  void init_transport(std::unique_ptr<ITransport> transport_) override;
 
   ClientConnection(const ClientConnection &) = delete;
   ClientConnection &operator=(const ClientConnection &) = delete;
@@ -41,23 +41,28 @@ public:
 
   void queue_send(const std::vector<uint8_t> &data) override;
 
-  struct sockaddr_in get_addr();
+  struct sockaddr_in get_addr() override;
 
-  int get_fd() const;
+  int get_fd() const override;
   ~ClientConnection() override;
 };
 
-class PeerConnection : IConnection {
-  int fd;
+class PeerConnection : public IConnection {
+  Fd fd_;
   bool is_incoming;
   std::string peer_id;
-  std::string ip_address;
-  uint16_t port;
+  struct sockaddr_in addr_;
   ConnectionState state;
+  std::unique_ptr<FramerMessage> framer;
   std::unique_ptr<ITransport> transport;
-  std::vector<uint8_t> receive_buffer;
+  std::vector<uint8_t> recv_buffer;
+  std::vector<uint8_t> send_buffer;
 
 public:
+  PeerConnection(int fd, const struct sockaddr_in &addr);
+
+  void init_transport(std::unique_ptr<ITransport> transport) override;
+
   bool flush() override;
 
   bool try_receive() override;
@@ -71,7 +76,8 @@ public:
   struct sockaddr_in get_addr() override;
 
   int get_fd() const override;
-  ~PeerConnection();
+
+  ~PeerConnection() override {}
 };
 
 class ConnectionManager {
@@ -86,6 +92,9 @@ public:
   bool find_connection(int fd);
 
   void send_to_buffer(int fd, const std::vector<uint8_t> &data);
+
+  std::unordered_map<int, std::shared_ptr<IConnection>>
+  get_all_connections() const;
 
   std::optional<std::shared_ptr<IConnection>> get_connection(int fd);
 

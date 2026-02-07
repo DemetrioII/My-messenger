@@ -113,6 +113,8 @@ public:
   virtual int setup_connection(const std::string &ip, uint16_t port) = 0;
   virtual sockaddr_in get_peer_address() const = 0;
   virtual SocketType get_type() const = 0;
+  virtual bool check_connection_complete(int timeout_ms = 100) = 0;
+  virtual int get_socket_error() const = 0;
   virtual ~ISocket() = default;
 };
 
@@ -148,21 +150,9 @@ public:
   virtual ~IClient() = default;
 };
 
-class INodeConnection;
-
-class INode {
-public:
-  virtual bool connect_to_peer(const std::string &ip, uint16_t port) = 0;
-  virtual void disconnect_peer(std::shared_ptr<INodeConnection> peer) = 0;
-  virtual void send_to_peer(std::shared_ptr<INodeConnection> peer,
-                            const std::vector<uint8_t> &data) = 0;
-  virtual void broadcast(const std::vector<uint8_t> &data) = 0;
-  virtual ~INode() = default;
-};
-
 class INodeConnection {
 public:
-  virtual bool connect_to_peer(int peer_fd, const std::string &ip_address,
+  virtual bool connect_to_peer(const std::string &ip_address,
                                uint16_t port) = 0;
 
   virtual void disconnect_from_peer(int peer_fd) = 0;
@@ -172,15 +162,16 @@ public:
   virtual void broadcast(const std::vector<uint8_t> &data,
                          BroadcastType type = BroadcastType::ALL) = 0;
 
-  void start_listening(uint16_t port);
-  void stop_listening();
+  virtual void start_event_loop() = 0;
+  virtual void stop_event_loop() = 0;
 
-  void start_event_loop();
-  void stop_event_loop();
-
-  virtual ConnectionState get_connection_state(int peer_fd) const = 0;
+  virtual ConnectionState get_connection_state(int peer_fd) = 0;
   virtual std::vector<int> get_connected_peers() const = 0;
   virtual size_t get_active_connections_count() const = 0;
+
+  virtual void register_peer_connection(int fd,
+                                        std::shared_ptr<IConnection> connection,
+                                        const std::string &ip) = 0;
 
   virtual void set_message_callback(
       std::function<void(const std::string &, const std::vector<uint8_t> &)>
@@ -215,6 +206,7 @@ public:
   virtual std::vector<uint8_t> extract_message() = 0;
   virtual void queue_send(const std::vector<uint8_t> &data) = 0;
   virtual struct sockaddr_in get_addr() = 0;
+  virtual void init_transport(std::unique_ptr<ITransport> transport) = 0;
   virtual int get_fd() const = 0;
   virtual ~IConnection() = default;
 };

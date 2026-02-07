@@ -24,6 +24,21 @@ public:
   ~AcceptHandler() override;
 };
 
+class PeerAcceptHandler : public IEventHandler {
+  std::weak_ptr<INodeConnection> peer_;
+  std::unique_ptr<IAcceptor> acceptor_;
+
+public:
+  void init(std::shared_ptr<INodeConnection> peer);
+
+  void set_acceptor(std::unique_ptr<IAcceptor> acceptor);
+
+  void handle_event(int fd, uint32_t event_mask) override;
+  PeerAcceptHandler() = default;
+
+  ~PeerAcceptHandler() override {}
+};
+
 class ServerHandler : public IEventHandler {
   std::weak_ptr<IServer> server;
   std::recursive_mutex server_mutex;
@@ -44,6 +59,18 @@ public:
   void clear();
 
   ~ServerHandler() override;
+};
+
+class PeerEventHandler : public IEventHandler {
+private:
+  std::weak_ptr<INodeConnection> peer_node_;
+  std::weak_ptr<IConnection> connection_;
+
+public:
+  PeerEventHandler(std::shared_ptr<INodeConnection> peer_node,
+                   std::shared_ptr<IConnection> connection);
+
+  void handle_event(int fd, uint32_t events) override;
 };
 
 class ClientHandler : public IEventHandler {

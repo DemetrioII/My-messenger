@@ -37,6 +37,10 @@ public:
 
   SocketType get_type() const override;
 
+  bool check_connection_complete(int timeout_ms) override;
+
+  int get_socket_error() const override;
+
   ~TCPSocket() override;
 };
 
@@ -57,6 +61,10 @@ public:
   sockaddr_in get_peer_address() const override;
 
   SocketType get_type() const override;
+
+  bool check_connection_complete(int timeout_ms) override;
+
+  int get_socket_error() const override;
 
   int get_fd() const override;
 

@@ -58,6 +58,67 @@ target_link_libraries(messenger_client PRIVATE
     pthread
 )
 
+# ==========================================
+# ТЕСТЫ
+# ==========================================
+
+# Включаем GoogleTest
+enable_testing()
+include(FetchContent)
+FetchContent_Declare(
+	googletest
+	GIT_REPOSITORY https://github.com/google/googletest.git
+	GIT_TAG release-1.12.1
+)
+
+# Для Windows: отключаем установку, чтобы не попасть в PATH
+if(WIN32)
+	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+endif()
+
+FetchContent_MakeAvailable(googletest)
+
+add_executable(run_tests 
+	tests/tests.cpp
+    ${HEADERS}
+)
+
+target_include_directories(run_tests PRIVATE src)
+target_link_libraries(run_tests PRIVATE 
+    GTest::gtest 
+    GTest::gtest_main 
+    OpenSSL::SSL 
+    OpenSSL::Crypto 
+    pthread
+)
+# Регистрируем тесты
+add_test(NAME all_tests COMMAND run_tests)
+
+# Опционально: добавить запуск тестов в CI/CD
+add_custom_target(check
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+    DEPENDS run_tests
+    COMMENT "Running tests..."
+)
+
+# Для отладки тестов (опционально)
+add_executable(run_tests_debug
+    tests/tests.cpp
+    ${HEADERS}
+)
+
+target_include_directories(run_tests_debug PRIVATE src)
+target_link_libraries(run_tests_debug PRIVATE 
+    GTest::gtest 
+    GTest::gtest_main 
+    OpenSSL::SSL 
+    OpenSSL::Crypto 
+    pthread
+)
+set_target_properties(run_tests_debug PROPERTIES
+    COMPILE_FLAGS "-g -O0"
+)
+
 if(WIN32)
     target_link_libraries(messenger_server ws2_32)
     target_link_libraries(messenger_client ws2_32)
