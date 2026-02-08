@@ -150,37 +150,40 @@ public:
   virtual ~IClient() = default;
 };
 
-class INodeConnection {
+class INode {
 public:
-  virtual bool connect_to_peer(const std::string &ip_address,
-                               uint16_t port) = 0;
-
-  virtual void disconnect_from_peer(int peer_fd) = 0;
-
-  virtual void send_to_peer(int peer_fd, const std::vector<uint8_t> &data) = 0;
-
-  virtual void broadcast(const std::vector<uint8_t> &data,
-                         BroadcastType type = BroadcastType::ALL) = 0;
-
-  virtual void start_event_loop() = 0;
-  virtual void stop_event_loop() = 0;
-
-  virtual ConnectionState get_connection_state(int peer_fd) = 0;
-  virtual std::vector<int> get_connected_peers() const = 0;
-  virtual size_t get_active_connections_count() const = 0;
-
   virtual void register_peer_connection(int fd,
                                         std::shared_ptr<IConnection> connection,
                                         const std::string &ip) = 0;
-
-  virtual void set_message_callback(
-      std::function<void(const std::string &, const std::vector<uint8_t> &)>
-          callback) = 0;
-
-  virtual void set_state_callback(
-      std::function<void(const std::string &, ConnectionState)> callback) = 0;
-
-  virtual ~INodeConnection() = default;
+  virtual void start_listening(int port) = 0;
+  virtual bool connect_to_peer(const std::string &peer_ip, int port) = 0;
+  virtual void send_to_peer(const std::string &peer_ip,
+                            const std::vector<uint8_t> &data) = 0;
+  virtual void send_to_peer_by_fd(int peer_fd,
+                                  const std::vector<uint8_t> &data) = 0;
+  virtual void broadcast(const std::vector<uint8_t> &data) = 0;
+  virtual void disconnect_from_peer(int peer_fd) = 0;
+  virtual void disconnect_from_peer_by_ip(const std::string &peer_ip) = 0;
+  virtual void run_event_loop() = 0;
+  virtual void stop() = 0;
+  virtual bool is_running() const = 0;
+  virtual void
+  set_data_callback(std::function<void(const std::string &ip,
+                                       const std::vector<uint8_t> &data)>
+                        callback) = 0;
+  virtual void set_peer_connected_callback(
+      std::function<void(const std::string &ip)> callback) = 0;
+  virtual void set_peer_disconnected_callback(
+      std::function<void(const std::string &ip)> callback) = 0;
+  virtual std::vector<std::string> get_connected_peers() const = 0;
+  virtual size_t get_active_connections_count() const = 0;
+  virtual std::string get_peer_ip(int fd) const = 0;
+  virtual int get_peer_fd(const std::string &ip) const = 0;
+  virtual void on_peer_connected(std::shared_ptr<IConnection> conn) = 0;
+  virtual void on_peer_message(int fd, const std::vector<uint8_t> &data) = 0;
+  virtual void on_peer_disconnected(int fd) = 0;
+  virtual void on_peer_error(int fd) = 0;
+  virtual ~INode() = default;
 };
 
 class IEventHandler {
@@ -194,6 +197,7 @@ public:
   virtual void add_fd(int fd, std::weak_ptr<IEventHandler> handler,
                       uint32_t events) = 0;
   virtual void run_once(int timeout_ms = -1) = 0;
+  virtual void remove_fd(int fd) = 0;
   virtual void stop() = 0;
   virtual ~IEventLoop() = default;
 };

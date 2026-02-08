@@ -25,11 +25,11 @@ public:
 };
 
 class PeerAcceptHandler : public IEventHandler {
-  std::weak_ptr<INodeConnection> peer_;
+  std::weak_ptr<INode> peer_;
   std::unique_ptr<IAcceptor> acceptor_;
 
 public:
-  void init(std::shared_ptr<INodeConnection> peer);
+  void init(std::shared_ptr<INode> peer);
 
   void set_acceptor(std::unique_ptr<IAcceptor> acceptor);
 
@@ -63,14 +63,24 @@ public:
 
 class PeerEventHandler : public IEventHandler {
 private:
-  std::weak_ptr<INodeConnection> peer_node_;
-  std::weak_ptr<IConnection> connection_;
+  std::weak_ptr<INode> peer_node_;
+  std::unordered_map<int, std::shared_ptr<IConnection>> peers_;
+  std::recursive_mutex peers_mutex_;
 
 public:
-  PeerEventHandler(std::shared_ptr<INodeConnection> peer_node,
-                   std::shared_ptr<IConnection> connection);
+  PeerEventHandler() = default;
+
+  void init(std::shared_ptr<INode> peer_node);
+
+  void add_peer(int fd, std::shared_ptr<IConnection> peer_connection);
+
+  void remove_peer(int fd);
 
   void handle_event(int fd, uint32_t events) override;
+
+  void clear();
+
+  ~PeerEventHandler() override;
 };
 
 class ClientHandler : public IEventHandler {

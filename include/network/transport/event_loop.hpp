@@ -23,9 +23,9 @@ class EventLoop : public IEventLoop {
 public:
   EventLoop();
 
-  void remove_fd(int fd);
+  void remove_fd(int fd) override;
 
-  ~EventLoop();
+  ~EventLoop() override;
 
   void add_fd(int fd_to_add, std::weak_ptr<IEventHandler> handler,
               uint32_t events) override;

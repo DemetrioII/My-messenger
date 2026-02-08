@@ -80,15 +80,16 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(run_tests 
 	tests/tests.cpp
-    ${HEADERS}
+    ${SRC_FILES}
+    ${HEADER_FILES}
 )
 
-target_include_directories(run_tests PRIVATE src)
 target_link_libraries(run_tests PRIVATE 
     GTest::gtest 
     GTest::gtest_main 
     OpenSSL::SSL 
-    OpenSSL::Crypto 
+    OpenSSL::Crypto
+	Qt6::Widgets
     pthread
 )
 # Регистрируем тесты
@@ -104,7 +105,8 @@ add_custom_target(check
 # Для отладки тестов (опционально)
 add_executable(run_tests_debug
     tests/tests.cpp
-    ${HEADERS}
+    ${SRC_FILES}
+    ${HEADER_FILES}
 )
 
 target_include_directories(run_tests_debug PRIVATE src)
@@ -112,6 +114,7 @@ target_link_libraries(run_tests_debug PRIVATE
     GTest::gtest 
     GTest::gtest_main 
     OpenSSL::SSL 
+	Qt6::Widgets
     OpenSSL::Crypto 
     pthread
 )

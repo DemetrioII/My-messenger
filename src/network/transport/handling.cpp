@@ -21,9 +21,7 @@ void AcceptHandler::set_acceptor(std::unique_ptr<IAcceptor> acceptor_) {
 
 AcceptHandler::~AcceptHandler() {}
 
-void PeerAcceptHandler::init(std::shared_ptr<INodeConnection> peer) {
-  peer_ = peer;
-}
+void PeerAcceptHandler::init(std::shared_ptr<INode> peer) { peer_ = peer; }
 
 void PeerAcceptHandler::set_acceptor(std::unique_ptr<IAcceptor> acceptor) {
   acceptor_ = std::move(acceptor);
@@ -33,12 +31,7 @@ void PeerAcceptHandler::handle_event(int fd, uint32_t event_mask) {
   if (event_mask & EPOLLIN) {
     auto client = acceptor_->accept(fd);
     if (client) {
-      auto address = (*client)->get_addr();
-      char ip_str[INET6_ADDRSTRLEN];
-      inet_ntop(AF_INET, &address.sin_addr, ip_str, sizeof(ip_str));
-      std::string ip(ip_str);
-      auto fd = (*client)->get_fd();
-      peer_.lock()->register_peer_connection(fd, *client, ip);
+      peer_.lock()->on_peer_connected(*client);
     }
   }
 }
@@ -90,11 +83,64 @@ void ServerHandler::clear() { clients.clear(); }
 
 ServerHandler::~ServerHandler() {}
 
-PeerEventHandler::PeerEventHandler(std::shared_ptr<INodeConnection> peer_node,
-                                   std::shared_ptr<IConnection> connection)
-    : peer_node_(peer_node), connection_(connection) {}
+void PeerEventHandler::init(std::shared_ptr<INode> peer_node) {
+  peer_node_ = peer_node;
+}
 
-void PeerEventHandler::handle_event(int fd, uint32_t event_mask) {}
+void PeerEventHandler::add_peer(int fd,
+                                std::shared_ptr<IConnection> peer_connection) {
+  std::lock_guard<std::recursive_mutex> lock(peers_mutex_);
+  peers_[fd] = peer_connection;
+}
+
+void PeerEventHandler::remove_peer(int fd) {
+  std::lock_guard<std::recursive_mutex> lock(peers_mutex_);
+  if (peers_.find(fd) != peers_.end())
+    peers_.erase(fd);
+}
+
+void PeerEventHandler::handle_event(int fd, uint32_t event_mask) {
+  std::lock_guard<std::recursive_mutex> lock(peers_mutex_);
+
+  if (!peer_node_.lock())
+    return;
+
+  if (event_mask & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
+    remove_peer(fd);
+    peer_node_.lock()->on_peer_disconnected(fd);
+    return;
+  }
+
+  if (event_mask & EPOLLIN) {
+    auto it = peers_.find(fd);
+    if (it == peers_.end())
+      return;
+
+    auto connection = it->second;
+    if (!connection) {
+      remove_peer(fd);
+      peer_node_.lock()->on_peer_disconnected(fd);
+      return;
+    }
+
+    if (connection->try_receive()) {
+      while (connection->has_complete_message()) {
+        auto msg = connection->extract_message();
+        peer_node_.lock()->on_peer_message(fd, msg);
+      }
+    } else {
+      remove_peer(fd);
+      peer_node_.lock()->on_peer_disconnected(fd);
+    }
+  }
+}
+
+void PeerEventHandler::clear() {
+  std::lock_guard<std::recursive_mutex> lock(peers_mutex_);
+  peers_.clear();
+}
+
+PeerEventHandler::~PeerEventHandler() { clear(); }
 
 void ClientHandler::init(std::shared_ptr<IClient> client_) { client = client_; }
 
