@@ -140,7 +140,6 @@ void ConnectionManager::send_to_buffer(int fd,
   auto it = get_connection(fd);
   if (it != std::nullopt) {
     it->get()->queue_send(data);
-    it->get()->flush();
   }
 }
 

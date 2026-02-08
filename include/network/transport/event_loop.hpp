@@ -30,6 +30,10 @@ public:
   void add_fd(int fd_to_add, std::weak_ptr<IEventHandler> handler,
               uint32_t events) override;
 
+  void enable_write(int fd) override;
+
+  void disable_write(int fd) override;
+
   void stop() override;
 
   void run_once(int timeout_ms = -1) override;

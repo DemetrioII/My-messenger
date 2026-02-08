@@ -66,3 +66,17 @@ void EventLoop::run_once(int timeout_ms) {
     }
   }
 }
+
+void EventLoop::enable_write(int fd) {
+  epoll_event ev{};
+  ev.data.fd = fd;
+  ev.events = EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP;
+  epoll_ctl(epollfd.get_fd(), EPOLL_CTL_MOD, fd, &ev);
+}
+
+void EventLoop::disable_write(int fd) {
+  epoll_event ev{};
+  ev.data.fd = fd;
+  ev.events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP;
+  epoll_ctl(epollfd.get_fd(), EPOLL_CTL_MOD, fd, &ev);
+}

@@ -104,6 +104,8 @@ public:
 
   void on_peer_error(int fd) override;
 
+  void on_peer_writable(int fd) override;
+
   ~PeerNode() override;
 };
 

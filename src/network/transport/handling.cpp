@@ -133,6 +133,10 @@ void PeerEventHandler::handle_event(int fd, uint32_t event_mask) {
       peer_node_.lock()->on_peer_disconnected(fd);
     }
   }
+
+  if (event_mask & EPOLLOUT) {
+    peer_node_.lock()->on_peer_writable(fd);
+  }
 }
 
 void PeerEventHandler::clear() {

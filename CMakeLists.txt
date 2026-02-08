@@ -76,6 +76,8 @@ if(WIN32)
 	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 endif()
 
+set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
+
 FetchContent_MakeAvailable(googletest)
 
 add_executable(run_tests 
@@ -115,7 +117,7 @@ target_link_libraries(run_tests_debug PRIVATE
     GTest::gtest_main 
     OpenSSL::SSL 
 	Qt6::Widgets
-    OpenSSL::Crypto 
+    OpenSSL::Crypto
     pthread
 )
 set_target_properties(run_tests_debug PROPERTIES

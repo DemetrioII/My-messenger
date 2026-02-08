@@ -1,5 +1,4 @@
 #include "../../../include/network/transport/peer.hpp"
-#include "../../../include/network/transport/raw_socket.hpp"
 
 PeerNode::PeerNode(std::unique_ptr<ISocket> listening_socket,
                    std::unique_ptr<IAcceptor> acceptor)
@@ -111,6 +110,7 @@ void PeerNode::send_to_peer(const std::string &peer_ip,
 void PeerNode::send_to_peer_by_fd(int peer_fd,
                                   const std::vector<uint8_t> &data) {
   connection_manager_.send_to_buffer(peer_fd, data);
+  event_loop_->enable_write(peer_fd);
 }
 
 void PeerNode::broadcast(const std::vector<uint8_t> &data) {
@@ -118,6 +118,7 @@ void PeerNode::broadcast(const std::vector<uint8_t> &data) {
 
   for (const auto &[fd, connection] : all_connections) {
     connection_manager_.send_to_buffer(fd, data);
+    event_loop_->enable_write(fd);
   }
 
   std::cout << "Broadcast message to " << all_connections.size() << " peers"
@@ -234,6 +235,12 @@ int PeerNode::get_peer_fd(const std::string &ip) const {
   }
 
   return -1;
+}
+
+void PeerNode::on_peer_writable(int fd) {
+  auto done = (*connection_manager_.get_connection(fd))->flush();
+  if (done)
+    event_loop_->disable_write(fd);
 }
 
 void PeerNode::on_peer_message(int fd, const std::vector<uint8_t> &data) {

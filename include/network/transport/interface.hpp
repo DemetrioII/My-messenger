@@ -182,6 +182,7 @@ public:
   virtual void on_peer_connected(std::shared_ptr<IConnection> conn) = 0;
   virtual void on_peer_message(int fd, const std::vector<uint8_t> &data) = 0;
   virtual void on_peer_disconnected(int fd) = 0;
+  virtual void on_peer_writable(int fd) = 0;
   virtual void on_peer_error(int fd) = 0;
   virtual ~INode() = default;
 };
@@ -197,6 +198,8 @@ public:
   virtual void add_fd(int fd, std::weak_ptr<IEventHandler> handler,
                       uint32_t events) = 0;
   virtual void run_once(int timeout_ms = -1) = 0;
+  virtual void enable_write(int fd) = 0;
+  virtual void disable_write(int fd) = 0;
   virtual void remove_fd(int fd) = 0;
   virtual void stop() = 0;
   virtual ~IEventLoop() = default;
