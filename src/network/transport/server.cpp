@@ -5,7 +5,23 @@ Server::Server(std::unique_ptr<ISocket> socket,
     : event_loop(std::make_unique<EventLoop>()),
       acceptHandler(std::make_shared<AcceptHandler>()),
       handler(std::make_shared<ServerHandler>()),
-      socket_visitor(std::move(socket)), acceptor(std::move(acceptor_)) {}
+      socket_visitor(std::move(socket)), acceptor(std::move(acceptor_)) {
+  SSL_library_init();
+  SSL_load_error_strings();
+  OpenSSL_add_ssl_algorithms();
+
+  ssl_ctx_ = SSL_CTX_new(TLS_server_method());
+  if (!ssl_ctx_) {
+    throw std::runtime_error("TLS context initialization failed!");
+  }
+
+  if (SSL_CTX_use_certificate_file(ssl_ctx_, "cert.pem", SSL_FILETYPE_PEM) <=
+          0 ||
+      SSL_CTX_use_PrivateKey_file(ssl_ctx_, "key.pem", SSL_FILETYPE_PEM) <= 0) {
+    ERR_print_errors_fp(stderr);
+    throw std::runtime_error("TLS certificate load failed!");
+  }
+}
 
 void Server::process_pending_messages() {
   // Для фоновых задач
@@ -85,6 +101,8 @@ void Server::on_client_disconnected(int fd) {
   // Потом удалить всё остальное
   connection_manager.remove_connection(fd);
 
+  tls_wrapper_.erase(fd);
+
   // socket_visitor.close();
   // stop();
 }
@@ -104,12 +122,17 @@ void Server::on_client_writable(int fd) {
   if (it == std::nullopt) {
     return;
   }
+  auto done = it->get()->flush();
+  if (done)
+    event_loop->disable_write(fd);
 }
 
 bool Server::is_running() const { return running; }
 
 void Server::send(int fd, const std::vector<uint8_t> &raw_data) {
   connection_manager.send_to_buffer(fd, raw_data);
+  event_loop->enable_write(fd);
+  // connection_manager.get_connection(fd)->get()->flush();
 }
 
 void Server::send(const std::string &message) {}
@@ -118,5 +141,9 @@ int Server::get_fd() const { return socket_visitor->get_fd(); }
 
 Server::~Server() {
   std::cout << "~TCPServer()" << std::endl;
+  if (ssl_ctx_) {
+    SSL_CTX_free(ssl_ctx_);
+    EVP_cleanup();
+  }
   stop();
 }

@@ -5,6 +5,8 @@ include/network/.tmpobject
 .tmpobject
 build/
 a.out
+key.pem
+cert.pem
 compile_commands.json
 client
 OLDMESSSERVER

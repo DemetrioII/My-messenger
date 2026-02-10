@@ -77,6 +77,14 @@ void ServerHandler::handle_event(int fd, uint32_t event_mask) {
       server.lock()->on_client_disconnected(fd);
     }
   }
+
+  if (event_mask & EPOLLOUT) {
+    auto it = clients.find(fd);
+    if (it == clients.end())
+      return;
+
+    server.lock()->on_client_writable(fd);
+  }
 }
 
 void ServerHandler::clear() { clients.clear(); }

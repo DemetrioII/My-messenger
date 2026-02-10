@@ -5,6 +5,7 @@
 #include "handling.hpp"
 #include "interface.hpp"
 #include "raw_socket.hpp"
+#include "tls.hpp"
 #include <atomic>
 #include <functional>
 #include <mutex>
@@ -21,6 +22,10 @@ class Server : public IServer, public std::enable_shared_from_this<Server> {
 
   std::shared_ptr<AcceptHandler> acceptHandler;
   std::shared_ptr<ServerHandler> handler;
+
+  std::unordered_map<int, std::unique_ptr<TLSWrapper>> tls_wrapper_;
+
+  SSL_CTX *ssl_ctx_;
 
   std::function<void(int fd, std::vector<uint8_t>)> on_data_callback;
 
