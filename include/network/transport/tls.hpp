@@ -5,10 +5,14 @@
 #include <openssl/tls1.h>
 #include <stdexcept>
 
-struct TLSWrapper {
+struct ServerTLSWrapper {
   int client_fd_;
   SSL *ssl;
 
-  TLSWrapper(SSL_CTX *ctx, int fd);
-  ~TLSWrapper();
+  bool handshake_done = false;
+
+  void tls_handshake();
+
+  ServerTLSWrapper(SSL_CTX *ctx, int fd);
+  ~ServerTLSWrapper();
 };

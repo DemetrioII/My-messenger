@@ -23,7 +23,7 @@ class Server : public IServer, public std::enable_shared_from_this<Server> {
   std::shared_ptr<AcceptHandler> acceptHandler;
   std::shared_ptr<ServerHandler> handler;
 
-  std::unordered_map<int, std::unique_ptr<TLSWrapper>> tls_wrapper_;
+  std::unordered_map<int, std::unique_ptr<ServerTLSWrapper>> tls_wrapper_;
 
   SSL_CTX *ssl_ctx_;
 
@@ -64,6 +64,10 @@ public:
   void run_event_loop() override;
 
   void stop() override;
+
+  void tls_handshake(int fd) override;
+
+  bool tls_handshake_done(int fd) override;
 
   void on_client_error(int fd) override;
 

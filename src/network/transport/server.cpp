@@ -78,6 +78,12 @@ void Server::stop() {
 
 void Server::on_client_error(int fd) {}
 
+bool Server::tls_handshake_done(int fd) {
+  return tls_wrapper_[fd]->handshake_done;
+}
+
+void Server::tls_handshake(int fd) { tls_wrapper_[fd]->tls_handshake(); }
+
 void Server::on_client_connected(std::shared_ptr<IConnection> conn) {
   // std::lock_guard<std::mutex> lock(server_mutex);
   std::cout << "Новое подключение от " << conn->get_fd() << '\n'
@@ -90,6 +96,8 @@ void Server::on_client_connected(std::shared_ptr<IConnection> conn) {
   handler->add_client(fd, conn);
   event_loop->add_fd(fd, handler,
                      EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
+
+  tls_wrapper_[fd] = std::make_unique<ServerTLSWrapper>(ssl_ctx_, fd);
 }
 
 void Server::on_client_disconnected(int fd) {

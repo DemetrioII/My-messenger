@@ -39,6 +39,8 @@ public:
   }
   struct sockaddr_in get_addr();
 
+  void tls_handshake_done() override;
+
   void set_data_callback(
       std::function<void(const std::vector<uint8_t> &)> f) override;
 

@@ -66,6 +66,10 @@ void ServerHandler::handle_event(int fd, uint32_t event_mask) {
     if (it == clients.end())
       return;
 
+    if (!server.lock()->tls_handshake_done(fd)) {
+      server.lock()->tls_handshake(fd);
+    }
+
     if (it->second.lock()->try_receive()) {
       if (!it->second.lock()->has_complete_message())
         return;

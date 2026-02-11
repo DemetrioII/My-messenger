@@ -4,6 +4,7 @@
 #include <cstring>
 #include <functional>
 #include <memory>
+#include <openssl/ssl.h>
 #include <optional>
 #include <stdint.h>
 #include <string>
@@ -132,6 +133,8 @@ public:
   virtual void set_data_callback(
       std::function<void(int, std::vector<uint8_t>)> callback) = 0;
   virtual void run_event_loop() = 0;
+  virtual void tls_handshake(int fd) = 0;
+  virtual bool tls_handshake_done(int fd) = 0;
   virtual ~IServer() = default;
 };
 
@@ -147,6 +150,7 @@ public:
   virtual void on_server_message() = 0;
   virtual bool connect(const std::string &server_ip, int port) = 0;
   virtual void disconnect() = 0;
+  virtual void tls_handshake_done() = 0;
   virtual ~IClient() = default;
 };
 

@@ -6,6 +6,10 @@ include/network/.tmpobject
 build/
 a.out
 key.pem
+*.pem
+.evn
+*.key
+secrets.*
 cert.pem
 compile_commands.json
 client

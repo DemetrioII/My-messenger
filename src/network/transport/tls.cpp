@@ -1,25 +1,31 @@
 #include "../../../include/network/transport/tls.hpp"
 #include <iostream>
 
-TLSWrapper::TLSWrapper(SSL_CTX *ctx, int fd) {
+void ServerTLSWrapper::tls_handshake() {
+  int ret = SSL_accept(ssl);
+  if (ret == 1) {
+    handshake_done = 1;
+    return;
+  }
+
+  int err = SSL_get_error(ssl, ret);
+
+  if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+    ERR_print_errors_fp(stderr);
+    throw std::runtime_error("TLS SSL accept error");
+    return;
+  }
+}
+
+ServerTLSWrapper::ServerTLSWrapper(SSL_CTX *ctx, int fd) {
   client_fd_ = fd;
   ssl = SSL_new(ctx);
   SSL_set_fd(ssl, fd);
 
-  if (SSL_accept(ssl) <= 0) {
-    ERR_print_errors_fp(stderr);
-  } else {
-    char buf[256];
-    int n = SSL_read(ssl, buf, sizeof(buf) - 1);
-    buf[n] = 0;
-
-    printf("Received: %s\n", buf);
-
-    SSL_write(ssl, "client hello", strlen("client hello"));
-  }
+  tls_handshake();
 }
 
-TLSWrapper::~TLSWrapper() {
+ServerTLSWrapper::~ServerTLSWrapper() {
   SSL_shutdown(ssl);
   SSL_free(ssl);
 }
