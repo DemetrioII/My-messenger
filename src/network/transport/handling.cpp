@@ -61,14 +61,17 @@ void ServerHandler::handle_event(int fd, uint32_t event_mask) {
     return;
   }
 
+  if (!server.lock()->tls_handshake_done(fd)) {
+    if (event_mask & (EPOLLIN | EPOLLOUT)) {
+      server.lock()->tls_handshake(fd);
+    }
+    return;
+  }
+
   if (event_mask & EPOLLIN) {
     auto it = clients.find(fd);
     if (it == clients.end())
       return;
-
-    if (!server.lock()->tls_handshake_done(fd)) {
-      server.lock()->tls_handshake(fd);
-    }
 
     if (it->second.lock()->try_receive()) {
       if (!it->second.lock()->has_complete_message())
@@ -161,6 +164,15 @@ PeerEventHandler::~PeerEventHandler() { clear(); }
 void ClientHandler::init(std::shared_ptr<IClient> client_) { client = client_; }
 
 void ClientHandler::handle_event(int fd, uint32_t event_mask) {
+  if (!client.lock())
+    return;
+
+  if (!client.lock()->tls_handshake_done()) {
+    if (event_mask & (EPOLLIN | EPOLLOUT)) {
+      client.lock()->tls_handshake();
+    }
+    return;
+  }
   if (event_mask & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
     client.lock()->disconnect();
   } else if (event_mask & EPOLLIN) {

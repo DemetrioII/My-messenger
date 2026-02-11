@@ -1,4 +1,5 @@
 #include "../../../include/network/transport/transport.hpp"
+#include <iostream>
 
 std::optional<std::vector<uint8_t>>
 TCPTransport::extract_complete_message(int fd,
@@ -177,3 +178,93 @@ void UDPTransport::connect(int fd) {
 }
 
 UDPTransport::~UDPTransport() {}
+
+std::optional<std::vector<uint8_t>>
+TLSTransport::extract_complete_message(std::vector<uint8_t> &buffer) const {
+  if (buffer.size() < sizeof(uint32_t)) {
+    return std::nullopt;
+  }
+
+  uint32_t len;
+  ::memcpy(&len, buffer.data(), sizeof(uint32_t));
+  len = ntohl(len);
+  if (buffer.size() < sizeof(uint32_t) + len) {
+    return std::nullopt;
+  }
+
+  std::vector<uint8_t> message(buffer.begin() + sizeof(uint32_t),
+                               buffer.begin() + sizeof(uint32_t) + len);
+
+  buffer.erase(buffer.begin(), buffer.begin() + sizeof(uint32_t) + len);
+  return message;
+}
+
+ssize_t TLSTransport::send(int fd, const std::vector<uint8_t> &data) const {
+  try {
+    std::vector<uint8_t> send_buffer;
+    uint32_t len = htonl(data.size());
+    const uint8_t *p = reinterpret_cast<uint8_t *>(&len);
+
+    send_buffer.insert(send_buffer.end(), p, p + sizeof(uint32_t));
+    send_buffer.insert(send_buffer.end(), data.begin(), data.end());
+    return SSL_write(ssl_, send_buffer.data(), send_buffer.size()) -
+           sizeof(uint32_t);
+  } catch (std::exception e) {
+    return 0;
+  }
+}
+
+void TLSTransport::connect(int fd) {}
+
+ReceiveResult TLSTransport::receive(int fd) const {
+  char temp[4096]; // Больше для эффективности
+  std::vector<uint8_t> accumulation_buffer;
+
+  while (true) {
+    ssize_t bytes = SSL_read(ssl_, temp, sizeof(temp));
+    std::cout << "TLS transport received " << bytes << " bytes" << std::endl;
+
+    if (bytes > 0) {
+      accumulation_buffer.insert(accumulation_buffer.end(), temp, temp + bytes);
+
+      auto message = extract_complete_message(accumulation_buffer);
+      if (message.has_value()) {
+        ReceiveResult res;
+        res.status = ReceiveStatus::OK;
+        res.data.set_data(message->data(), message->size());
+        res.error_code = 0;
+
+        return res;
+      }
+      // Иначе продолжаем читать (в буфере может быть больше данных)
+    } else if (bytes == 0) {
+      // Соединение закрыто
+      ReceiveResult res;
+      res.status = ReceiveStatus::CLOSED;
+      res.data.set_data(accumulation_buffer.data(), accumulation_buffer.size());
+      res.error_code = 0;
+      return res; // Возвращаем то, что успели прочитать
+    } else {      // bytes == -1
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        // Нет доступных данных прямо сейчас
+        ReceiveResult res;
+        res.status = ReceiveStatus::WOULDBLOCK;
+        res.data.set_data(accumulation_buffer.data(),
+                          accumulation_buffer.size());
+        res.error_code = 0;
+        return res; // Возвращаем уже прочитанное
+      } else {
+        // Ошибка
+        ReceiveResult res;
+        res.status = ReceiveStatus::ERROR;
+        res.data.set_data(accumulation_buffer.data(),
+                          accumulation_buffer.size());
+        res.error_code = errno;
+        return res;
+        // Возвращаем то, что успели
+      }
+    }
+  }
+}
+
+TLSTransport::~TLSTransport() {}

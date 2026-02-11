@@ -4,6 +4,7 @@
 #include "handling.hpp"
 #include "interface.hpp"
 #include "raw_socket.hpp"
+#include "tls.hpp"
 #include "transport.hpp"
 #include <functional>
 #include <iostream>
@@ -21,10 +22,11 @@ class Client : public IClient, public std::enable_shared_from_this<Client> {
 
   struct sockaddr_in server_addr;
 
-  Client(std::unique_ptr<ISocket> socket)
-      : event_loop(std::make_unique<EventLoop>()),
-        handler(std::make_shared<ClientHandler>()),
-        socket_visitor(std::move(socket)) {}
+  SSL_CTX *ssl_ctx_;
+
+  std::unique_ptr<ClientTLSWrapper> tls_wrapper_;
+
+  Client(std::unique_ptr<ISocket> socket);
 
 public:
   static std::shared_ptr<Client> create(std::unique_ptr<ISocket> socket_) {
@@ -39,7 +41,9 @@ public:
   }
   struct sockaddr_in get_addr();
 
-  void tls_handshake_done() override;
+  void tls_handshake() override;
+
+  bool tls_handshake_done() override;
 
   void set_data_callback(
       std::function<void(const std::vector<uint8_t> &)> f) override;

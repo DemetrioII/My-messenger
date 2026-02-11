@@ -79,7 +79,7 @@ void Server::stop() {
 void Server::on_client_error(int fd) {}
 
 bool Server::tls_handshake_done(int fd) {
-  return tls_wrapper_[fd]->handshake_done;
+  return tls_wrapper_[fd]->handshake_done_;
 }
 
 void Server::tls_handshake(int fd) { tls_wrapper_[fd]->tls_handshake(); }
@@ -98,6 +98,9 @@ void Server::on_client_connected(std::shared_ptr<IConnection> conn) {
                      EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
 
   tls_wrapper_[fd] = std::make_unique<ServerTLSWrapper>(ssl_ctx_, fd);
+
+  conn->init_transport(
+      std::move(TransportFabric::create_tls(tls_wrapper_[fd]->ssl)));
 }
 
 void Server::on_client_disconnected(int fd) {

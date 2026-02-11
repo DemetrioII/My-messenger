@@ -150,7 +150,8 @@ public:
   virtual void on_server_message() = 0;
   virtual bool connect(const std::string &server_ip, int port) = 0;
   virtual void disconnect() = 0;
-  virtual void tls_handshake_done() = 0;
+  virtual bool tls_handshake_done() = 0;
+  virtual void tls_handshake() = 0;
   virtual ~IClient() = default;
 };
 

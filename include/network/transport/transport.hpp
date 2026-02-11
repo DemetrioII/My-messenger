@@ -37,6 +37,25 @@ public:
   ~UDPTransport() override;
 };
 
+class TLSTransport : public ITransport {
+  std::unique_ptr<ITransport> inner_;
+  SSL *ssl_;
+
+  std::optional<std::vector<uint8_t>>
+  extract_complete_message(std::vector<uint8_t> &buffer) const;
+
+public:
+  TLSTransport(SSL *ssl) : ssl_(ssl) {}
+
+  ssize_t send(int fd, const std::vector<uint8_t> &data) const override;
+
+  ReceiveResult receive(int fd) const override;
+
+  void connect(int fd) override;
+
+  ~TLSTransport();
+};
+
 class TransportFabric {
 public:
   static std::unique_ptr<TCPTransport> create_tcp() {
@@ -45,5 +64,9 @@ public:
 
   static std::unique_ptr<UDPTransport> create_udp(struct sockaddr_in &addr) {
     return std::make_unique<UDPTransport>(UDPTransport(addr));
+  }
+
+  static std::unique_ptr<TLSTransport> create_tls(SSL *ssl) {
+    return std::make_unique<TLSTransport>(ssl);
   }
 };

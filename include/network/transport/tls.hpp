@@ -9,10 +9,22 @@ struct ServerTLSWrapper {
   int client_fd_;
   SSL *ssl;
 
-  bool handshake_done = false;
+  bool handshake_done_ = false;
 
   void tls_handshake();
 
   ServerTLSWrapper(SSL_CTX *ctx, int fd);
   ~ServerTLSWrapper();
+};
+
+struct ClientTLSWrapper {
+  int server_fd_;
+  SSL *ssl;
+
+  bool handshake_done_ = false;
+
+  void tls_handshake();
+
+  ClientTLSWrapper(SSL_CTX *ctx, int fd);
+  ~ClientTLSWrapper();
 };

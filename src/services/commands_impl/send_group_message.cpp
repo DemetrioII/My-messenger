@@ -38,6 +38,11 @@ void SendGroupMessageCommand::execeuteOnServer(
                                       StaticResponses::YOU_ARE_NOT_MEMBER);
       return;
     }
+    if (send_res.error() == ServiceError::ChatNotFound) {
+      context->transport_server->send(context->fd,
+                                      StaticResponses::CHAT_NOT_FOUND);
+      return;
+    }
   }
 
   for (auto username : *send_res) {

@@ -1,5 +1,16 @@
 #include "../../../include/network/transport/client.hpp"
 
+Client::Client(std::unique_ptr<ISocket> socket)
+    : event_loop(std::make_unique<EventLoop>()),
+      handler(std::make_shared<ClientHandler>()),
+      socket_visitor(std::move(socket)) {
+  SSL_library_init();
+  SSL_load_error_strings();
+  OpenSSL_add_ssl_algorithms();
+
+  ssl_ctx_ = SSL_CTX_new(TLS_client_method());
+}
+
 void Client::set_data_callback(
     std::function<void(const std::vector<uint8_t> &)> f) {
   on_data_callback = f;
@@ -14,8 +25,15 @@ bool Client::connect(const std::string &server_ip, int port) {
 
   server_addr = socket_visitor->get_peer_address();
   event_loop->add_fd(socket_visitor->get_fd(), handler, EPOLLIN | EPOLLRDHUP);
+  tls_wrapper_ =
+      std::make_unique<ClientTLSWrapper>(ssl_ctx_, socket_visitor->get_fd());
+  transport = std::move(TransportFabric::create_tls(tls_wrapper_->ssl));
   return true;
 }
+
+void Client::tls_handshake() { tls_wrapper_->tls_handshake(); }
+
+bool Client::tls_handshake_done() { return tls_wrapper_->handshake_done_; }
 
 struct sockaddr_in Client::get_addr() { return server_addr; }
 
@@ -30,6 +48,10 @@ void Client::disconnect() {
     event_loop->remove_fd(socket_visitor->get_fd());
     ::shutdown(socket_visitor->get_fd(), SHUT_RDWR);
     socket_visitor->close(); // Вызовется в деструкторе Fd автоматически
+  }
+  if (ssl_ctx_) {
+    SSL_CTX_free(ssl_ctx_);
+    EVP_cleanup();
   }
 }
 
