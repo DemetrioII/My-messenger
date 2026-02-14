@@ -57,8 +57,14 @@ void SendFileCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
 
     buffer.resize(read_bytes);
 
+    if (context->messages_counter.find(recipient) ==
+        context->messages_counter.end())
+      context->messages_counter[recipient] = 0;
     auto cipher_bytes = context->encryption_service->encrypt_for(
-        context->my_username, recipient, buffer);
+        context->my_username, recipient, buffer,
+        context->messages_counter[recipient]);
+
+    ++context->messages_counter[recipient];
 
     Message chunk_msg(std::move(cipher_bytes), 3,
                       {recipient, fname_bytes, context->my_username},

@@ -16,8 +16,10 @@ public:
   ~AESGCMEncryptor();
 
   std::vector<uint8_t> encrypt(const std::vector<uint8_t> &key,
-                               const std::vector<uint8_t> &plaintext);
+                               const std::vector<uint8_t> &plaintext,
+                               uint64_t counter);
 
   std::vector<uint8_t> decrypt(const std::vector<uint8_t> &key,
-                               const std::vector<uint8_t> &input);
+                               const std::vector<uint8_t> &input,
+                               uint64_t counter);
 };

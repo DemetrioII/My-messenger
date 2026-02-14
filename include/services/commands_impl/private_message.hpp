@@ -10,8 +10,9 @@ class PrivateMessageCommand : public ICommandHandler {
   std::vector<uint8_t> pubkey_bytes;
   std::vector<uint8_t> payload;
 
-  void process_encrypted_message(
-      std::shared_ptr<EncryptionService> encryption_service);
+  /* void process_encrypted_message(
+      std::shared_ptr<EncryptionService> encryption_service,
+      std::shared_ptr<ClientContext> context); */
 
 public:
   CommandType getType() const override;

@@ -27,8 +27,10 @@ ServerTLSWrapper::ServerTLSWrapper(SSL_CTX *ctx, int fd) {
 }
 
 ServerTLSWrapper::~ServerTLSWrapper() {
-  SSL_shutdown(ssl);
-  SSL_free(ssl);
+  if (ssl) {
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
+  }
 }
 
 void ClientTLSWrapper::tls_handshake() {
@@ -57,6 +59,8 @@ ClientTLSWrapper::ClientTLSWrapper(SSL_CTX *ctx, int fd) {
 }
 
 ClientTLSWrapper::~ClientTLSWrapper() {
-  SSL_shutdown(ssl);
-  SSL_free(ssl);
+  if (ssl) {
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
+  }
 }

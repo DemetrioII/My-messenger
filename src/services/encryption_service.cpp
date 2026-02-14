@@ -8,10 +8,9 @@ std::vector<uint8_t> EncryptionService::get_public_bytes() {
   return identity_key.public_bytes();
 }
 
-std::vector<uint8_t>
-EncryptionService::encrypt_for(const std::vector<uint8_t> &sender,
-                               const std::vector<uint8_t> &username,
-                               const std::vector<uint8_t> &plaintext) {
+std::vector<uint8_t> EncryptionService::encrypt_for(
+    const std::vector<uint8_t> &sender, const std::vector<uint8_t> &username,
+    const std::vector<uint8_t> &plaintext, uint64_t counter) {
 
   if (keys.find(username) == keys.end())
     throw std::runtime_error("User public " +
@@ -20,7 +19,8 @@ EncryptionService::encrypt_for(const std::vector<uint8_t> &sender,
   auto shared_secret = identity_key.compute_shared_secret(keys[username]);
   auto encryption_key =
       HKDF::derive_for_messaging(shared_secret, sender, username, "encryption");
-  auto ciphertext = aes_gcm_encryptor.encrypt(encryption_key, plaintext);
+  auto ciphertext =
+      aes_gcm_encryptor.encrypt(encryption_key, plaintext, counter);
 
   if (!shared_secret.empty())
     OPENSSL_cleanse(shared_secret.data(), shared_secret.size());
@@ -30,10 +30,9 @@ EncryptionService::encrypt_for(const std::vector<uint8_t> &sender,
   return ciphertext;
 }
 
-std::vector<uint8_t>
-EncryptionService::decrypt_for(const std::vector<uint8_t> &sender,
-                               const std::vector<uint8_t> &username,
-                               const std::vector<uint8_t> &ciphertext) {
+std::vector<uint8_t> EncryptionService::decrypt_for(
+    const std::vector<uint8_t> &sender, const std::vector<uint8_t> &username,
+    const std::vector<uint8_t> &ciphertext, uint64_t counter) {
   if (keys.find(sender) == keys.end())
     throw std::runtime_error("User public " +
                              std::string(sender.begin(), sender.end()) +
@@ -41,7 +40,8 @@ EncryptionService::decrypt_for(const std::vector<uint8_t> &sender,
   auto shared_secret = identity_key.compute_shared_secret(keys[sender]);
   auto decryption_key =
       HKDF::derive_for_messaging(shared_secret, sender, username, "encryption");
-  auto plaintext = aes_gcm_encryptor.decrypt(decryption_key, ciphertext);
+  auto plaintext =
+      aes_gcm_encryptor.decrypt(decryption_key, ciphertext, counter);
 
   if (!shared_secret.empty())
     OPENSSL_cleanse(shared_secret.data(), shared_secret.size());
@@ -53,5 +53,5 @@ EncryptionService::decrypt_for(const std::vector<uint8_t> &sender,
 
 void EncryptionService::cache_public_key(const std::vector<uint8_t> &username,
                                          const std::vector<uint8_t> &pubkey) {
-  keys[username] = IdentityKey::from_public_bytes(pubkey);
+  keys[username] = DH_Key::from_public_bytes(pubkey);
 }

@@ -9,9 +9,15 @@ void CipherMessageHandler::process_encrypted_message(
     std::shared_ptr<ClientContext> context) {
   try {
     encryption_service->cache_public_key(sender, pubkey_bytes);
-    auto decrypted_msg =
-        encryption_service->decrypt_for(sender, recipient, payload);
+    auto counter_it = context->messages_counter.find(sender);
+    if (counter_it == context->messages_counter.end()) {
+      context->messages_counter[sender] = 0;
+    }
+    auto decrypted_msg = encryption_service->decrypt_for(
+        sender, recipient, payload, context->messages_counter[sender]);
     std::string plaintext(decrypted_msg.begin(), decrypted_msg.end());
+
+    ++context->messages_counter[sender];
 
     std::cout << "\n[Личное от " << std::string(sender.begin(), sender.end())
               << "]: " << plaintext << std::endl;

@@ -6,13 +6,13 @@
 #include "../models/message.hpp"
 
 class EncryptionService {
-  IdentityKey identity_key;
+  DH_Key identity_key;
 
   AESGCMEncryptor aes_gcm_encryptor;
 
-  std::unordered_map<std::vector<uint8_t>, IdentityKey> keys;
+  std::unordered_map<std::vector<uint8_t>, DH_Key> keys;
 
-  auto load_or_generate_key() { return IdentityKey::generate(); }
+  auto load_or_generate_key() { return DH_Key::generate(); }
 
 public:
   void set_identity_key();
@@ -21,11 +21,13 @@ public:
 
   std::vector<uint8_t> encrypt_for(const std::vector<uint8_t> &sender,
                                    const std::vector<uint8_t> &username,
-                                   const std::vector<uint8_t> &plaintext);
+                                   const std::vector<uint8_t> &plaintext,
+                                   uint64_t counter);
 
   std::vector<uint8_t> decrypt_for(const std::vector<uint8_t> &sender,
                                    const std::vector<uint8_t> &username,
-                                   const std::vector<uint8_t> &ciphertext);
+                                   const std::vector<uint8_t> &ciphertext,
+                                   uint64_t counter);
 
   void cache_public_key(const std::vector<uint8_t> &username,
                         const std::vector<uint8_t> &pubkey);

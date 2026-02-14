@@ -27,6 +27,8 @@ struct ClientContext {
       std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
       pending_files;
 
+  std::unordered_map<std::vector<uint8_t>, uint64_t> messages_counter;
+
   ClientContext(const std::string &server_ip, uint16_t port)
       : client(ClientFabric::create_tcp_client(server_ip, port)),
         mq(std::make_shared<MessageQueue>(client)),

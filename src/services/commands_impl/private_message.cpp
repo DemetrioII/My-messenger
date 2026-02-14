@@ -1,11 +1,13 @@
 #include "../../../include/services/commands_impl/private_message.hpp"
 
-void PrivateMessageCommand::process_encrypted_message(
-    std::shared_ptr<EncryptionService> encryption_service) {
+/* void PrivateMessageCommand::process_encrypted_message(
+    std::shared_ptr<EncryptionService> encryption_service,
+    std::shared_ptr<ClientContext> context) {
   try {
     encryption_service->cache_public_key(recipient, pubkey_bytes);
-    auto decrypted_msg =
-        encryption_service->decrypt_for(sender, recipient, payload);
+    auto decrypted_msg = encryption_service->decrypt_for(
+        sender, recipient, payload,
+        context->messages_counter.find(sender)->second);
     std::string plaintext(decrypted_msg.begin(), decrypted_msg.end());
 
     std::string sender_username(sender.begin(), sender.end());
@@ -14,7 +16,7 @@ void PrivateMessageCommand::process_encrypted_message(
   } catch (const std::exception &e) {
     std::cerr << "[Crypto] Decryption failed: " << e.what() << std::endl;
   }
-}
+} */
 
 CommandType PrivateMessageCommand::getType() const {
   return CommandType::PRIVATE_MESSAGE;

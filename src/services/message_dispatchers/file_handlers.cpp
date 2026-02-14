@@ -75,8 +75,12 @@ void FileChunkHandler::handleMessageOnClient(
     // auto payload = msg.get_payload();
     // std::vector<uint8_t> cipher_bytes(msg.get_payload().begin(),
     // msg.get_payload().end());
+    if (context->messages_counter.find(msg.get_meta(0)) ==
+        context->messages_counter.end())
+      context->messages_counter[msg.get_meta(0)] = 0;
     std::vector<uint8_t> payload = context->encryption_service->decrypt_for(
-        msg.get_meta(2), msg.get_meta(0), msg.get_payload());
+        msg.get_meta(2), msg.get_meta(0), msg.get_payload(),
+        context->messages_counter[msg.get_meta(0)]);
     (*pending_files)[recipient_username_str + " " + name]->write(
         reinterpret_cast<const char *>(payload.data()), payload.size());
   }

@@ -16,7 +16,7 @@ void ResponseMessageHandler::handleMessageOnClient(
   }
 
   case CommandType::GET_PUBKEY: {
-    auto other_pubkey = IdentityKey::from_public_bytes(msg.get_payload());
+    auto other_pubkey = DH_Key::from_public_bytes(msg.get_payload());
     auto username = msg.get_meta(1);
 
     std::cout << "You got a public key of "
@@ -26,8 +26,15 @@ void ResponseMessageHandler::handleMessageOnClient(
     auto pending_it = context->mq->find_pending(username);
     if (pending_it) {
       auto msg_to_send = *pending_it;
+
+      auto counter_it = context->messages_counter.find(username);
+      if (counter_it == context->messages_counter.end()) {
+        context->messages_counter[username] = 0;
+      }
       auto ciphertext = context->encryption_service->encrypt_for(
-          context->my_username, username, msg_to_send.bytes);
+          context->my_username, username, msg_to_send.bytes,
+          context->messages_counter[username]);
+
       Message cipher_msg{std::move(ciphertext), // ?
                          2,
                          {username, context->my_username},
@@ -35,6 +42,8 @@ void ResponseMessageHandler::handleMessageOnClient(
 
       context->client->send_to_server(
           context->serializer->serialize(cipher_msg));
+
+      ++context->messages_counter[username];
 
       std::cout << "[Crypto] Sent queued message to "
                 << std::string(username.begin(), username.end()) << std::endl;
@@ -54,7 +63,8 @@ void ResponseMessageHandler::handleMessageOnClient(
       context->encryption_service->cache_public_key(username,
                                                     msg.get_payload());
       auto plaintext = context->encryption_service->decrypt_for(
-          context->my_username, context->my_username, pending_ciphertext);
+          context->my_username, context->my_username, pending_ciphertext,
+          context->messages_counter.find(username)->second);
       auto plain_str = std::string(plaintext.begin(), plaintext.end());
       std::cout << plain_str << std::endl;
     }
