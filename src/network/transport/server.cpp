@@ -100,7 +100,7 @@ void Server::on_client_connected(std::shared_ptr<IConnection> conn) {
   tls_wrapper_[fd] = std::make_unique<ServerTLSWrapper>(ssl_ctx_, fd);
 
   conn->init_transport(
-      std::move(TransportFabric::create_tls(tls_wrapper_[fd]->ssl)));
+      std::move(TransportFactory::create_tls(tls_wrapper_[fd]->ssl)));
 }
 
 void Server::on_client_disconnected(int fd) {

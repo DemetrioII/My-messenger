@@ -11,7 +11,7 @@
 #include <vector>
 
 class Client : public IClient, public std::enable_shared_from_this<Client> {
-  TransportFabric transport_fabric;
+  TransportFactory transport_fabric;
   std::shared_ptr<ISocket> socket_visitor;
   std::unique_ptr<EventLoop> event_loop;
   std::shared_ptr<ClientHandler> handler;
@@ -71,13 +71,13 @@ public:
   ~Client() override;
 };
 
-class ClientFabric {
+class ClientFactory {
 public:
   static std::shared_ptr<IClient>
   create_tcp_client(const std::string &server_ip, uint16_t port) {
     std::unique_ptr<ISocket> tcp_socket = std::make_unique<TCPSocket>();
     std::shared_ptr<Client> tcp_client = Client::create(std::move(tcp_socket));
-    tcp_client->init_transport(TransportFabric::create_tcp());
+    tcp_client->init_transport(TransportFactory::create_tcp());
     tcp_client->connect(server_ip, port);
     return tcp_client;
   }
@@ -88,7 +88,7 @@ public:
     std::shared_ptr<Client> udp_client = Client::create(std::move(udp_socket));
     udp_client->connect(server_ip, port);
     auto server_addr = udp_client->get_addr();
-    udp_client->init_transport(TransportFabric::create_udp(server_addr));
+    udp_client->init_transport(TransportFactory::create_udp(server_addr));
     return udp_client;
   }
 };

@@ -90,7 +90,7 @@ public:
   ~Server() override;
 };
 
-class ServerFabric {
+class ServerFactory {
 public:
   static std::shared_ptr<IServer> create_tcp_server() {
     std::unique_ptr<ISocket> tcp_socket = std::make_unique<TCPSocket>();
@@ -106,5 +106,36 @@ public:
     std::shared_ptr<IServer> server = Server::create(udp_socket, udp_acceptor);
 
     return server;
+  }
+};
+
+class TCPFactory {
+public:
+  static std::unique_ptr<ITransport> create_tcp_transport() {
+    return std::make_unique<TCPTransport>();
+  }
+
+  static std::unique_ptr<ISocket> create_tcp_socket() {
+    return std::make_unique<TCPSocket>();
+  }
+
+  static std::unique_ptr<IAcceptor> create_tcp_acceptor() {
+    return std::make_unique<TCPAcceptor>();
+  }
+};
+
+class UDPFactory {
+public:
+  static std::unique_ptr<ITransport>
+  create_udp_transport(struct sockaddr_in addr) {
+    return std::make_unique<UDPTransport>(addr);
+  }
+
+  static std::unique_ptr<ISocket> create_udp_socket() {
+    return std::make_unique<UDPSocket>();
+  }
+
+  static std::unique_ptr<IAcceptor> create_udp_acceptor() {
+    return std::make_unique<UDPAcceptor>();
   }
 };

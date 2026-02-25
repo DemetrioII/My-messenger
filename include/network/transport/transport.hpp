@@ -56,7 +56,7 @@ public:
   ~TLSTransport();
 };
 
-class TransportFabric {
+class TransportFactory {
 public:
   static std::unique_ptr<TCPTransport> create_tcp() {
     return std::make_unique<TCPTransport>(TCPTransport());

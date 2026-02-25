@@ -1,5 +1,6 @@
 // identity_key.hpp
 #pragma once
+#include <fstream>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <optional>
@@ -24,6 +25,29 @@ public:
   IdentityKey(IdentityKey &&key) noexcept;
 
   IdentityKey &operator=(IdentityKey &&other) noexcept;
+
+  static bool file_exists(const std::string &path) {
+    std::ifstream f(path, std::ios::binary);
+    return f.good();
+  }
+
+  static std::vector<uint8_t> load_file(const std::string &path) {
+    std::ifstream f(path, std::ios::binary);
+    if (!f)
+      throw std::runtime_error("Failed to open file");
+
+    return std::vector<uint8_t>(std::istreambuf_iterator<char>(f),
+                                std::istreambuf_iterator<char>());
+  }
+
+  static void save_file(const std::string &path,
+                        const std::vector<uint8_t> &data) {
+    std::ofstream f(path, std::ios::binary);
+    if (!f)
+      throw std::runtime_error("Failed to write file");
+
+    f.write(reinterpret_cast<const char *>(data.data()), data.size());
+  }
 
   static IdentityKey generate() {
     EVP_PKEY *pkey = nullptr;

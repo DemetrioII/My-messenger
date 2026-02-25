@@ -30,7 +30,7 @@ struct ClientContext {
   std::unordered_map<std::vector<uint8_t>, uint64_t> messages_counter;
 
   ClientContext(const std::string &server_ip, uint16_t port)
-      : client(ClientFabric::create_tcp_client(server_ip, port)),
+      : client(ClientFactory::create_tcp_client(server_ip, port)),
         mq(std::make_shared<MessageQueue>(client)),
         encryption_service(std::make_shared<EncryptionService>()),
         serializer(std::make_shared<Serializer>()),
@@ -57,7 +57,7 @@ struct ServerContext {
   Stream<std::pair<int, Message>> command_stream;
 
   ServerContext()
-      : transport_server(ServerFabric::create_tcp_server()),
+      : transport_server(ServerFactory::create_tcp_server()),
         user_service(std::make_shared<UserService>()),
         chat_service(std::make_shared<ChatService>()),
         session_manager(std::make_shared<SessionManager>()) {}

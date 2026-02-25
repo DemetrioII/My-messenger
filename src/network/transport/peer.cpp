@@ -35,7 +35,7 @@ void PeerNode::register_peer_connection(int fd,
                                         const std::string &ip) {
   std::cout << "New peer: " << ip << " (fd=" << fd << ")" << std::endl;
 
-  connection->init_transport(TransportFabric::create_tcp());
+  connection->init_transport(TransportFactory::create_tcp());
 
   connection_manager_.add_connection(fd, connection);
 

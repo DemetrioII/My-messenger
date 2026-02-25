@@ -27,7 +27,7 @@ bool Client::connect(const std::string &server_ip, int port) {
   event_loop->add_fd(socket_visitor->get_fd(), handler, EPOLLIN | EPOLLRDHUP);
   tls_wrapper_ =
       std::make_unique<ClientTLSWrapper>(ssl_ctx_, socket_visitor->get_fd());
-  transport = std::move(TransportFabric::create_tls(tls_wrapper_->ssl));
+  transport = std::move(TransportFactory::create_tls(tls_wrapper_->ssl));
   return true;
 }
 

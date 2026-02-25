@@ -6,7 +6,8 @@
 #include "../models/message.hpp"
 
 class EncryptionService {
-  DH_Key identity_key;
+  DH_Key DH_key;
+  IdentityKey identity_key;
 
   AESGCMEncryptor aes_gcm_encryptor;
 

@@ -1,11 +1,22 @@
 #include "../../../include/services/encryption_service.hpp"
 
 void EncryptionService::set_identity_key() {
-  identity_key = load_or_generate_key();
+  DH_key = load_or_generate_key();
+  const std::string path = "identity.key";
+
+  if (IdentityKey::file_exists(path)) {
+    auto bytes = IdentityKey::load_file(path);
+    identity_key = IdentityKey::from_private_bytes(bytes);
+  } else {
+    identity_key = IdentityKey::generate();
+    IdentityKey::save_file(path, identity_key.private_bytes());
+  }
+
+  identity_key.sign(DH_key.public_bytes());
 }
 
 std::vector<uint8_t> EncryptionService::get_public_bytes() {
-  return identity_key.public_bytes();
+  return DH_key.public_bytes();
 }
 
 std::vector<uint8_t> EncryptionService::encrypt_for(
@@ -16,7 +27,7 @@ std::vector<uint8_t> EncryptionService::encrypt_for(
     throw std::runtime_error("User public " +
                              std::string(username.begin(), username.end()) +
                              " key not found");
-  auto shared_secret = identity_key.compute_shared_secret(keys[username]);
+  auto shared_secret = DH_key.compute_shared_secret(keys[username]);
   auto encryption_key =
       HKDF::derive_for_messaging(shared_secret, sender, username, "encryption");
   auto ciphertext =
@@ -37,7 +48,7 @@ std::vector<uint8_t> EncryptionService::decrypt_for(
     throw std::runtime_error("User public " +
                              std::string(sender.begin(), sender.end()) +
                              " key not found");
-  auto shared_secret = identity_key.compute_shared_secret(keys[sender]);
+  auto shared_secret = DH_key.compute_shared_secret(keys[sender]);
   auto decryption_key =
       HKDF::derive_for_messaging(shared_secret, sender, username, "encryption");
   auto plaintext =
