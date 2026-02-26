@@ -15,7 +15,7 @@
 
 #define MAX_EVENTS 10
 
-class TCPSocket : public ISocket {
+/*class TCPSocket : public ISocket {
   Fd fd;
 
   struct sockaddr_in address;
@@ -71,4 +71,49 @@ public:
   void close() override;
 
   ~UDPSocket() override;
+};*/
+
+struct TCPSocket {
+  Fd fd;
+
+  sockaddr_in addr;
+
+  void server(const std::string &ip, uint16_t port);
+
+  int client(const std::string &ip, uint16_t port);
+
+  bool check_connection_complete(int timeout_ms);
+};
+
+struct UDPSocket {
+  Fd fd;
+
+  sockaddr_in addr;
+
+  void server(const std::string &ip, uint16_t port);
+
+  int client(const std::string &ip, uint16_t port);
+
+  bool check_connection_complete(int timeout_ms);
+};
+
+struct ISocket {
+  SocketType type;
+  int fd;
+  sockaddr_in addr;
+
+  union {
+    TCPSocket tcp;
+    UDPSocket udp;
+  };
+
+  ISocket(SocketType t) { type = t; }
+
+  ~ISocket() {}
+
+  void setup_server(const std::string &ip, uint16_t port);
+
+  int setup_connection(const std::string &ip, uint16_t port);
+
+  bool check_connection_complete(int timeout_ms);
 };

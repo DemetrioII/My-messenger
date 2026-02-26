@@ -25,6 +25,8 @@ enum class BroadcastType {
 
 class ClientConnection;
 
+struct ITransport;
+
 class IConnection;
 
 class Fd {
@@ -96,15 +98,15 @@ public:
   virtual ~IAcceptor() = default;
 };
 
-class ITransport {
+/* class ITransport {
 public:
   virtual ssize_t send(int fd, const std::vector<uint8_t> &data) const = 0;
   virtual ReceiveResult receive(int fd) const = 0;
   virtual void connect(int fd) = 0;
   virtual ~ITransport() = default;
-};
+}; */
 
-class ISocket {
+/*class ISocket {
 public:
   virtual int create_socket() = 0;
   virtual void setup_server(uint16_t PORT, const std::string &ip) = 0;
@@ -117,7 +119,7 @@ public:
   virtual bool check_connection_complete(int timeout_ms = 100) = 0;
   virtual int get_socket_error() const = 0;
   virtual ~ISocket() = default;
-};
+}; */
 
 class IServer {
 public:
@@ -143,7 +145,6 @@ public:
   virtual void on_writable(int fd) = 0;
   virtual void on_disconnected() = 0;
   virtual void run_event_loop() = 0;
-  virtual void init_transport(std::unique_ptr<ITransport> transport_) = 0;
   virtual void
   set_data_callback(std::function<void(const std::vector<uint8_t> &)> f) = 0;
   virtual void send_to_server(const std::vector<uint8_t> &data) = 0;
@@ -218,7 +219,7 @@ public:
   virtual std::vector<uint8_t> extract_message() = 0;
   virtual void queue_send(const std::vector<uint8_t> &data) = 0;
   virtual struct sockaddr_in get_addr() = 0;
-  virtual void init_transport(std::unique_ptr<ITransport> transport) = 0;
   virtual int get_fd() const = 0;
+  virtual void init_transport(const ITransport &transport) = 0;
   virtual ~IConnection() = default;
 };

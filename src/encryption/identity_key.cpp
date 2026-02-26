@@ -2,6 +2,36 @@
 
 IdentityKey::IdentityKey(void *pkey) : pkey_(pkey) {}
 
+IdentityKey::IdentityKey(const IdentityKey &key) {
+  if (key.pkey_) {
+    EVP_PKEY_up_ref(AS_PKEY(key.pkey_));
+    pkey_ = key.pkey_;
+  }
+}
+
+IdentityKey &IdentityKey::operator=(const IdentityKey &other) {
+  if (other.pkey_) {
+    EVP_PKEY_up_ref(AS_PKEY(other.pkey_));
+    pkey_ = other.pkey_;
+  }
+  return *this;
+}
+
+IdentityKey::IdentityKey(IdentityKey &&key) noexcept : pkey_(key.pkey_) {
+  key.pkey_ = nullptr;
+}
+
+IdentityKey &IdentityKey::operator=(IdentityKey &&other) noexcept {
+  if (this != &other) {
+    if (pkey_) {
+      EVP_PKEY_free(AS_PKEY(pkey_));
+    }
+    pkey_ = other.pkey_;
+    other.pkey_ = nullptr;
+  }
+  return *this;
+}
+
 std::vector<uint8_t>
 IdentityKey::sign(const std::vector<uint8_t> &message) const {
   if (!pkey_)
@@ -106,6 +136,13 @@ IdentityKey IdentityKey::from_private_bytes(const std::vector<uint8_t> &bytes) {
     throw std::runtime_error("Failed to create key from private bytes");
 
   return IdentityKey(pkey);
+}
+
+IdentityKey::~IdentityKey() {
+  if (pkey_) {
+    EVP_PKEY_free(AS_PKEY(pkey_));
+    pkey_ = nullptr;
+  }
 }
 
 DH_Key::DH_Key(void *pkey) : pkey_(pkey) {}

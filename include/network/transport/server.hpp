@@ -30,7 +30,7 @@ class Server : public IServer, public std::enable_shared_from_this<Server> {
   std::function<void(int fd, std::vector<uint8_t>)> on_data_callback;
 
 private:
-  std::unique_ptr<ISocket> socket_visitor;
+  std::unique_ptr<ISocket> socket_;
   Server(std::unique_ptr<ISocket> socket, std::unique_ptr<IAcceptor> acceptor_);
 
   void process_pending_messages();
@@ -92,50 +92,19 @@ public:
 
 class ServerFactory {
 public:
-  static std::shared_ptr<IServer> create_tcp_server() {
-    std::unique_ptr<ISocket> tcp_socket = std::make_unique<TCPSocket>();
+  static std::shared_ptr<Server> tcp_server(const std::string &ip, int port) {
+    auto tcp_socket = std::make_unique<ISocket>(SocketType::TCP);
     std::unique_ptr<IAcceptor> tcp_acceptor = std::make_unique<TCPAcceptor>();
-    std::shared_ptr<IServer> server = Server::create(tcp_socket, tcp_acceptor);
-
+    auto server = Server::create(tcp_socket, tcp_acceptor);
+    // server->start(port);
     return server;
   }
 
-  static std::shared_ptr<IServer> create_udp_server() {
-    std::unique_ptr<ISocket> udp_socket = std::make_unique<UDPSocket>();
+  static std::shared_ptr<Server> udp_server(const std::string &ip, int port) {
+    auto udp_socket = std::make_unique<ISocket>(SocketType::UDP);
     std::unique_ptr<IAcceptor> udp_acceptor = std::make_unique<UDPAcceptor>();
-    std::shared_ptr<IServer> server = Server::create(udp_socket, udp_acceptor);
-
+    auto server = Server::create(udp_socket, udp_acceptor);
+    // server->start(port);
     return server;
-  }
-};
-
-class TCPFactory {
-public:
-  static std::unique_ptr<ITransport> create_tcp_transport() {
-    return std::make_unique<TCPTransport>();
-  }
-
-  static std::unique_ptr<ISocket> create_tcp_socket() {
-    return std::make_unique<TCPSocket>();
-  }
-
-  static std::unique_ptr<IAcceptor> create_tcp_acceptor() {
-    return std::make_unique<TCPAcceptor>();
-  }
-};
-
-class UDPFactory {
-public:
-  static std::unique_ptr<ITransport>
-  create_udp_transport(struct sockaddr_in addr) {
-    return std::make_unique<UDPTransport>(addr);
-  }
-
-  static std::unique_ptr<ISocket> create_udp_socket() {
-    return std::make_unique<UDPSocket>();
-  }
-
-  static std::unique_ptr<IAcceptor> create_udp_acceptor() {
-    return std::make_unique<UDPAcceptor>();
   }
 };

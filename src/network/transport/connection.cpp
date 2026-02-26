@@ -1,14 +1,11 @@
 #include "../../../include/network/transport/connection.hpp"
 
-ClientConnection::ClientConnection(int fd_) : fd(fd_) {}
+ClientConnection::ClientConnection(int fd_)
+    : fd(fd_), transport(TransportType::TLS) {}
 ClientConnection::ClientConnection(int fd_, const struct sockaddr_in &addr_)
     : fd(fd_), addr(addr_),
-      framer(std::move(std::make_unique<FramerMessage>())) {}
-
-void ClientConnection::init_transport(std::unique_ptr<ITransport> transport_) {
-  transport = std::move(transport_);
-  transport->connect(fd.get_fd());
-}
+      framer(std::move(std::make_unique<FramerMessage>())),
+      transport(TransportType::TLS) {}
 
 // ЧИНЯЕМ MOVE: сбрасываем fd у донора
 ClientConnection::ClientConnection(ClientConnection &&other) noexcept
@@ -37,7 +34,7 @@ ClientConnection::operator=(ClientConnection &&other) noexcept {
 bool ClientConnection::flush() {
   if (send_buffer.empty())
     return true;
-  ssize_t sent = transport->send(fd.get_fd(), send_buffer);
+  ssize_t sent = send(transport, send_buffer);
   if (sent > 0) {
     send_buffer.erase(send_buffer.begin(), send_buffer.begin() + sent);
     return send_buffer.empty();
@@ -45,8 +42,12 @@ bool ClientConnection::flush() {
   return (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
 }
 
+void ClientConnection::init_transport(const ITransport &transport_) {
+  transport = transport_;
+}
+
 bool ClientConnection::try_receive() {
-  auto result = transport->receive(fd.get_fd());
+  auto result = receive(transport);
   if (result.data.data()) {
     recv_buffer.insert(recv_buffer.end(), result.data.data(),
                        result.data.data() + result.data.length);
@@ -75,21 +76,16 @@ int ClientConnection::get_fd() const { return fd.get_fd(); }
 ClientConnection::~ClientConnection() {}
 
 PeerConnection::PeerConnection(int fd, const struct sockaddr_in &addr)
-    : fd_(fd), addr_(addr) {}
+    : fd_(fd), addr_(addr), transport(TransportFactory::create_tcp(fd)) {}
 
 bool PeerConnection::has_complete_message() const {
   return framer->has_message_in_buffer(recv_buffer);
 }
 
-void PeerConnection::init_transport(std::unique_ptr<ITransport> transport_) {
-  transport = std::move(transport_);
-  transport->connect(fd_.get_fd());
-}
-
 bool PeerConnection::flush() {
   if (send_buffer.empty())
     return true;
-  ssize_t sent = transport->send(fd_.get_fd(), send_buffer);
+  ssize_t sent = send(transport, send_buffer);
   if (sent > 0) {
     send_buffer.erase(send_buffer.begin(), send_buffer.begin() + sent);
     return send_buffer.empty();
@@ -97,8 +93,12 @@ bool PeerConnection::flush() {
   return (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
 }
 
+void PeerConnection::init_transport(const ITransport &transport_) {
+  transport = transport_;
+}
+
 bool PeerConnection::try_receive() {
-  auto result = transport->receive(fd_.get_fd());
+  auto result = receive(transport);
   if (result.data.data()) {
     recv_buffer.insert(recv_buffer.end(), result.data.data(),
                        result.data.data() + result.data.length);

@@ -114,18 +114,10 @@ public:
   /**
    * Создание TCP PeerNode
    */
-  static std::shared_ptr<PeerNode> create_tcp_peer() {
-    std::unique_ptr<ISocket> tcp_socket = std::make_unique<TCPSocket>();
-    std::unique_ptr<IAcceptor> tcp_acceptor = std::make_unique<TCPAcceptor>();
-    return PeerNode::create(std::move(tcp_socket), std::move(tcp_acceptor));
-  }
+  static std::shared_ptr<PeerNode> create_tcp_peer() {}
 
   /**
    * Создание UDP PeerNode
    */
-  static std::shared_ptr<PeerNode> create_udp_peer() {
-    std::unique_ptr<ISocket> udp_socket = std::make_unique<UDPSocket>();
-    std::unique_ptr<IAcceptor> udp_acceptor = std::make_unique<UDPAcceptor>();
-    return PeerNode::create(std::move(udp_socket), std::move(udp_acceptor));
-  }
+  static std::shared_ptr<PeerNode> create_udp_peer() {}
 };

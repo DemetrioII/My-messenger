@@ -1,6 +1,7 @@
 #pragma once
 #include "../protocol/framing.hpp"
 #include "interface.hpp"
+#include "transport.hpp"
 #include <cstring>
 #include <mutex>
 #include <optional>
@@ -12,15 +13,13 @@ class ClientConnection : public IConnection {
   Fd fd;
   std::unique_ptr<FramerMessage> framer;
   struct sockaddr_in addr;
-  std::unique_ptr<ITransport> transport;
+  ITransport transport;
   std::vector<uint8_t> recv_buffer;
   std::vector<uint8_t> send_buffer;
 
 public:
   ClientConnection(int fd_);
   explicit ClientConnection(int fd_, const struct sockaddr_in &addr_);
-
-  void init_transport(std::unique_ptr<ITransport> transport_) override;
 
   ClientConnection(const ClientConnection &) = delete;
   ClientConnection &operator=(const ClientConnection &) = delete;
@@ -36,6 +35,8 @@ public:
 
   // Проверяем, пришло ли сообщение целиком
   bool has_complete_message() const override;
+
+  void init_transport(const ITransport &transport) override;
 
   std::vector<uint8_t> extract_message() override;
 
@@ -54,14 +55,12 @@ class PeerConnection : public IConnection {
   struct sockaddr_in addr_;
   ConnectionState state;
   std::unique_ptr<FramerMessage> framer;
-  std::unique_ptr<ITransport> transport;
+  ITransport transport;
   std::vector<uint8_t> recv_buffer;
   std::vector<uint8_t> send_buffer;
 
 public:
   PeerConnection(int fd, const struct sockaddr_in &addr);
-
-  void init_transport(std::unique_ptr<ITransport> transport) override;
 
   bool flush() override;
 
@@ -70,6 +69,8 @@ public:
   bool has_complete_message() const override;
 
   std::vector<uint8_t> extract_message() override;
+
+  void init_transport(const ITransport &transport) override;
 
   void queue_send(const std::vector<uint8_t> &data) override;
 

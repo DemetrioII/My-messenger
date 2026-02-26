@@ -10,12 +10,13 @@
 #include <iostream>
 #include <vector>
 
+// using ITransport = std::variant<TCPTransport, UDPTransport, TLSTransport>;
+
 class Client : public IClient, public std::enable_shared_from_this<Client> {
-  TransportFactory transport_fabric;
   std::shared_ptr<ISocket> socket_visitor;
   std::unique_ptr<EventLoop> event_loop;
   std::shared_ptr<ClientHandler> handler;
-  std::unique_ptr<ITransport> transport;
+  ITransport transport;
   std::unique_ptr<FramerMessage> framer;
   std::function<void(const std::vector<uint8_t> &)> on_data_callback;
   std::vector<uint8_t> recv_buffer; // Буфер для склейки сообщений
@@ -52,8 +53,6 @@ public:
 
   void disconnect() override;
 
-  void init_transport(std::unique_ptr<ITransport> transport_) override;
-
   void send_to_server(const std::vector<uint8_t> &data) override;
 
   void on_server_message() override;
@@ -73,22 +72,17 @@ public:
 
 class ClientFactory {
 public:
-  static std::shared_ptr<IClient>
-  create_tcp_client(const std::string &server_ip, uint16_t port) {
-    std::unique_ptr<ISocket> tcp_socket = std::make_unique<TCPSocket>();
-    std::shared_ptr<Client> tcp_client = Client::create(std::move(tcp_socket));
-    tcp_client->init_transport(TransportFactory::create_tcp());
-    tcp_client->connect(server_ip, port);
-    return tcp_client;
+  static std::shared_ptr<Client> tcp_client(const std::string &ip, int port) {
+    auto tcp_socket = std::make_unique<ISocket>(SocketType::TCP);
+    auto client = Client::create(std::move(tcp_socket));
+    client->connect(ip, port);
+    return client;
   }
 
-  static std::shared_ptr<IClient>
-  create_udp_client(const std::string &server_ip, uint16_t port) {
-    std::unique_ptr<ISocket> udp_socket = std::make_unique<UDPSocket>();
-    std::shared_ptr<Client> udp_client = Client::create(std::move(udp_socket));
-    udp_client->connect(server_ip, port);
-    auto server_addr = udp_client->get_addr();
-    udp_client->init_transport(TransportFactory::create_udp(server_addr));
-    return udp_client;
+  static std::shared_ptr<Client> udp_client(const std::string &ip, int port) {
+    auto udp_socket = std::make_unique<ISocket>(SocketType::UDP);
+    auto client = Client::create(std::move(udp_socket));
+    client->connect(ip, port);
+    return client;
   }
 };

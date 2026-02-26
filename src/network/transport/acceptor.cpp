@@ -15,7 +15,7 @@ std::optional<std::shared_ptr<IConnection>> TCPAcceptor::accept(int server_fd) {
   fcntl(client_fd, F_SETFL, O_NONBLOCK | flags);
 
   auto connection = std::make_shared<ClientConnection>(client_fd, addr);
-  connection->init_transport(std::move(TransportFactory::create_tcp()));
+  connection->init_transport(TransportFactory::create_tcp(client_fd));
   return connection;
 }
 
@@ -39,8 +39,7 @@ std::optional<std::shared_ptr<IConnection>> UDPAcceptor::accept(int server_fd) {
 
   // If we peeked a packet, we consider this "client appeared"
   auto connection = std::make_shared<ClientConnection>(server_fd, addr);
-  connection->init_transport(std::move(TransportFactory::create_udp(addr)));
-
+  connection->init_transport(TransportFactory::create_udp(server_fd, addr));
   return connection;
 }
 

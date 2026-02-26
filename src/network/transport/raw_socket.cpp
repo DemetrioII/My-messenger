@@ -1,66 +1,66 @@
 #include "../../../include/network/transport/raw_socket.hpp"
 
-int TCPSocket::create_socket() {
-  fd.reset_fd(socket(AF_INET, SOCK_STREAM, 0));
+int create_socket() {
+  int fd = socket(AF_INET, SOCK_STREAM, 0);
 
-  if (fd.get_fd() < 0) {
-    std::cout << ("Ошибка создания сокета") << std::endl;
+  if (fd < 0) {
+    std::cerr << "Error in creating socket" << std::endl;
     return -1;
   }
 
-  return fd.get_fd();
+  return fd;
 }
 
-void TCPSocket::make_address_reusable() {
+void TCPSocket::server(const std::string &ip, uint16_t port) {
+  fd.reset_fd(create_socket());
+  if (fd.get_fd() < 0)
+    return;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
+  if (ip == "0.0.0.0")
+    addr.sin_addr.s_addr = INADDR_ANY;
+  else {
+    if (inet_pton(AF_INET, ip.c_str(), &addr.sin_addr) <= 0) {
+      fd.reset_fd(-1);
+      throw std::runtime_error("Wrong IP: " + ip);
+    }
+  }
+
+  if (::bind(fd.get_fd(), (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    fd.reset_fd(-1);
+    throw std::runtime_error("bind error");
+  }
+
+  if (::listen(fd.get_fd(), 10) < 0) {
+    fd.reset_fd(-1);
+    throw std::runtime_error("listen error");
+  }
+
   int opt = 1;
   if (setsockopt(fd.get_fd(), SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) <
       0) {
-    close();
-    throw std::runtime_error("Ошибка setsockopt: " +
+    fd.reset_fd(-1);
+    throw std::runtime_error("setsockopt error: " +
                              std::string(strerror(errno)));
   }
 }
 
-void TCPSocket::setup_server(uint16_t PORT, const std::string &ip) {
-  address.sin_family = AF_INET;
-  address.sin_port = htons(PORT);
-  if (ip == "0.0.0.0")
-    address.sin_addr.s_addr = INADDR_ANY;
-  else {
-    if (inet_pton(AF_INET, ip.c_str(), &address.sin_addr) <= 0) {
-      close();
-      throw std::runtime_error("Неверный IP: " + ip);
-    }
-  }
+int TCPSocket::client(const std::string &ip, uint16_t port) {
+  fd.reset_fd(create_socket());
+  if (fd.get_fd() < 0)
+    return -1;
 
-  if (bind(fd.get_fd(), (struct sockaddr *)&address, sizeof(address)) < 0) {
-    close();
-    throw std::runtime_error("Ошибка bind");
-  }
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
 
-  if (listen(fd.get_fd(), 10) < 0) {
-    close();
-    throw std::runtime_error("Ошибка listen");
-  }
-}
-
-int TCPSocket::setup_connection(const std::string &ip, uint16_t port) {
-  memset(&address, 0, sizeof(address));
-
-  address.sin_family = AF_INET;
-  address.sin_port = htons(port);
-
-  if (inet_pton(AF_INET, ip.c_str(), &address.sin_addr) <= 0) {
-    std::cerr << ("inet_pton");
+  if (inet_pton(AF_INET, ip.c_str(), &addr.sin_addr) <= 0) {
+    std::cerr << "inet_pton";
     return -EINVAL;
   }
-
   fcntl(fd.get_fd(), F_SETFL, fcntl(fd.get_fd(), F_GETFL, 0) | O_NONBLOCK);
-
-  int result =
-      ::connect(fd.get_fd(), (struct sockaddr *)&address, sizeof(address));
-
-  if (result == 0) {
+  int res = ::connect(fd.get_fd(), (struct sockaddr *)&addr, sizeof(addr));
+  if (res == 0) {
     std::cerr << "Immediate connection to " << ip << ":" << port << std::endl;
     return 0;
   }
@@ -93,8 +93,6 @@ int TCPSocket::setup_connection(const std::string &ip, uint16_t port) {
   std::cout << "Подключено к серверу по адресу: " << ip << ":" << port << "\n";
   return 0;
 }
-
-sockaddr_in TCPSocket::get_peer_address() const { return address; }
 
 bool TCPSocket::check_connection_complete(int timeout_ms) {
   fd_set writefds, exceptfds;
@@ -133,72 +131,50 @@ bool TCPSocket::check_connection_complete(int timeout_ms) {
 }
 
 // НОВЫЙ МЕТОД: получить ошибку сокета (если есть)
-int TCPSocket::get_socket_error() const {
-  int error = 0;
-  socklen_t len = sizeof(error);
-  if (getsockopt(fd.get_fd(), SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
-    return errno;
-  }
-  return error;
-}
 
-int TCPSocket::get_fd() const { return fd.get_fd(); }
+void UDPSocket::server(const std::string &ip, uint16_t port) {
+  fd.reset_fd(create_socket());
 
-void TCPSocket::close() { fd.reset_fd(-1); }
-
-SocketType TCPSocket::get_type() const { return SocketType::TCP; }
-
-TCPSocket::~TCPSocket() {}
-
-int UDPSocket::create_socket() {
-  fd.reset_fd(socket(AF_INET, SOCK_DGRAM, 0));
-
-  if (fd.get_fd() < 0) {
-    std::cerr << "[Error]: Socket creating" << std::endl;
-    return -1;
-  }
-  return fd.get_fd();
-}
-
-void UDPSocket::setup_server(uint16_t port, const std::string &ip) {
-  address.sin_family = AF_INET;
-  address.sin_port = htons(port);
+  if (fd.get_fd() < 0)
+    return;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
   if (ip == "0.0.0.0")
-    address.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_addr.s_addr = INADDR_ANY;
   else {
-    if (inet_pton(AF_INET, ip.c_str(), &address.sin_addr) <= 0) {
-      close();
+    if (inet_pton(AF_INET, ip.c_str(), &addr.sin_addr) <= 0) {
+      fd.reset_fd(-1);
       throw std::runtime_error("Неверный IP: " + ip);
     }
   }
-  if (bind(fd.get_fd(), (struct sockaddr *)&address, sizeof(address)) < 0) {
+  if (bind(fd.get_fd(), (struct sockaddr *)&addr, sizeof(addr)) < 0) {
     throw std::runtime_error("UDP bind failed");
   }
-}
-
-void UDPSocket::make_address_reusable() {
   int opt = 1;
   if (setsockopt(fd.get_fd(), SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) <
       0) {
-    close();
-    throw std::runtime_error("Ошибка setsockopt: " +
+    fd.reset_fd(-1);
+    throw std::runtime_error("setsockopt error: " +
                              std::string(strerror(errno)));
   }
 }
 
-int UDPSocket::setup_connection(const std::string &ip, uint16_t port) {
-  memset(&address, 0, sizeof(address));
+int UDPSocket::client(const std::string &ip, uint16_t port) {
+  fd.reset_fd(-1);
+  if (fd.get_fd() < 0)
+    return -1;
 
-  address.sin_family = AF_INET;
-  address.sin_port = htons(port);
+  memset(&addr, 0, sizeof(addr));
 
-  if (inet_pton(AF_INET, ip.c_str(), &address.sin_addr) <= 0) {
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
+
+  if (inet_pton(AF_INET, ip.c_str(), &addr.sin_addr) <= 0) {
     std::cerr << ("inet_pton");
     return -1;
   }
 
-  if (::connect(fd.get_fd(), (struct sockaddr *)&address, sizeof(address)) <
-      0) {
+  if (::connect(fd.get_fd(), (struct sockaddr *)&addr, sizeof(addr)) < 0) {
     std::cerr << ("connect");
     return -2;
   }
@@ -211,14 +187,47 @@ int UDPSocket::setup_connection(const std::string &ip, uint16_t port) {
 
 bool UDPSocket::check_connection_complete(int timeout_ms) { return true; }
 
-int UDPSocket::get_socket_error() const { return 0; }
+void ISocket::setup_server(const std::string &ip, uint16_t port) {
+  switch (type) {
+  case SocketType::TCP: {
+    tcp = TCPSocket();
+    tcp.server(ip, port);
+    fd = tcp.fd.get_fd();
+    break;
+  }
+  case SocketType::UDP: {
+    udp = UDPSocket();
+    udp.server(ip, port);
+    fd = udp.fd.get_fd();
+    break;
+  }
+  }
+}
 
-sockaddr_in UDPSocket::get_peer_address() const { return address; }
+int ISocket::setup_connection(const std::string &ip, uint16_t port) {
+  switch (type) {
+  case SocketType::TCP: {
+    tcp = TCPSocket();
+    int r = tcp.client(ip, port);
+    fd = tcp.fd.get_fd();
+    return r;
+  }
+  case SocketType::UDP: {
+    udp = UDPSocket();
+    int r = udp.client(ip, port);
+    fd = udp.fd.get_fd();
+    return r;
+  }
+  }
+}
 
-SocketType UDPSocket::get_type() const { return SocketType::UDP; }
-
-int UDPSocket::get_fd() const { return fd.get_fd(); }
-
-void UDPSocket::close() { fd.reset_fd(-1); }
-
-UDPSocket::~UDPSocket() {}
+bool ISocket::check_connection_complete(int timeout_ms) {
+  switch (type) {
+  case SocketType::TCP: {
+    return tcp.check_connection_complete(timeout_ms);
+  }
+  case SocketType::UDP: {
+    return udp.check_connection_complete(timeout_ms);
+  }
+  }
+}

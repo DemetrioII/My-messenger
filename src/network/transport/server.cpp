@@ -4,8 +4,8 @@ Server::Server(std::unique_ptr<ISocket> socket,
                std::unique_ptr<IAcceptor> acceptor_)
     : event_loop(std::make_unique<EventLoop>()),
       acceptHandler(std::make_shared<AcceptHandler>()),
-      handler(std::make_shared<ServerHandler>()),
-      socket_visitor(std::move(socket)), acceptor(std::move(acceptor_)) {
+      handler(std::make_shared<ServerHandler>()), socket_(std::move(socket)),
+      acceptor(std::move(acceptor_)) {
   SSL_library_init();
   SSL_load_error_strings();
   OpenSSL_add_ssl_algorithms();
@@ -33,17 +33,14 @@ void Server::set_data_callback(
 }
 
 void Server::start(int port) {
-  socket_visitor->create_socket();
-  if (socket_visitor->get_fd() != -1) {
+  socket_->setup_server("127.0.0.1", port);
+  if (socket_->fd != -1) {
     running = true;
-    socket_visitor->setup_server(port, "127.0.0.1");
-    socket_visitor->make_address_reusable();
-
     // acceptHandler = std::make_shared<AcceptHandler>();
     acceptHandler->init(shared_from_this(), std::move(acceptor));
     // handler = std::make_shared<ServerHandler>();
     handler->init(shared_from_this());
-    event_loop->add_fd(socket_visitor->get_fd(), acceptHandler,
+    event_loop->add_fd(socket_->fd, acceptHandler,
                        EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
     std::cout << "Сервер запущен на порту " << port << "\n";
   } else {
@@ -73,7 +70,7 @@ void Server::stop() {
   // 2. Закрываем слушающий сокет
   // Используйте только один метод закрытия!
   // socket_visitor.close() внутри Fd сделает всё остальное.
-  socket_visitor->close();
+  // socket_->close();
 }
 
 void Server::on_client_error(int fd) {}
@@ -100,7 +97,7 @@ void Server::on_client_connected(std::shared_ptr<IConnection> conn) {
   tls_wrapper_[fd] = std::make_unique<ServerTLSWrapper>(ssl_ctx_, fd);
 
   conn->init_transport(
-      std::move(TransportFactory::create_tls(tls_wrapper_[fd]->ssl)));
+      std::move(TransportFactory::create_tls(fd, tls_wrapper_[fd]->ssl)));
 }
 
 void Server::on_client_disconnected(int fd) {
@@ -148,7 +145,7 @@ void Server::send(int fd, const std::vector<uint8_t> &raw_data) {
 
 void Server::send(const std::string &message) {}
 
-int Server::get_fd() const { return socket_visitor->get_fd(); }
+int Server::get_fd() const { return socket_->fd; }
 
 Server::~Server() {
   std::cout << "~TCPServer()" << std::endl;

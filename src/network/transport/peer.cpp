@@ -12,16 +12,14 @@ PeerNode::PeerNode(std::unique_ptr<ISocket> listening_socket,
 }
 
 void PeerNode::start_listening(int port) {
-  listening_socket_->create_socket();
-  if (listening_socket_->get_fd() != -1) {
+  listening_socket_->setup_server("0.0.0.0", port);
+  if (listening_socket_->fd != -1) {
     is_running_ = true;
-    listening_socket_->setup_server(port, "0.0.0.0");
-    listening_socket_->make_address_reusable();
 
     accept_handler_->init(shared_from_this());
     handler_->init(shared_from_this());
 
-    event_loop_->add_fd(listening_socket_->get_fd(), accept_handler_,
+    event_loop_->add_fd(listening_socket_->fd, accept_handler_,
                         EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
 
     std::cout << "PeerNode listening on port " << port << std::endl;
@@ -35,7 +33,7 @@ void PeerNode::register_peer_connection(int fd,
                                         const std::string &ip) {
   std::cout << "New peer: " << ip << " (fd=" << fd << ")" << std::endl;
 
-  connection->init_transport(TransportFactory::create_tcp());
+  connection->init_transport(TransportFactory::create_tcp(fd));
 
   connection_manager_.add_connection(fd, connection);
 
@@ -65,15 +63,10 @@ void PeerNode::on_peer_connected(std::shared_ptr<IConnection> connection) {
 
 bool PeerNode::connect_to_peer(const std::string &peer_ip, int port) {
   std::unique_ptr<ISocket> peer_socket; // Умирает при выходе
-  if (listening_socket_->get_type() == SocketType::TCP) {
-    peer_socket = std::make_unique<TCPSocket>();
+  if (listening_socket_->type == SocketType::TCP) {
+    peer_socket = std::make_unique<ISocket>(SocketType::TCP);
   } else {
-    peer_socket = std::make_unique<UDPSocket>();
-  }
-
-  if (peer_socket->create_socket() == -1) {
-    std::cerr << "Failed to create socket for peer connection" << std::endl;
-    return false;
+    peer_socket = std::make_unique<ISocket>(SocketType::UDP);
   }
 
   if (peer_socket->setup_connection(peer_ip, port) < 0) {
@@ -82,8 +75,8 @@ bool PeerNode::connect_to_peer(const std::string &peer_ip, int port) {
     return false;
   }
 
-  sockaddr_in peer_addr = peer_socket->get_peer_address();
-  int fd = peer_socket->get_fd();
+  sockaddr_in peer_addr = peer_socket->addr;
+  int fd = peer_socket->fd;
 
   peer_sockets[fd] = std::move(peer_socket);
 
@@ -172,9 +165,6 @@ void PeerNode::stop() {
   for (const auto &[fd, connection] : all_connections) {
     disconnect_from_peer(fd);
   }
-
-  if (listening_socket_)
-    listening_socket_->close();
 
   if (handler_)
     handler_->clear();

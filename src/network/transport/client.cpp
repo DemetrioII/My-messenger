@@ -3,7 +3,7 @@
 Client::Client(std::unique_ptr<ISocket> socket)
     : event_loop(std::make_unique<EventLoop>()),
       handler(std::make_shared<ClientHandler>()),
-      socket_visitor(std::move(socket)) {
+      socket_visitor(std::move(socket)), transport(TransportType::TLS) {
   SSL_library_init();
   SSL_load_error_strings();
   OpenSSL_add_ssl_algorithms();
@@ -18,16 +18,16 @@ void Client::set_data_callback(
 
 bool Client::connect(const std::string &server_ip, int port) {
   handler->init(shared_from_this());
-  if (socket_visitor->create_socket() == -1)
-    return false;
+
   if (socket_visitor->setup_connection(server_ip, port) < 0)
     return false;
 
-  server_addr = socket_visitor->get_peer_address();
-  event_loop->add_fd(socket_visitor->get_fd(), handler, EPOLLIN | EPOLLRDHUP);
+  server_addr = socket_visitor->addr;
+  event_loop->add_fd(socket_visitor->fd, handler, EPOLLIN | EPOLLRDHUP);
   tls_wrapper_ =
-      std::make_unique<ClientTLSWrapper>(ssl_ctx_, socket_visitor->get_fd());
-  transport = std::move(TransportFactory::create_tls(tls_wrapper_->ssl));
+      std::make_unique<ClientTLSWrapper>(ssl_ctx_, socket_visitor->fd);
+  transport =
+      TransportFactory::create_tls(socket_visitor->fd, tls_wrapper_->ssl);
   return true;
 }
 
@@ -37,17 +37,11 @@ bool Client::tls_handshake_done() { return tls_wrapper_->handshake_done_; }
 
 struct sockaddr_in Client::get_addr() { return server_addr; }
 
-void Client::init_transport(std::unique_ptr<ITransport> transport_) {
-  transport = std::move(transport_);
-  transport->connect(socket_visitor->get_fd());
-  framer = std::make_unique<FramerMessage>();
-}
-
 void Client::disconnect() {
-  if (socket_visitor->get_fd() != -1) {
-    event_loop->remove_fd(socket_visitor->get_fd());
-    ::shutdown(socket_visitor->get_fd(), SHUT_RDWR);
-    socket_visitor->close(); // Вызовется в деструкторе Fd автоматически
+  if (socket_visitor->fd != -1) {
+    event_loop->remove_fd(socket_visitor->fd);
+    ::shutdown(socket_visitor->fd, SHUT_RDWR);
+    // socket_visitor->close(); // Вызовется в деструкторе Fd автоматически
   }
   if (ssl_ctx_) {
     SSL_CTX_free(ssl_ctx_);
@@ -59,11 +53,11 @@ void Client::send_to_server(const std::vector<uint8_t> &data) {
   // Добавляем заголовок длины, как того ждет сервер
   std::vector<uint8_t> packet;
   framer->form_message(data, packet);
-  transport->send(socket_visitor->get_fd(), packet);
+  send(transport, packet);
 }
 
 void Client::on_server_message() {
-  auto result = transport->receive(socket_visitor->get_fd());
+  auto result = receive(transport);
   if (result.status == ReceiveStatus::OK && result.data.data()) {
     recv_buffer.insert(recv_buffer.end(), result.data.data(),
                        result.data.data() + result.data.length);
@@ -107,6 +101,6 @@ void Client::on_writable(int fd) {}
 void Client::on_disconnected() {
   std::cout << "Соединение разорвано" << std::endl;
 }
-bool Client::isConnected() const { return socket_visitor->get_fd() != -1; }
-int Client::get_fd() const { return socket_visitor->get_fd(); }
+bool Client::isConnected() const { return socket_visitor->fd != -1; }
+int Client::get_fd() const { return socket_visitor->fd; }
 Client::~Client() { disconnect(); }
