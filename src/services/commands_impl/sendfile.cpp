@@ -66,8 +66,11 @@ void SendFileCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
 
     ++context->messages_counter[recipient];
 
-    Message chunk_msg(std::move(cipher_bytes), 3,
-                      {recipient, fname_bytes, context->my_username},
+    Message chunk_msg(std::move(cipher_bytes), 6,
+                      {recipient, fname_bytes, context->my_username,
+                       context->encryption_service->get_DH_bytes(),
+                       context->encryption_service->get_identity_bytes(),
+                       context->encryption_service->sign()},
                       MessageType::FileChunk);
 
     client->send_to_server(serializer.serialize(chunk_msg));

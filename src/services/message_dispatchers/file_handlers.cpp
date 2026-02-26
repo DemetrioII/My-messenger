@@ -31,9 +31,6 @@ void FileStartHandler::handleMessageOnClient(
 
 void FileStartHandler::handleMessageOnServer(
     const Message &msg, std::shared_ptr<ServerContext> context) {
-  // auto recipient = msg.get_meta(0);
-  // auto fname = msg.get_meta(1);
-  // auto size_bytes = msg.get_meta(2);
   uint64_t file_size = from_bytes(msg.get_meta(2));
 
   std::string_view name(reinterpret_cast<const char *>(msg.get_meta(1).data()),
@@ -61,9 +58,7 @@ MessageType FileChunkHandler::getMessageType() const {
 void FileChunkHandler::handleMessageOnClient(
     const Message &msg, const std::shared_ptr<ClientContext> context) {
   pending_files = context->pending_files;
-  // auto recipient = msg.get_meta(0);
-  // auto fname = msg.get_meta(1);
-  // auto sender = msg.get_meta(2);
+
   auto name = std::string(msg.get_meta(1).begin(), msg.get_meta(1).end());
 
   std::string recipient_username_str(msg.get_meta(0).begin(),
@@ -72,14 +67,14 @@ void FileChunkHandler::handleMessageOnClient(
   if (pending_files->find(recipient_username_str + " " + name) !=
       pending_files->end()) {
 
-    // auto payload = msg.get_payload();
-    // std::vector<uint8_t> cipher_bytes(msg.get_payload().begin(),
-    // msg.get_payload().end());
     if (context->messages_counter.find(msg.get_meta(0)) ==
         context->messages_counter.end())
       context->messages_counter[msg.get_meta(0)] = 0;
+    context->encryption_service->cache_public_key(
+        msg.get_meta(2), msg.get_meta(3), msg.get_meta(4));
+
     std::vector<uint8_t> payload = context->encryption_service->decrypt_for(
-        msg.get_meta(2), msg.get_meta(0), msg.get_payload(), msg.get_meta(4),
+        msg.get_meta(2), msg.get_meta(0), msg.get_payload(), msg.get_meta(5),
         context->messages_counter[msg.get_meta(0)]);
     (*pending_files)[recipient_username_str + " " + name]->write(
         reinterpret_cast<const char *>(payload.data()), payload.size());
