@@ -52,13 +52,16 @@ using UserIdentifier = std::string;
 
 class UserService {
 public:
-  ServiceResult<std::string> register_user(const std::string &name,
-                                           const std::vector<uint8_t> &pubkey);
+  ServiceResult<std::string>
+  register_user(const std::string &name, const std::vector<uint8_t> &DH_pubkey,
+                const std::vector<uint8_t> &identity_pub,
+                const std::vector<uint8_t> &signature);
 
   ServiceResult<User *> find_user(const UserIdentifier &id);
 
-  void set_public_key(const UserIdentifier &id,
-                      const std::vector<uint8_t> &key);
+  void set_public_key(const UserIdentifier &id, const std::vector<uint8_t> &key,
+                      const std::vector<uint8_t> &identity_pub,
+                      const std::vector<uint8_t> &signature);
 
   void remove_user(const UserIdentifier &id);
 

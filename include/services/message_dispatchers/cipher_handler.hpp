@@ -8,6 +8,8 @@ class CipherMessageHandler : public IMessageHandler {
                                  const std::vector<uint8_t> &recipient,
                                  const std::vector<uint8_t> &pubkey_bytes,
                                  const std::vector<uint8_t> &payload,
+                                 const std::vector<uint8_t> &identity_key,
+                                 const std::vector<uint8_t> &signauture,
                                  std::shared_ptr<ClientContext> context);
 
 public:

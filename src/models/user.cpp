@@ -18,13 +18,28 @@ const std::string &User::get_id() const { return id; }
 
 const std::string &User::get_username() const { return username; }
 
-void User::set_public_key(const std::vector<uint8_t> &pub_bytes) {
-  publicKey.insert(publicKey.end(), pub_bytes.begin(), pub_bytes.end());
+void User::set_public_DH_key(const std::vector<uint8_t> &pub_bytes) {
+  publicDHKey.insert(publicDHKey.end(), pub_bytes.begin(), pub_bytes.end());
 }
 
-std::vector<uint8_t> User::get_public_key() { return publicKey; }
+std::vector<uint8_t> User::get_public_DH_key() { return publicDHKey; }
 
 bool User::verify_signature(const std::string &data,
                             const std::string &signature) const {
   return true;
+}
+
+std::vector<uint8_t> User::get_key_signature() { return signature; }
+
+void User::set_public_Identity_key(const std::vector<uint8_t> &pub_bytes) {
+  publicIdentityKey.insert(publicIdentityKey.end(), pub_bytes.begin(),
+                           pub_bytes.end());
+}
+
+std::vector<uint8_t> User::get_public_Identity_key() {
+  return publicIdentityKey;
+}
+
+void User::set_key_signature(const std::vector<uint8_t> &bytes) {
+  signature = bytes;
 }

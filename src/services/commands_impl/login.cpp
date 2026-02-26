@@ -13,7 +13,9 @@ Message LoginCommand::toMessage() const {
   ParsedCommand pc;
   pc.name = "login";
   pc.args = {std::vector<uint8_t>(username.begin(), username.end())};
-  pc.args.push_back(pubkey_bytes);
+  pc.args.push_back(DH_public_bytes);
+  pc.args.push_back(identity_pub_bytes);
+  pc.args.push_back(signature);
 
   Parser parser;
   return parser.make_command_from_struct(pc);
@@ -21,7 +23,9 @@ Message LoginCommand::toMessage() const {
 
 void LoginCommand::fromMessage(const Message &msg) {
   username = msg.get_meta(1);
-  pubkey_bytes = msg.get_meta(2);
+  DH_public_bytes = msg.get_meta(2);
+  identity_pub_bytes = msg.get_meta(3);
+  signature = msg.get_meta(4);
 }
 
 void LoginCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
@@ -36,8 +40,8 @@ void LoginCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
     return;
   }
 
-  auto username_res =
-      user_service->register_user(username_string, pubkey_bytes);
+  auto username_res = user_service->register_user(
+      username_string, DH_public_bytes, identity_pub_bytes, signature);
   if (!username_res.has_value()) {
     context->transport_server->send(fd,
                                     StaticResponses::PUBLIC_KEY_HAS_NOT_SET);
@@ -58,7 +62,9 @@ void LoginCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
   std::shared_ptr<IClient> client = context->client;
   std::shared_ptr<EncryptionService> encryptionService =
       context->encryption_service;
-  pubkey_bytes = encryptionService->get_public_bytes();
+  DH_public_bytes = encryptionService->get_DH_bytes();
+  identity_pub_bytes = encryptionService->get_identity_bytes();
+  signature = encryptionService->sign();
   context->my_username = username;
 
   Serializer serializer;

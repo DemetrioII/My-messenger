@@ -40,7 +40,7 @@ struct ClientContext {
             std::make_shared<std::unordered_map<
                 std::vector<uint8_t>, std::vector<std::vector<uint8_t>>>>()) {
 
-    encryption_service->set_identity_key();
+    encryption_service->set_key();
   }
 };
 

@@ -37,10 +37,11 @@ void GetPubkeyCommand::execeuteOnServer(
     return;
   }
   Message msg(
-      {(*user_res)->get_public_key(),
-       2,
+      {(*user_res)->get_public_DH_key(),
+       4,
        {std::vector<uint8_t>{static_cast<uint8_t>(CommandType::GET_PUBKEY)},
-        username},
+        username, (*user_res)->get_public_Identity_key(),
+        (*user_res)->get_key_signature()},
        MessageType::Response});
   context->transport_server->send(context->fd,
                                   context->serializer.serialize(msg));

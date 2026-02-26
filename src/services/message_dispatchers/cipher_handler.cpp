@@ -6,15 +6,18 @@ void CipherMessageHandler::process_encrypted_message(
     const std::vector<uint8_t> &sender, const std::vector<uint8_t> &recipient,
     const std::vector<uint8_t> &pubkey_bytes,
     const std::vector<uint8_t> &payload,
+    const std::vector<uint8_t> &identity_key,
+    const std::vector<uint8_t> &signature,
     std::shared_ptr<ClientContext> context) {
   try {
-    encryption_service->cache_public_key(sender, pubkey_bytes);
+    encryption_service->cache_public_key(sender, pubkey_bytes, identity_key);
     auto counter_it = context->messages_counter.find(sender);
     if (counter_it == context->messages_counter.end()) {
       context->messages_counter[sender] = 0;
     }
-    auto decrypted_msg = encryption_service->decrypt_for(
-        sender, recipient, payload, context->messages_counter[sender]);
+    auto decrypted_msg =
+        encryption_service->decrypt_for(sender, recipient, payload, signature,
+                                        context->messages_counter[sender]);
     std::string plaintext(decrypted_msg.begin(), decrypted_msg.end());
 
     ++context->messages_counter[sender];
@@ -35,10 +38,12 @@ void CipherMessageHandler::handleMessageOnClient(
   auto payload = msg.get_payload();
   auto sender_id = msg.get_meta(1);
   auto recipient_id = msg.get_meta(0);
-  auto pubkey_opt = msg.get_meta(2);
+  auto dh_pubkey_opt = msg.get_meta(2);
+  auto identity_key = msg.get_meta(3);
+  auto signauture = msg.get_meta(4);
 
-  process_encrypted_message(sender_id, recipient_id, pubkey_opt, payload,
-                            context);
+  process_encrypted_message(sender_id, recipient_id, dh_pubkey_opt, payload,
+                            identity_key, signauture, context);
 }
 
 void CipherMessageHandler::handleMessageOnServer(
@@ -65,8 +70,9 @@ void CipherMessageHandler::handleMessageOnServer(
   }
   Message msg_to_send(
       {std::move(msg.get_payload()),
-       3,
-       {msg.get_meta(0), msg.get_meta(1), (*sender)->get_public_key()},
+       5,
+       {msg.get_meta(0), msg.get_meta(1), (*sender)->get_public_DH_key(),
+        (*sender)->get_public_Identity_key(), (*sender)->get_key_signature()},
        MessageType::CipherMessage});
   std::cout << "Message was sent to " << recipient_username << std::endl;
   context->transport_server->send(*recipient_fd,

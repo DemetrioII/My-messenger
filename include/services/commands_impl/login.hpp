@@ -4,7 +4,9 @@
 
 class LoginCommand : public ICommandHandler {
   std::vector<uint8_t> username;
-  std::vector<uint8_t> pubkey_bytes;
+  std::vector<uint8_t> DH_public_bytes;
+  std::vector<uint8_t> identity_pub_bytes;
+  std::vector<uint8_t> signature;
 
 public:
   CommandType getType() const override;

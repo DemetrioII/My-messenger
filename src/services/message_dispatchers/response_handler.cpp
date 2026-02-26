@@ -17,11 +17,13 @@ void ResponseMessageHandler::handleMessageOnClient(
 
   case CommandType::GET_PUBKEY: {
     auto other_pubkey = DH_Key::from_public_bytes(msg.get_payload());
+    auto other_identity_key = IdentityKey::from_public_bytes(msg.get_meta(2));
     auto username = msg.get_meta(1);
 
     std::cout << "You got a public key of "
               << std::string(username.begin(), username.end()) << std::endl;
-    context->encryption_service->cache_public_key(username, msg.get_payload());
+    context->encryption_service->cache_public_key(username, msg.get_payload(),
+                                                  msg.get_meta(2));
 
     auto pending_it = context->mq->find_pending(username);
     if (pending_it) {
@@ -60,10 +62,11 @@ void ResponseMessageHandler::handleMessageOnClient(
     }
 
     for (const auto &pending_ciphertext : pending_received) {
-      context->encryption_service->cache_public_key(username,
-                                                    msg.get_payload());
+      context->encryption_service->cache_public_key(username, msg.get_payload(),
+                                                    msg.get_meta(2));
       auto plaintext = context->encryption_service->decrypt_for(
           context->my_username, context->my_username, pending_ciphertext,
+          context->encryption_service->sign(),
           context->messages_counter.find(username)->second);
       auto plain_str = std::string(plaintext.begin(), plaintext.end());
       std::cout << plain_str << std::endl;

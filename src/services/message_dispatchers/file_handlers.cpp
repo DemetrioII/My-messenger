@@ -79,7 +79,7 @@ void FileChunkHandler::handleMessageOnClient(
         context->messages_counter.end())
       context->messages_counter[msg.get_meta(0)] = 0;
     std::vector<uint8_t> payload = context->encryption_service->decrypt_for(
-        msg.get_meta(2), msg.get_meta(0), msg.get_payload(),
+        msg.get_meta(2), msg.get_meta(0), msg.get_payload(), msg.get_meta(4),
         context->messages_counter[msg.get_meta(0)]);
     (*pending_files)[recipient_username_str + " " + name]->write(
         reinterpret_cast<const char *>(payload.data()), payload.size());

@@ -1,6 +1,7 @@
 #include "../../../include/services/encryption_service.hpp"
+#include <iostream>
 
-void EncryptionService::set_identity_key() {
+void EncryptionService::set_key() {
   DH_key = load_or_generate_key();
   const std::string path = "identity.key";
 
@@ -11,23 +12,29 @@ void EncryptionService::set_identity_key() {
     identity_key = IdentityKey::generate();
     IdentityKey::save_file(path, identity_key.private_bytes());
   }
-
-  identity_key.sign(DH_key.public_bytes());
 }
 
-std::vector<uint8_t> EncryptionService::get_public_bytes() {
+std::vector<uint8_t> EncryptionService::sign() {
+  return identity_key.sign(DH_key.public_bytes());
+}
+
+std::vector<uint8_t> EncryptionService::get_DH_bytes() {
   return DH_key.public_bytes();
+}
+
+std::vector<uint8_t> EncryptionService::get_identity_bytes() {
+  return identity_key.public_bytes();
 }
 
 std::vector<uint8_t> EncryptionService::encrypt_for(
     const std::vector<uint8_t> &sender, const std::vector<uint8_t> &username,
     const std::vector<uint8_t> &plaintext, uint64_t counter) {
 
-  if (keys.find(username) == keys.end())
+  if (DH_keys.find(username) == DH_keys.end())
     throw std::runtime_error("User public " +
                              std::string(username.begin(), username.end()) +
                              " key not found");
-  auto shared_secret = DH_key.compute_shared_secret(keys[username]);
+  auto shared_secret = DH_key.compute_shared_secret(DH_keys[username]);
   auto encryption_key =
       HKDF::derive_for_messaging(shared_secret, sender, username, "encryption");
   auto ciphertext =
@@ -43,12 +50,24 @@ std::vector<uint8_t> EncryptionService::encrypt_for(
 
 std::vector<uint8_t> EncryptionService::decrypt_for(
     const std::vector<uint8_t> &sender, const std::vector<uint8_t> &username,
-    const std::vector<uint8_t> &ciphertext, uint64_t counter) {
-  if (keys.find(sender) == keys.end())
+    const std::vector<uint8_t> &ciphertext,
+    const std::vector<uint8_t> &signature, uint64_t counter) {
+  if (DH_keys.find(sender) == DH_keys.end())
     throw std::runtime_error("User public " +
                              std::string(sender.begin(), sender.end()) +
                              " key not found");
-  auto shared_secret = DH_key.compute_shared_secret(keys[sender]);
+  if (!identity_keys[sender].verify(DH_keys[sender].public_bytes(),
+                                    signature)) {
+    throw std::runtime_error("MITM detected!");
+  } else {
+    std::cout << "Verification for user "
+              << std::string(sender.begin(), sender.end()) << " was successful!"
+              << std::endl;
+    std::cout << std::string(signature.begin(), signature.end()) << std::endl;
+    auto temp = identity_keys[sender].public_bytes();
+    std::cout << std::string(temp.begin(), temp.end()) << std::endl;
+  }
+  auto shared_secret = DH_key.compute_shared_secret(DH_keys[sender]);
   auto decryption_key =
       HKDF::derive_for_messaging(shared_secret, sender, username, "encryption");
   auto plaintext =
@@ -62,7 +81,9 @@ std::vector<uint8_t> EncryptionService::decrypt_for(
   return plaintext;
 }
 
-void EncryptionService::cache_public_key(const std::vector<uint8_t> &username,
-                                         const std::vector<uint8_t> &pubkey) {
-  keys[username] = DH_Key::from_public_bytes(pubkey);
+void EncryptionService::cache_public_key(
+    const std::vector<uint8_t> &username, const std::vector<uint8_t> &pubkey,
+    const std::vector<uint8_t> &identity_key) {
+  DH_keys[username] = DH_Key::from_public_bytes(pubkey);
+  identity_keys[username] = IdentityKey::from_public_bytes(identity_key);
 }

@@ -67,33 +67,24 @@ IdentityKey::sign(const std::vector<uint8_t> &message) const {
 }
 
 bool IdentityKey::verify(const std::vector<uint8_t> &pubkey,
-                         const std::vector<uint8_t> &message,
                          const std::vector<uint8_t> &signature) {
-  EVP_PKEY *pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr,
-                                               pubkey.data(), pubkey.size());
-
-  if (!pkey)
-    throw std::runtime_error("Failed to create public key");
+  if (!pkey_)
+    throw std::runtime_error("No public key");
 
   EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  if (!ctx)
+    throw std::runtime_error("MD_CTX failed");
 
-  if (!ctx) {
-    EVP_PKEY_free(pkey);
-    throw std::runtime_error("Failed to create MD context");
-  }
-
-  if (EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, pkey) <= 0) {
+  if (EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, AS_PKEY(pkey_)) <=
+      0) {
     EVP_MD_CTX_free(ctx);
-    EVP_PKEY_free(pkey);
-    throw std::runtime_error("Digest verify init failed");
+    throw std::runtime_error("VerifyInit failed");
   }
 
   int rc = EVP_DigestVerify(ctx, signature.data(), signature.size(),
-                            message.data(), message.size());
+                            pubkey.data(), pubkey.size());
 
   EVP_MD_CTX_free(ctx);
-  EVP_PKEY_free(pkey);
-
   return rc == 1;
 }
 
@@ -134,6 +125,16 @@ IdentityKey IdentityKey::from_private_bytes(const std::vector<uint8_t> &bytes) {
 
   if (!pkey)
     throw std::runtime_error("Failed to create key from private bytes");
+
+  return IdentityKey(pkey);
+}
+
+IdentityKey IdentityKey::from_public_bytes(const std::vector<uint8_t> &bytes) {
+  EVP_PKEY *pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr,
+                                               bytes.data(), bytes.size());
+
+  if (!pkey)
+    throw std::runtime_error("Failed to create from public bytes");
 
   return IdentityKey(pkey);
 }

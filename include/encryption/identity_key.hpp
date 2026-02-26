@@ -72,15 +72,16 @@ public:
 
   std::vector<uint8_t> sign(const std::vector<uint8_t> &message) const;
 
-  static bool verify(const std::vector<uint8_t> &pubkey,
-                     const std::vector<uint8_t> &message,
-                     const std::vector<uint8_t> &signature);
+  bool verify(const std::vector<uint8_t> &pubkey,
+              const std::vector<uint8_t> &signature);
 
   std::vector<uint8_t> public_bytes() const;
 
   std::vector<uint8_t> private_bytes() const;
 
   static IdentityKey from_private_bytes(const std::vector<uint8_t> &);
+
+  static IdentityKey from_public_bytes(const std::vector<uint8_t> &);
 
 private:
   void *pkey_;
