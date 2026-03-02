@@ -8,6 +8,7 @@
  * Пример 1: PeerNode в режиме сервера
  * Ожидает подключения от других peer'ов
  */
+/*
 void example_server_mode() {
   std::cout << "=== Example: Server Mode ===" << std::endl;
 
@@ -60,10 +61,11 @@ void example_server_mode() {
   peer->stop();
 }
 
-/**
+
  * Пример 2: PeerNode в режиме клиента
  * Подключается к другому peer'у
  */
+/*
 void example_client_mode() {
   std::cout << "=== Example: Client Mode ===" << std::endl;
 
@@ -102,9 +104,8 @@ void example_client_mode() {
   }
 }
 
-/**
  * Пример 3: Гибридный режим - и сервер, и клиент
- */
+
 void example_hybrid_mode(int listen_port, const std::string &connect_ip = "",
                          int connect_port = 0) {
   std::cout << "=== Example: Hybrid Mode ===" << std::endl;
@@ -118,10 +119,10 @@ void example_hybrid_mode(int listen_port, const std::string &connect_ip = "",
         std::cout << "[" << ip << "]: " << message << std::endl;
 
         // Эхо-ответ отправителю
-        /*std::string reply = "Echo: " + message;
+        std::string reply = "Echo: " + message;
         std::vector<uint8_t> reply_data(reply.begin(), reply.end());
-        peer->send_to_peer(ip, reply_data); */
-      });
+        peer->send_to_peer(ip, reply_data);
+});
 
   peer->set_peer_connected_callback(
       [](const std::string &ip) { std::cout << "[+] " << ip << std::endl; });
@@ -184,7 +185,7 @@ void example_hybrid_mode(int listen_port, const std::string &connect_ip = "",
 
 /**
  * Пример 4: P2P чат
- */
+
 class P2PChatNode {
 private:
   std::shared_ptr<PeerNode> peer;
@@ -247,7 +248,7 @@ public:
 
 /**
  * Main функция с примерами
- */
+
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     std::cout << "Usage: " << argv[0] << " <mode> [options]" << std::endl;
@@ -315,5 +316,60 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  return 0;
+} */
+
+#include <atomic>
+#include <iostream>
+#include <string>
+#include <thread>
+
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <thread>
+
+int main(int argc, char *argv[]) {
+  std::string s;
+  if (argc < 2) {
+    std::cout << "port missed" << std::endl;
+    return 0;
+  }
+  auto peer_node = PeerNodeFactory::create_tcp_peer();
+  start_listening(*peer_node, std::stoi(argv[1]));
+  peer_node->callbacks_.on_data_callback =
+      ([](int fd, const std::vector<uint8_t> &data) {
+        std::cout << "Message from " << fd << ": "
+                  << std::string(data.begin(), data.end()) << std::endl;
+      });
+  std::cout << peer_node->listening_socket_->fd << std::endl;
+  std::thread loop_thread([&]() { run_event_loop(*peer_node); });
+  while (std::cin >> s) {
+    if (s == "/connect") {
+      std::string ip;
+      int port;
+      std::cin >> ip >> port;
+      std::cout << "Connecting" << std::endl;
+      connect_to_peer(*peer_node, ip, port);
+    } else if (s == "/quit") {
+      stop(*peer_node);
+      break;
+    } else if (s == "/disconnect") {
+      std::string ip;
+      int port;
+      std::cin >> ip >> port;
+      auto fd = peer_node->registry_.by_ip[ip];
+      disconnect_from_peer(*peer_node, fd);
+    } else if (s == "/send") {
+      int fd;
+      std::string message;
+      std::cin >> fd >> message;
+      send_to_peer(*peer_node, fd,
+                   std::vector<uint8_t>(message.begin(), message.end()));
+    }
+  }
+
+  if (loop_thread.joinable())
+    loop_thread.join();
   return 0;
 }

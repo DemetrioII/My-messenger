@@ -190,13 +190,13 @@ bool UDPSocket::check_connection_complete(int timeout_ms) { return true; }
 void ISocket::setup_server(const std::string &ip, uint16_t port) {
   switch (type) {
   case SocketType::TCP: {
-    tcp = TCPSocket();
+    // tcp = TCPSocket();
     tcp.server(ip, port);
     fd = tcp.fd.get_fd();
     break;
   }
   case SocketType::UDP: {
-    udp = UDPSocket();
+    // udp = UDPSocket();
     udp.server(ip, port);
     fd = udp.fd.get_fd();
     break;

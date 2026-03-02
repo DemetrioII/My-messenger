@@ -2,7 +2,7 @@
 #include "../models/message.hpp"
 #include "../network/protocol/parser.hpp"
 #include "client_context.hpp"
-#include "messageing_service.hpp"
+#include "messaging_service.hpp"
 #include <any>
 #include <string>
 #include <vector>

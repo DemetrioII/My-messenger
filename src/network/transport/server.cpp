@@ -28,8 +28,10 @@ void Server::process_pending_messages() {
 }
 
 void Server::set_data_callback(
-    std::function<void(int, std::vector<uint8_t>)> callback) {
+    std::function<void(int, std::vector<uint8_t>)> callback,
+    std::function<void(int)> disconnect_callback) {
   on_data_callback = callback;
+  on_disconnected_callback = disconnect_callback;
 }
 
 void Server::start(int port) {
@@ -105,6 +107,8 @@ void Server::on_client_disconnected(int fd) {
   if (event_loop) {
     event_loop->remove_fd(fd);
   }
+
+  on_disconnected_callback(fd);
 
   // Потом удалить всё остальное
   connection_manager.remove_connection(fd);

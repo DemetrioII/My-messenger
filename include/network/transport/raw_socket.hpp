@@ -74,9 +74,11 @@ public:
 };*/
 
 struct TCPSocket {
-  Fd fd;
+  Fd fd{-1};
 
   sockaddr_in addr;
+
+  TCPSocket() : fd(-1) {}
 
   void server(const std::string &ip, uint16_t port);
 
@@ -86,9 +88,11 @@ struct TCPSocket {
 };
 
 struct UDPSocket {
-  Fd fd;
+  Fd fd{-1};
 
   sockaddr_in addr;
+
+  UDPSocket() : fd(-1) {}
 
   void server(const std::string &ip, uint16_t port);
 
@@ -107,7 +111,12 @@ struct ISocket {
     UDPSocket udp;
   };
 
-  ISocket(SocketType t) { type = t; }
+  ISocket(SocketType t) : type(t) {
+    if (t == SocketType::TCP)
+      new (&tcp) TCPSocket();
+    else
+      new (&udp) UDPSocket();
+  }
 
   ~ISocket() {}
 

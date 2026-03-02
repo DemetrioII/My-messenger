@@ -1,23 +1,5 @@
 #include "../../../include/services/commands_impl/private_message.hpp"
 
-/* void PrivateMessageCommand::process_encrypted_message(
-    std::shared_ptr<EncryptionService> encryption_service,
-    std::shared_ptr<ClientContext> context) {
-  try {
-    encryption_service->cache_public_key(recipient, pubkey_bytes);
-    auto decrypted_msg = encryption_service->decrypt_for(
-        sender, recipient, payload,
-        context->messages_counter.find(sender)->second);
-    std::string plaintext(decrypted_msg.begin(), decrypted_msg.end());
-
-    std::string sender_username(sender.begin(), sender.end());
-    std::cout << "\n[Личное]: (" << sender_username << "): " << plaintext
-              << std::endl;
-  } catch (const std::exception &e) {
-    std::cerr << "[Crypto] Decryption failed: " << e.what() << std::endl;
-  }
-} */
-
 CommandType PrivateMessageCommand::getType() const {
   return CommandType::PRIVATE_MESSAGE;
 }
@@ -29,7 +11,11 @@ void PrivateMessageCommand::fromParsedCommand(const ParsedCommand &pc) {
   }
 }
 
-Message PrivateMessageCommand::toMessage() const {}
+Message PrivateMessageCommand::toMessage() const {
+  GetPubkeyCommand cmd;
+  cmd.fromParsedCommand({.name = "getpub", .args{recipient}});
+  return cmd.toMessage();
+}
 
 void PrivateMessageCommand::execeuteOnServer(
     std::shared_ptr<ServerContext> context) {}
@@ -49,14 +35,11 @@ void PrivateMessageCommand::executeOnClient(
   mq->push(recipient, payload);
   recipient.clear();
   payload.clear();
-  // process_encrypted_message(encryption_service);
 }
 
 void PrivateMessageCommand::fromMessage(const Message &msg) {
   recipient = msg.get_meta(1);
-  // sender = msg.get_meta(1);
   payload = msg.get_payload();
-  // pubkey_bytes = msg.get_meta(2);
 }
 
 PrivateMessageCommand::~PrivateMessageCommand() {}

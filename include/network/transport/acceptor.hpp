@@ -15,6 +15,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+struct PeerSession;
+
 class TCPAcceptor : public IAcceptor {
 public:
   TCPAcceptor() = default;
@@ -31,4 +33,24 @@ public:
   std::optional<std::shared_ptr<IConnection>> accept(int server_fd) override;
 
   ~UDPAcceptor() override;
+};
+
+class IPeerAcceptor {
+public:
+  virtual std::optional<std::shared_ptr<PeerSession>> accept(int fd) = 0;
+  virtual ~IPeerAcceptor() = default;
+};
+
+class PeerTCPAcceptor : public IPeerAcceptor {
+public:
+  std::optional<std::shared_ptr<PeerSession>> accept(int fd) override;
+
+  ~PeerTCPAcceptor() override;
+};
+
+class PeerUDPAcceptor : public IPeerAcceptor {
+public:
+  std::optional<std::shared_ptr<PeerSession>> accept(int fd) override;
+
+  ~PeerUDPAcceptor() override;
 };

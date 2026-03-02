@@ -1,7 +1,7 @@
 #include "../../../include/network/transport/peer.hpp"
 
 PeerNode::PeerNode(std::unique_ptr<ISocket> listening_socket,
-                   std::unique_ptr<IAcceptor> acceptor)
+                   std::unique_ptr<IPeerAcceptor> acceptor)
     : listening_socket_(std::move(listening_socket)),
       acceptor_(std::move(acceptor)),
       event_loop_(std::make_unique<EventLoop>()),
@@ -11,16 +11,16 @@ PeerNode::PeerNode(std::unique_ptr<ISocket> listening_socket,
   accept_handler_->set_acceptor(std::move(acceptor_));
 }
 
-void PeerNode::start_listening(int port) {
-  listening_socket_->setup_server("0.0.0.0", port);
-  if (listening_socket_->fd != -1) {
-    is_running_ = true;
+void start_listening(PeerNode &node, int port) {
+  node.listening_socket_->setup_server("0.0.0.0", port);
+  if (node.listening_socket_->fd != -1) {
+    node.running_ = true;
 
-    accept_handler_->init(shared_from_this());
-    handler_->init(shared_from_this());
+    node.accept_handler_->init(&node);
+    node.handler_->init(&node);
 
-    event_loop_->add_fd(listening_socket_->fd, accept_handler_,
-                        EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
+    node.event_loop_->add_fd(node.listening_socket_->fd, node.accept_handler_,
+                             EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
 
     std::cout << "PeerNode listening on port " << port << std::endl;
   } else {
@@ -28,42 +28,62 @@ void PeerNode::start_listening(int port) {
   }
 }
 
-void PeerNode::register_peer_connection(int fd,
-                                        std::shared_ptr<IConnection> connection,
-                                        const std::string &ip) {
-  std::cout << "New peer: " << ip << " (fd=" << fd << ")" << std::endl;
+int register_peer_connection(PeerNode &node,
+                             std::shared_ptr<PeerSession> session) {
+  std::cout << "New peer: " << session->ip << " (fd=" << session->fd << ")"
+            << std::endl;
 
-  connection->init_transport(TransportFactory::create_tcp(fd));
+  if (node.registry_.by_fd.find(session->fd) != node.registry_.by_fd.end())
+    return 1; // Peer is already connected
 
-  connection_manager_.add_connection(fd, connection);
+  node.handler_->add_peer(session);
 
-  handler_->add_peer(fd, connection);
+  node.event_loop_->add_fd(session->fd, node.handler_,
+                           EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
 
-  {
-    std::lock_guard<std::mutex> lock(peer_ips_mutex);
-    peer_ips[fd] = ip;
+  if (node.callbacks_.on_peer_connected) {
+    node.callbacks_.on_peer_connected(session->fd);
   }
 
-  event_loop_->add_fd(fd, handler_,
-                      EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
-
-  if (on_peer_connected_callback)
-    on_peer_connected_callback(ip);
+  switch (node.connecton_type) {
+  case SocketType::TCP: {
+    // session.transport = TransportFactory::create_tcp(session.fd);
+    node.registry_.by_ip[session->ip] = session->fd;
+    node.registry_.by_fd[session->fd] = session;
+    break;
+  }
+  case SocketType::UDP: {
+    // session.transport = TransportFactory::create_udp(session.fd,
+    // session.addr);
+    node.registry_.by_ip[session->ip] = session->fd;
+    node.registry_.by_fd[session->fd] = session;
+    break;
+  }
+  }
+  return 0;
 }
 
-void PeerNode::on_peer_connected(std::shared_ptr<IConnection> connection) {
-
-  auto address = connection->get_addr();
-  char ip_str[INET6_ADDRSTRLEN];
-  inet_ntop(AF_INET, &address.sin_addr, ip_str, sizeof(ip_str));
-  std::string ip(ip_str);
-  auto fd = connection->get_fd();
-  register_peer_connection(connection->get_fd(), connection, ip);
+bool PeerSession::try_receive() {
+  auto result = receive(transport);
+  if (result.data.data()) {
+    in.insert(in.end(), result.data.data(),
+              result.data.data() + result.data.length);
+  }
+  return (result.status == ReceiveStatus::OK ||
+          result.status == ReceiveStatus::WOULDBLOCK);
 }
 
-bool PeerNode::connect_to_peer(const std::string &peer_ip, int port) {
+bool PeerSession::has_complete_message() {
+  return framer.has_message_in_buffer(in);
+}
+
+std::vector<uint8_t> PeerSession::extract_message() {
+  return framer.extract_message(in);
+}
+
+int connect_to_peer(PeerNode &node, const std::string &peer_ip, int port) {
   std::unique_ptr<ISocket> peer_socket; // Умирает при выходе
-  if (listening_socket_->type == SocketType::TCP) {
+  if (node.listening_socket_->type == SocketType::TCP) {
     peer_socket = std::make_unique<ISocket>(SocketType::TCP);
   } else {
     peer_socket = std::make_unique<ISocket>(SocketType::UDP);
@@ -72,193 +92,117 @@ bool PeerNode::connect_to_peer(const std::string &peer_ip, int port) {
   if (peer_socket->setup_connection(peer_ip, port) < 0) {
     std::cerr << "Failed to connect to peer " << peer_ip << ":" << port
               << std::endl;
-    return false;
+    return 1;
   }
 
   sockaddr_in peer_addr = peer_socket->addr;
   int fd = peer_socket->fd;
 
-  peer_sockets[fd] = std::move(peer_socket);
+  PeerSession session{.fd = peer_socket->fd,
+                      .ip = peer_ip,
+                      .addr = peer_socket->addr,
+                      .transport = TransportFactory::create_tcp(fd)};
 
-  auto connection = std::make_shared<PeerConnection>(fd, peer_addr);
-
-  register_peer_connection(fd, connection, peer_ip);
+  register_peer_connection(node, std::make_shared<PeerSession>(session));
 
   std::cout << "Connected to peer " << peer_ip << ":" << port << " (fd=" << fd
             << ")" << std::endl;
 
-  return true;
+  return 0;
 }
 
-void PeerNode::send_to_peer(const std::string &peer_ip,
-                            const std::vector<uint8_t> &data) {
-  int fd = get_peer_fd(peer_ip);
-  if (fd != -1) {
-    send_to_peer_by_fd(fd, data);
+void send_to_buffer(PeerSession &session, const std::vector<uint8_t> &data) {
+  session.framer.form_message(data, session.out);
+}
+
+void send_to_peer(PeerNode &node, int fd, const std::vector<uint8_t> data) {
+  if (node.registry_.by_fd.find(fd) != node.registry_.by_fd.end()) {
+    send_to_buffer(*node.registry_.by_fd[fd], data);
+    node.event_loop_->enable_write(fd);
   } else {
-    std::cerr << "Peer not found: " << peer_ip << std::endl;
+    std::cerr << "Peer not found: " << fd << std::endl;
   }
 }
 
-void PeerNode::send_to_peer_by_fd(int peer_fd,
-                                  const std::vector<uint8_t> &data) {
-  connection_manager_.send_to_buffer(peer_fd, data);
-  event_loop_->enable_write(peer_fd);
-}
-
-void PeerNode::broadcast(const std::vector<uint8_t> &data) {
-  auto all_connections = connection_manager_.get_all_connections();
-
-  for (const auto &[fd, connection] : all_connections) {
-    connection_manager_.send_to_buffer(fd, data);
-    event_loop_->enable_write(fd);
+void broadcast(PeerNode &node, const std::vector<uint8_t> &data) {
+  for (auto &[fd, session] : node.registry_.by_fd) {
+    send_to_buffer(*session, data);
+    node.event_loop_->enable_write(fd);
   }
 
-  std::cout << "Broadcast message to " << all_connections.size() << " peers"
-            << std::endl;
+  std::cout << "Broadcast message to " << node.registry_.by_ip.size()
+            << " peers" << std::endl;
 }
 
-void PeerNode::disconnect_from_peer(int peer_fd) {
-  std::cout << "Disconnecting peer (fd=" << peer_fd << ")" << std::endl;
+int disconnect_from_peer(PeerNode &node, int fd) {
+  std::string peer_ip = node.registry_.by_fd[fd]->ip;
+  if (node.registry_.by_ip.find(peer_ip) == node.registry_.by_ip.end())
+    return 1;
 
-  if (event_loop_)
-    event_loop_->remove_fd(peer_fd);
+  std::cout << "Disconnecting from " << peer_ip << std::endl;
 
-  handler_->remove_peer(peer_fd);
+  node.event_loop_->remove_fd(fd);
+  node.handler_->remove_peer(fd);
 
-  connection_manager_.remove_connection(peer_fd);
+  node.registry_.by_fd.erase(fd);
+  node.registry_.by_ip.erase(peer_ip);
 
-  {
-    std::lock_guard<std::mutex> lock(peer_ips_mutex);
-    peer_ips.erase(peer_fd);
-  }
+  if (node.callbacks_.on_peer_disconnected)
+    node.callbacks_.on_peer_disconnected(fd);
 
-  peer_sockets.erase(peer_fd);
+  ::close(fd);
+
+  return 0;
 }
 
-void PeerNode::disconnect_from_peer_by_ip(const std::string &peer_ip) {
-  int fd = get_peer_fd(peer_ip);
-
-  if (fd != -1) {
-    disconnect_from_peer(fd);
+void run_event_loop(PeerNode &node) {
+  while (node.running_) {
+    node.event_loop_->run_once(100);
   }
 }
 
-void PeerNode::run_event_loop() {
-  while (is_running()) {
-    event_loop_->run_once(100);
-  }
-}
-
-void PeerNode::stop() {
+void stop(PeerNode &node) {
   std::cout << "Stopping PeerNode..." << std::endl;
 
-  if (!is_running_) {
+  if (!node.running_) {
     return;
   }
 
-  is_running_ = false;
-  if (event_loop_)
-    event_loop_->stop();
+  std::vector<int> peer_fds;
+  peer_fds.reserve(node.registry_.by_ip.size());
+  for (const auto &[fd, _] : node.registry_.by_fd)
+    peer_fds.push_back(fd);
 
-  auto all_connections = connection_manager_.get_all_connections();
-  for (const auto &[fd, connection] : all_connections) {
-    disconnect_from_peer(fd);
+  for (const auto &fd : peer_fds) {
+    disconnect_from_peer(node, fd);
   }
 
-  if (handler_)
-    handler_->clear();
+  node.running_ = false;
+  if (node.event_loop_)
+    node.event_loop_->stop();
+
+  if (node.handler_)
+    node.handler_->clear();
 }
 
-bool PeerNode::is_running() const { return is_running_; }
-
-void PeerNode::set_data_callback(
-    std::function<void(const std::string &ip, const std::vector<uint8_t> &data)>
-        callback) {
-  on_data_callback = callback;
-}
-
-void PeerNode::set_peer_connected_callback(
-    std::function<void(const std::string &ip)> callback) {
-  on_peer_connected_callback = callback;
-}
-
-void PeerNode::set_peer_disconnected_callback(
-    std::function<void(const std::string &ip)> callback) {
-  on_peer_disconnected_callback = callback;
-}
-
-std::vector<std::string> PeerNode::get_connected_peers() const {
-  std::lock_guard<std::mutex> lock(peer_ips_mutex);
-
-  std::vector<std::string> peers;
-  peers.reserve(peer_ips.size());
-
-  for (const auto &[fd, ip] : peer_ips) {
-    peers.push_back(ip);
+bool flush(PeerSession &session) {
+  if (session.out.empty())
+    return true;
+  ssize_t sent = send(session.transport, session.out);
+  if (sent > 0) {
+    session.out.erase(session.out.begin(), session.out.begin() + sent);
+    return session.out.empty();
   }
-
-  return peers;
+  return (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
 }
 
-size_t PeerNode::get_active_connections_count() const {
-  return connection_manager_.get_all_connections().size();
-}
-
-std::string PeerNode::get_peer_ip(int fd) const {
-  std::lock_guard<std::mutex> lock(peer_ips_mutex);
-
-  auto it = peer_ips.find(fd);
-  if (it != peer_ips.end()) {
-    return it->second;
-  }
-
-  return "";
-}
-
-int PeerNode::get_peer_fd(const std::string &ip) const {
-  std::lock_guard<std::mutex> lock(peer_ips_mutex);
-
-  for (const auto &[fd, peer_ip] : peer_ips) {
-    if (peer_ip == ip)
-      return fd;
-  }
-
-  return -1;
-}
-
-void PeerNode::on_peer_writable(int fd) {
-  auto done = (*connection_manager_.get_connection(fd))->flush();
+void on_peer_writable(PeerNode &node, int fd) {
+  auto done = flush(*node.registry_.by_fd[fd]);
   if (done)
-    event_loop_->disable_write(fd);
-}
-
-void PeerNode::on_peer_message(int fd, const std::vector<uint8_t> &data) {
-  if (!data.empty()) {
-    std::string peer_ip = get_peer_ip(fd);
-
-    if (on_data_callback)
-      on_data_callback(peer_ip, data);
-  }
-}
-
-void PeerNode::on_peer_disconnected(int fd) {
-  std::string peer_ip = get_peer_ip(fd);
-  std::cout << "Peer disconnected: " << peer_ip << " (fd=" << fd << ")"
-            << std::endl;
-
-  if (on_peer_disconnected_callback && !peer_ip.empty())
-    on_peer_disconnected_callback(peer_ip);
-
-  disconnect_from_peer(fd);
-}
-
-void PeerNode::on_peer_error(int fd) {
-  std::cerr << "Peer error on fd=" << fd << std::endl;
-  on_peer_disconnected(fd);
+    node.event_loop_->disable_write(fd);
 }
 
 PeerNode::~PeerNode() {
   std::cout << "~PeerNode()" << std::endl;
-  stop();
+  stop(*this);
 }

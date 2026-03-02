@@ -41,7 +41,11 @@ void SendFileCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
   file.seekg(0, std::ios::beg);
   std::vector<uint8_t> fname_bytes(filename.begin(), filename.end());
 
-  Message start_msg({}, 3, {recipient, fname_bytes, to_bytes(file_size)},
+  Message start_msg({}, 6,
+                    {recipient, fname_bytes, to_bytes(file_size),
+                     context->encryption_service->get_DH_bytes(),
+                     context->encryption_service->get_identity_bytes(),
+                     context->encryption_service->sign()},
                     MessageType::FileStart);
 
   client->send_to_server(serializer.serialize(start_msg));

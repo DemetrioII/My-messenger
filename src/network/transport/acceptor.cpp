@@ -1,4 +1,5 @@
 #include "../../../include/network/transport/acceptor.hpp"
+#include "../../../include/network/transport/peer.hpp"
 
 std::optional<std::shared_ptr<IConnection>> TCPAcceptor::accept(int server_fd) {
   struct sockaddr_in addr;
@@ -44,3 +45,36 @@ std::optional<std::shared_ptr<IConnection>> UDPAcceptor::accept(int server_fd) {
 }
 
 UDPAcceptor::~UDPAcceptor() {}
+
+std::optional<std::shared_ptr<PeerSession>> PeerTCPAcceptor::accept(int fd) {
+  struct sockaddr_in addr;
+  socklen_t addr_len = sizeof(addr);
+  int client_fd = ::accept(fd, (struct sockaddr *)&addr, &addr_len);
+  if (client_fd == -1) {
+    if (errno != EAGAIN && errno != EWOULDBLOCK) {
+      std::cerr << "Ошибка accept: " << strerror(errno) << std::endl;
+    }
+    return std::nullopt;
+  }
+
+  int flags = fcntl(client_fd, F_GETFL, 0);
+  fcntl(client_fd, F_SETFL, O_NONBLOCK | flags);
+
+  char ip_str[INET_ADDRSTRLEN];
+  inet_ntop(AF_INET, &addr.sin_addr, ip_str, INET_ADDRSTRLEN);
+
+  PeerSession session{
+      .fd = client_fd,
+      .framer = FramerMessage(),
+      .ip = ip_str,
+      .addr = addr,
+      .transport = TransportFactory::create_tcp(client_fd),
+  };
+  return std::make_shared<PeerSession>(session);
+}
+
+PeerTCPAcceptor::~PeerTCPAcceptor() {}
+
+std::optional<std::shared_ptr<PeerSession>> PeerUDPAcceptor::accept(int fd) {}
+
+PeerUDPAcceptor::~PeerUDPAcceptor() {}

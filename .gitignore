@@ -20,3 +20,4 @@ temp.txt
 .err
 .clangd
 .cache/
+*.txt

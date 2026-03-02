@@ -26,7 +26,7 @@ void ResponseMessageHandler::handleMessageOnClient(
                                                   msg.get_meta(2));
 
     auto pending_it = context->mq->find_pending(username);
-    if (pending_it) {
+    while (pending_it) {
       auto msg_to_send = *pending_it;
 
       auto counter_it = context->messages_counter.find(username);
@@ -49,6 +49,8 @@ void ResponseMessageHandler::handleMessageOnClient(
 
       std::cout << "[Crypto] Sent queued message to "
                 << std::string(username.begin(), username.end()) << std::endl;
+
+      pending_it = context->mq->find_pending(username);
     }
 
     std::vector<std::vector<uint8_t>> pending_received;

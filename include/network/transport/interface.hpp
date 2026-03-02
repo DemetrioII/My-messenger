@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <openssl/ssl.h>
 #include <optional>
@@ -30,7 +31,7 @@ struct ITransport;
 class IConnection;
 
 class Fd {
-  int fd;
+  int fd = -1;
 
 public:
   Fd() : fd(-1) {}
@@ -49,8 +50,10 @@ public:
   int get_fd() const { return fd; }
 
   void reset_fd(int new_fd) {
-    if (fd != -1)
+    if (fd != -1) {
       ::close(fd);
+      std::cout << "Closing FD: " << fd << std::endl;
+    }
     fd = new_fd;
   }
 
@@ -132,8 +135,9 @@ public:
   virtual void on_client_message(int fd, const std::vector<uint8_t> &data) = 0;
   virtual void on_client_writable(int fd) = 0;
   virtual void send(int fd, const std::vector<uint8_t> &data) = 0;
-  virtual void set_data_callback(
-      std::function<void(int, std::vector<uint8_t>)> callback) = 0;
+  virtual void
+  set_data_callback(std::function<void(int, std::vector<uint8_t>)> callback,
+                    std::function<void(int)> disconnect_callback) = 0;
   virtual void run_event_loop() = 0;
   virtual void tls_handshake(int fd) = 0;
   virtual bool tls_handshake_done(int fd) = 0;

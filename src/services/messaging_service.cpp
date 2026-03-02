@@ -1,4 +1,4 @@
-#include "../../include/services/messageing_service.hpp"
+#include "../../include/services/messaging_service.hpp"
 
 ServiceResult<std::string>
 UserService::register_user(const std::string &name,

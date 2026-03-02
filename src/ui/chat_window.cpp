@@ -40,13 +40,15 @@ ChatWindow::ChatWindow(const QString &nickname, QWidget *parent)
 				border-radius: 5px;
 				padding: 8px;
 				font-size: 13px;
+				color: #fefefe;
 			}
 			QLineEdit:focus {
 				border: 1px solid #007acc;
 			}
 			QTextEdit {
-				background-color: 252526;
+				background-color: #252526;
 				border: 1px solid #3f3f3f;
+				color: #fefefe;
 				border-radius: 5px;
 				padding: 8px;
 				font-size: 13px;

@@ -28,6 +28,7 @@ class Server : public IServer, public std::enable_shared_from_this<Server> {
   SSL_CTX *ssl_ctx_;
 
   std::function<void(int fd, std::vector<uint8_t>)> on_data_callback;
+  std::function<void(int fd)> on_disconnected_callback;
 
 private:
   std::unique_ptr<ISocket> socket_;
@@ -57,7 +58,8 @@ public:
   Server(const Server &) = delete;
   Server &operator=(const Server &) = delete;
   void set_data_callback(
-      std::function<void(int, std::vector<uint8_t>)> callback) override;
+      std::function<void(int, std::vector<uint8_t>)> data_callback,
+      std::function<void(int)> disconnect_callback) override;
 
   void start(int port) override;
 

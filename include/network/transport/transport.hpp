@@ -106,7 +106,7 @@ struct ITransport {
     TLSTransport tls;
   };
 
-  ITransport(TransportType t) { type = t; }
+  ITransport(TransportType t = TransportType::TCP) { type = t; }
 
   ~ITransport() { std::cout << "~ITransport()" << std::endl; }
 };

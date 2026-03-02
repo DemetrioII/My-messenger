@@ -61,7 +61,7 @@ protected:
 
 // Тест 1: Создание и уничтожение PeerNode
 TEST_F(PeerNodeTest, CreateAndDestroy) {
-  auto peer = PeerNodeFabric::create_tcp_peer();
+  auto peer = PeerNodeFactory::create_tcp_peer();
   EXPECT_NE(peer, nullptr);
 
   // Проверяем начальное состояние
@@ -71,7 +71,7 @@ TEST_F(PeerNodeTest, CreateAndDestroy) {
 
 // Тест 2: Запуск прослушивания на порту
 TEST_F(PeerNodeTest, StartListening) {
-  auto peer = PeerNodeFabric::create_tcp_peer();
+  auto peer = PeerNodeFactory::create_tcp_peer();
   int port = getTestPort();
 
   EXPECT_NO_THROW(peer->start_listening(port));
@@ -88,8 +88,8 @@ TEST_F(PeerNodeTest, StartListening) {
 // Тест 3: Подключение к другому узлу
 TEST_F(PeerNodeTest, ConnectToPeer) {
   // Создаем два узла
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
 
   int port1 = getTestPort();
   int port2 = getTestPort();
@@ -119,8 +119,8 @@ TEST_F(PeerNodeTest, ConnectToPeer) {
 
 // Тест 4: Отправка и получение сообщения
 TEST_F(PeerNodeTest, SendAndReceiveMessage) {
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
 
   int port = getTestPort();
 
@@ -170,9 +170,9 @@ TEST_F(PeerNodeTest, SendAndReceiveMessage) {
 
 // Тест 5: Широковещательная рассылка
 TEST_F(PeerNodeTest, BroadcastMessage) {
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
-  auto peer3 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
+  auto peer3 = PeerNodeFactory::create_tcp_peer();
 
   int port = getTestPort();
 
@@ -226,8 +226,8 @@ TEST_F(PeerNodeTest, BroadcastMessage) {
 
 // Тест 6: Отключение от пира
 TEST_F(PeerNodeTest, DisconnectFromPeer) {
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
 
   int port = getTestPort();
 
@@ -270,9 +270,9 @@ TEST_F(PeerNodeTest, DisconnectFromPeer) {
 
 // Тест 7: Получение списка подключенных пиров
 TEST_F(PeerNodeTest, GetConnectedPeers) {
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
-  auto peer3 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
+  auto peer3 = PeerNodeFactory::create_tcp_peer();
 
   int port = getTestPort();
 
@@ -309,7 +309,7 @@ TEST_F(PeerNodeTest, GetConnectedPeers) {
 
 // Тест 8: Обработка ошибок соединения
 TEST_F(PeerNodeTest, ConnectionErrorHandling) {
-  auto peer = PeerNodeFabric::create_tcp_peer();
+  auto peer = PeerNodeFactory::create_tcp_peer();
 
   // Пытаемся подключиться к несуществующему серверу
   bool connected = peer->connect_to_peer("127.0.0.1", 9999);
@@ -321,9 +321,9 @@ TEST_F(PeerNodeTest, ConnectionErrorHandling) {
 
 // Тест 9: Множественные соединения и разрывы
 TEST_F(PeerNodeTest, MultipleConnectionsAndDisconnections) {
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
-  auto peer3 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
+  auto peer3 = PeerNodeFactory::create_tcp_peer();
 
   int port = getTestPort();
 
@@ -380,8 +380,8 @@ TEST_F(PeerNodeTest, MultipleConnectionsAndDisconnections) {
 
 // Тест 10: Гибридный режим (два узла подключаются друг к другу)
 TEST_F(PeerNodeTest, HybridModeTwoWayConnection) {
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
 
   int port1 = getTestPort(9100);
   int port2 = getTestPort(9200);
@@ -464,8 +464,8 @@ TEST_F(PeerNodeTest, HybridModeTwoWayConnection) {
 
 // Тест 11: Большой объем данных
 TEST_F(PeerNodeTest, LargeMessageTransfer) {
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
 
   int port = getTestPort();
 
@@ -522,7 +522,7 @@ TEST_F(PeerNodeTest, LargeMessageTransfer) {
 // Тест 12: Стресс-тест множественных подключений
 TEST_F(PeerNodeTest, StressTestMultipleConnections) {
   const int NUM_CLIENTS = 10;
-  auto server = PeerNodeFabric::create_tcp_peer();
+  auto server = PeerNodeFactory::create_tcp_peer();
 
   int port = getTestPort();
 
@@ -545,7 +545,7 @@ TEST_F(PeerNodeTest, StressTestMultipleConnections) {
   std::vector<std::thread> client_threads;
 
   for (int i = 0; i < NUM_CLIENTS; ++i) {
-    auto client = PeerNodeFabric::create_tcp_peer();
+    auto client = PeerNodeFactory::create_tcp_peer();
     clients.push_back(client);
 
     // Подключаем клиента
@@ -595,8 +595,8 @@ TEST_F(PeerNodeTest, StressTestMultipleConnections) {
 
 // Тест 13: Проверка callback'ов подключения/отключения
 TEST_F(PeerNodeTest, ConnectionDisconnectionCallbacks) {
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
 
   int port = getTestPort();
 
@@ -650,8 +650,8 @@ TEST_F(PeerNodeTest, ConnectionDisconnectionCallbacks) {
 
 // Тест 14: Восстановление после ошибок
 TEST_F(PeerNodeTest, RecoveryAfterErrors) {
-  auto peer1 = PeerNodeFabric::create_tcp_peer();
-  auto peer2 = PeerNodeFabric::create_tcp_peer();
+  auto peer1 = PeerNodeFactory::create_tcp_peer();
+  auto peer2 = PeerNodeFactory::create_tcp_peer();
 
   int port = getTestPort();
 

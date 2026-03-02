@@ -19,42 +19,19 @@ MessagingServer::MessagingServer()
 
   dispatcher.registerHandler(MessageType::FileEnd,
                              std::make_unique<FileEndHandler>());
-
-  /*server_context->messaging_service->user_logged_in.subscribe(
-      [](const User &) { return true; },
-      [this](const User &user) {
-        int fd =
-            server_context->messaging_service->get_fd_by_user_id(user.get_id());
-        Message welcome_msg =
-            server_context->parser.parse("Hello, " + user.get_id() + "!");
-        server_context->transport_server->send(
-            fd, server_context->serializer.serialize(welcome_msg));
-      });
-
-  server_context->messaging_service->message_sent.subscribe(
-      [](auto &) { return true; },
-      [this](auto &tpl) {
-        auto [from_user_id, chat_id, msg] = tpl;
-        auto &chat = server_context->messaging_service->get_chat_by_id(chat_id);
-        for (auto &member : chat.get_members()) {
-          int fd = server_context->messaging_service->get_fd_by_user_id(member);
-          std::string prefix =
-              "Message from " + from_user_id + " in chat " + chat_id + " ";
-          std::vector<uint8_t> msg_bytes =
-              std::vector<uint8_t>(prefix.begin(), prefix.end());
-          msg_bytes.insert(msg_bytes.end(), msg.get_payload().begin(),
-                           msg.get_payload().end());
-          Message msg_to_send{msg_bytes, 0, {}, MessageType::Text};
-          server_context->transport_server->send(
-              fd, server_context->serializer.serialize(msg_to_send));
-        }
-      }); */
 }
 
 void MessagingServer::start_server(int port) {
   server_context->transport_server->start(port);
   server_context->transport_server->set_data_callback(
-      [this](int fd, auto data) { on_tcp_data_received(fd, data); });
+      [this](int fd, auto data) { on_tcp_data_received(fd, data); },
+      [this](int fd) {
+        server_context->fd = fd;
+        dispatcher.setContext(server_context);
+        dispatcher.dispatch(Message({}, 1,
+                                    {{static_cast<uint8_t>(CommandType::EXIT)}},
+                                    MessageType::Command));
+      });
 }
 
 void MessagingServer::run() {
