@@ -13,7 +13,7 @@ class ClientConnection : public IConnection {
   Fd fd;
   std::unique_ptr<FramerMessage> framer;
   struct sockaddr_in addr;
-  ITransport transport;
+  std::unique_ptr<ITransport> transport;
   std::vector<uint8_t> recv_buffer;
   std::vector<uint8_t> send_buffer;
 
@@ -55,7 +55,7 @@ class PeerConnection : public IConnection {
   struct sockaddr_in addr_;
   ConnectionState state;
   std::unique_ptr<FramerMessage> framer;
-  ITransport transport;
+  std::unique_ptr<ITransport> transport;
   std::vector<uint8_t> recv_buffer;
   std::vector<uint8_t> send_buffer;
 

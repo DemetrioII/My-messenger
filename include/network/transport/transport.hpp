@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory.h>
 #include <optional>
+#include <type_traits>
 #include <variant>
 
 struct TCPTransport {
@@ -48,38 +49,34 @@ struct TLSTransport {
 enum class TransportType { TCP, UDP, TLS };
 
 struct ITransport {
-  TransportType type;
+  std::variant<TCPTransport, UDPTransport, TLSTransport> transport;
 
-  union {
-    TCPTransport tcp;
-    UDPTransport udp;
-    TLSTransport tls;
-  };
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same_v<std::decay_t<T>, ITransport> &&
+                            (std::is_same_v<std::decay_t<T>, TCPTransport> ||
+                             std::is_same_v<std::decay_t<T>, UDPTransport> ||
+                             std::is_same_v<std::decay_t<T>, TLSTransport>)>>
 
-  ITransport(TransportType t = TransportType::TCP) { type = t; }
+  ITransport(T &&t) : transport(std::forward<T>(t)) {}
+
+  ssize_t send(const std::vector<uint8_t> &data) {
+    return std::visit([&](auto &t) { return t.send(data); }, transport);
+  }
+
+  ReceiveResult receive() {
+    return std::visit([&](auto &t) { return t.receive(); }, transport);
+  }
 
   ~ITransport() { std::cout << "~ITransport()" << std::endl; }
 };
 
-ssize_t send(ITransport &transport, const std::vector<uint8_t> &data);
-
-ReceiveResult receive(ITransport &transport);
-
 class TransportFactory {
 public:
-  static ITransport create_tcp(int fd) {
-    ITransport interface(TransportType::TCP);
-    interface.tcp = TCPTransport(fd);
-    return interface;
-  }
+  static ITransport create_tcp(int fd) { return ITransport(TCPTransport(fd)); }
   static ITransport create_udp(int fd, sockaddr_in addr) {
-    ITransport interface(TransportType::UDP);
-    interface.udp = UDPTransport(fd, addr);
-    return interface;
+    return ITransport(UDPTransport(fd, addr));
   }
   static ITransport create_tls(int fd, SSL *ssl) {
-    ITransport interface(TransportType::TLS);
-    interface.tls = TLSTransport(fd, ssl);
-    return interface;
+    return ITransport(TLSTransport(fd, ssl));
   }
 };

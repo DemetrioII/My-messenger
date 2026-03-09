@@ -16,7 +16,7 @@ class Client : public IClient, public std::enable_shared_from_this<Client> {
   std::shared_ptr<ISocket> socket_visitor;
   std::unique_ptr<EventLoop> event_loop;
   std::shared_ptr<ClientHandler> handler;
-  ITransport transport;
+  std::unique_ptr<ITransport> transport;
   std::unique_ptr<FramerMessage> framer;
   std::function<void(const std::vector<uint8_t> &)> on_data_callback;
   std::vector<uint8_t> recv_buffer; // Буфер для склейки сообщений

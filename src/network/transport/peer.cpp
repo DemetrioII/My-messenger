@@ -65,7 +65,7 @@ int register_peer_connection(PeerNode &node,
 }
 
 bool PeerSession::try_receive() {
-  auto result = receive(transport);
+  auto result = transport.receive(); // receive(transport);
   if (result.data.data()) {
     in.insert(in.end(), result.data.data(),
               result.data.data() + result.data.length);
@@ -187,7 +187,8 @@ void stop(PeerNode &node) {
 bool flush(PeerSession &session) {
   if (session.out.empty())
     return true;
-  ssize_t sent = send(session.transport, session.out);
+  ssize_t sent = session.transport.send(
+      session.out); // send(session.transport, session.out);
   if (sent > 0) {
     session.out.erase(session.out.begin(), session.out.begin() + sent);
     return session.out.empty();

@@ -1,11 +1,9 @@
 #include "../../../include/network/transport/connection.hpp"
 
-ClientConnection::ClientConnection(int fd_)
-    : fd(fd_), transport(TransportType::TLS) {}
+ClientConnection::ClientConnection(int fd_) : fd(fd_) {}
 ClientConnection::ClientConnection(int fd_, const struct sockaddr_in &addr_)
     : fd(fd_), addr(addr_),
-      framer(std::move(std::make_unique<FramerMessage>())),
-      transport(TransportType::TLS) {}
+      framer(std::move(std::make_unique<FramerMessage>())) {}
 
 // ЧИНЯЕМ MOVE: сбрасываем fd у донора
 ClientConnection::ClientConnection(ClientConnection &&other) noexcept
@@ -34,7 +32,7 @@ ClientConnection::operator=(ClientConnection &&other) noexcept {
 bool ClientConnection::flush() {
   if (send_buffer.empty())
     return true;
-  ssize_t sent = send(transport, send_buffer);
+  ssize_t sent = transport->send(send_buffer); // send(transport, send_buffer);
   if (sent > 0) {
     send_buffer.erase(send_buffer.begin(), send_buffer.begin() + sent);
     return send_buffer.empty();
@@ -43,11 +41,11 @@ bool ClientConnection::flush() {
 }
 
 void ClientConnection::init_transport(const ITransport &transport_) {
-  transport = transport_;
+  transport = std::make_unique<ITransport>(transport_);
 }
 
 bool ClientConnection::try_receive() {
-  auto result = receive(transport);
+  auto result = transport->receive(); // receive(transport);
   if (result.data.data()) {
     recv_buffer.insert(recv_buffer.end(), result.data.data(),
                        result.data.data() + result.data.length);
@@ -76,7 +74,8 @@ int ClientConnection::get_fd() const { return fd.get_fd(); }
 ClientConnection::~ClientConnection() {}
 
 PeerConnection::PeerConnection(int fd, const struct sockaddr_in &addr)
-    : fd_(fd), addr_(addr), transport(TransportFactory::create_tcp(fd)) {}
+    : fd_(fd), addr_(addr), transport(std::make_unique<ITransport>(
+                                TransportFactory::create_tcp(fd))) {}
 
 bool PeerConnection::has_complete_message() const {
   return framer->has_message_in_buffer(recv_buffer);
@@ -85,7 +84,7 @@ bool PeerConnection::has_complete_message() const {
 bool PeerConnection::flush() {
   if (send_buffer.empty())
     return true;
-  ssize_t sent = send(transport, send_buffer);
+  ssize_t sent = transport->send(send_buffer); // send(transport, send_buffer);
   if (sent > 0) {
     send_buffer.erase(send_buffer.begin(), send_buffer.begin() + sent);
     return send_buffer.empty();
@@ -94,11 +93,11 @@ bool PeerConnection::flush() {
 }
 
 void PeerConnection::init_transport(const ITransport &transport_) {
-  transport = transport_;
+  transport = std::make_unique<ITransport>(transport_);
 }
 
 bool PeerConnection::try_receive() {
-  auto result = receive(transport);
+  auto result = transport->receive(); // receive(transport);
   if (result.data.data()) {
     recv_buffer.insert(recv_buffer.end(), result.data.data(),
                        result.data.data() + result.data.length);

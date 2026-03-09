@@ -3,7 +3,7 @@
 Client::Client(std::unique_ptr<ISocket> socket)
     : event_loop(std::make_unique<EventLoop>()),
       handler(std::make_shared<ClientHandler>()),
-      socket_visitor(std::move(socket)), transport(TransportType::TLS) {
+      socket_visitor(std::move(socket)) {
   SSL_library_init();
   SSL_load_error_strings();
   OpenSSL_add_ssl_algorithms();
@@ -26,8 +26,8 @@ bool Client::connect(const std::string &server_ip, int port) {
   event_loop->add_fd(socket_visitor->fd, handler, EPOLLIN | EPOLLRDHUP);
   tls_wrapper_ =
       std::make_unique<ClientTLSWrapper>(ssl_ctx_, socket_visitor->fd);
-  transport =
-      TransportFactory::create_tls(socket_visitor->fd, tls_wrapper_->ssl);
+  transport = std::make_unique<ITransport>(
+      TransportFactory::create_tls(socket_visitor->fd, tls_wrapper_->ssl));
   return true;
 }
 
@@ -53,11 +53,12 @@ void Client::send_to_server(const std::vector<uint8_t> &data) {
   // Добавляем заголовок длины, как того ждет сервер
   std::vector<uint8_t> packet;
   framer->form_message(data, packet);
-  send(transport, packet);
+  // send(transport, packet);
+  transport->send(packet);
 }
 
 void Client::on_server_message() {
-  auto result = receive(transport);
+  auto result = transport->receive(); // receive(transport);
   if (result.status == ReceiveStatus::OK && result.data.data()) {
     recv_buffer.insert(recv_buffer.end(), result.data.data(),
                        result.data.data() + result.data.length);

@@ -240,31 +240,3 @@ ReceiveResult TLSTransport::receive() {
 }
 
 TLSTransport::~TLSTransport() {}
-
-ssize_t send(ITransport &transport, const std::vector<uint8_t> &data) {
-  switch (transport.type) {
-  case TransportType::TCP: {
-    return transport.tcp.send(data);
-  }
-  case TransportType::UDP: {
-    return transport.udp.send(data);
-  }
-  case TransportType::TLS: {
-    return transport.tls.send(data);
-  }
-  }
-}
-
-ReceiveResult receive(ITransport &transport) {
-  switch (transport.type) {
-  case TransportType::TCP: {
-    return transport.tcp.receive();
-  }
-  case TransportType::UDP: {
-    return transport.udp.receive();
-  }
-  case TransportType::TLS: {
-    return transport.tls.receive();
-  }
-  }
-}
