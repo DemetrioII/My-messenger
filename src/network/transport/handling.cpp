@@ -105,7 +105,7 @@ void PeerEventHandler::init(PeerNode *node) { peer_node_ = node; }
 
 void PeerEventHandler::add_peer(std::shared_ptr<PeerSession> connection) {
   std::lock_guard<std::recursive_mutex> lock(peers_mutex_);
-  peers_[connection->fd] = connection;
+  peers_[connection->fd.get_fd()] = connection;
 }
 
 void PeerEventHandler::remove_peer(int fd) {
@@ -146,7 +146,7 @@ void PeerEventHandler::handle_event(int fd, uint32_t event_mask) {
       }
     } else {
       remove_peer(fd);
-      disconnect_from_peer(*peer_node_, it->second.lock()->fd);
+      disconnect_from_peer(*peer_node_, it->second.lock()->fd.get_fd());
     }
   }
 

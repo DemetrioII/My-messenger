@@ -63,14 +63,13 @@ std::optional<std::shared_ptr<PeerSession>> PeerTCPAcceptor::accept(int fd) {
   char ip_str[INET_ADDRSTRLEN];
   inet_ntop(AF_INET, &addr.sin_addr, ip_str, INET_ADDRSTRLEN);
 
-  PeerSession session{
+  return std::make_shared<PeerSession>(PeerSession{
       .fd = client_fd,
       .framer = FramerMessage(),
       .ip = ip_str,
       .addr = addr,
       .transport = TransportFactory::create_tcp(client_fd),
-  };
-  return std::make_shared<PeerSession>(session);
+  });
 }
 
 PeerTCPAcceptor::~PeerTCPAcceptor() {}

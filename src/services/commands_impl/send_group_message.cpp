@@ -63,6 +63,12 @@ void SendGroupMessageCommand::executeOnClient(
       MessageType::Command)));
 }
 
+void SendGroupMessageCommand::send_from_peer(
+    int fd, std::shared_ptr<PeerContext> context) {}
+
+void SendGroupMessageCommand::recv_on_peer(
+    int fd, std::shared_ptr<PeerContext> context) {}
+
 void SendGroupMessageCommand::fromMessage(const Message &msg) {
   chat_name = msg.get_meta(1);
   payload = msg.get_payload();

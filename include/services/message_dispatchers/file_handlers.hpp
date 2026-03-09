@@ -22,6 +22,12 @@ public:
 
   void handleMessageOnServer(const Message &msg,
                              std::shared_ptr<ServerContext> context) override;
+
+  void handleOnSendPeer(const Message &msg,
+                        std::shared_ptr<PeerContext> context) override;
+
+  void handleOnRecvPeer(const Message &msg,
+                        std::shared_ptr<PeerContext> context) override;
 };
 
 class FileChunkHandler : public IMessageHandler {
@@ -45,6 +51,12 @@ public:
 
   void handleMessageOnServer(const Message &msg,
                              std::shared_ptr<ServerContext> context) override;
+
+  void handleOnSendPeer(const Message &msg,
+                        std::shared_ptr<PeerContext> context) override;
+
+  void handleOnRecvPeer(const Message &msg,
+                        std::shared_ptr<PeerContext> context) override;
 };
 
 class FileEndHandler : public IMessageHandler {
@@ -69,4 +81,10 @@ public:
   void
   handleMessageOnServer(const Message &msg,
                         const std::shared_ptr<ServerContext> context) override;
+
+  void handleOnSendPeer(const Message &msg,
+                        std::shared_ptr<PeerContext> context) override;
+
+  void handleOnRecvPeer(const Message &msg,
+                        std::shared_ptr<PeerContext> context) override;
 };

@@ -1,5 +1,6 @@
 #pragma once
 #include "../command_interface.hpp"
+#include "../commands_impl/connect.hpp"
 #include "../commands_impl/exit.hpp"
 #include "../commands_impl/get_pubkey.hpp"
 #include "../commands_impl/help_command.hpp"
@@ -18,6 +19,10 @@ class MessageCommandHandler : public IMessageHandler {
 
   ServerCommandBus serverCommandBus;
   ServerCommandRegistry serverCommandRegistry;
+
+  PeerCommandBus peerCommandBus;
+  PeerCommandRegistry peerCommandRegistry;
+
   Parser parser;
 
 public:
@@ -29,6 +34,12 @@ public:
 
   void handleMessageOnServer(const Message &msg,
                              std::shared_ptr<ServerContext> context) override;
+
+  void handleOnSendPeer(const Message &msg,
+                        std::shared_ptr<PeerContext> context) override;
+
+  void handleOnRecvPeer(const Message &msg,
+                        std::shared_ptr<PeerContext> context) override;
 
   MessageType getMessageType() const override;
 };

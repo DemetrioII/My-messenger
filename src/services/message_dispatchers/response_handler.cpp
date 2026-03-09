@@ -81,6 +81,12 @@ void ResponseMessageHandler::handleMessageOnClient(
 void ResponseMessageHandler::handleMessageOnServer(
     const Message &msg, std::shared_ptr<ServerContext> context) {}
 
+void ResponseMessageHandler::handleOnRecvPeer(
+    const Message &msg, std::shared_ptr<PeerContext> context) {}
+
+void ResponseMessageHandler::handleOnSendPeer(
+    const Message &msg, std::shared_ptr<PeerContext> context) {}
+
 MessageType ResponseMessageHandler::getMessageType() const {
   return MessageType::Response;
 }

@@ -45,6 +45,10 @@ public:
 
   virtual void executeOnClient(std::shared_ptr<ClientContext> context) = 0;
 
+  virtual void send_from_peer(int fd, std::shared_ptr<PeerContext> context) = 0;
+
+  virtual void recv_on_peer(int fd, std::shared_ptr<PeerContext> context) = 0;
+
   virtual bool isClientOnly() const { return false; }
 
   virtual CommandType getType() const = 0;
@@ -65,6 +69,20 @@ public:
 
   ICommandHandler *find(const std::string &name) const;
 
+  bool exists(const std::string &name) const;
+};
+
+class PeerCommandRegistry {
+  using CommandHandler =
+      std::function<void(const std::vector<std::vector<uint8_t>> &)>;
+  std::unordered_map<std::string, std::unique_ptr<ICommandHandler>> commands;
+  std::shared_ptr<PeerContext> peerContext;
+
+public:
+  void registerCommand(const std::string &name,
+                       std::unique_ptr<ICommandHandler> cmd);
+  void setPeerContext(const std::shared_ptr<PeerContext> context);
+  ICommandHandler *find(const std::string &name) const;
   bool exists(const std::string &name) const;
 };
 
@@ -93,6 +111,19 @@ public:
 
   void dispatch(const Message &msg,
                 const std::shared_ptr<ClientContext> context);
+};
+
+class PeerCommandBus {
+  PeerCommandRegistry &registry_;
+
+public:
+  PeerCommandBus(PeerCommandRegistry &registry);
+
+  void dispatchSending(const Message &msg,
+                       const std::shared_ptr<PeerContext> context);
+
+  void dispatchReceiving(const Message &msg,
+                         const std::shared_ptr<PeerContext> context);
 };
 
 class ServerCommandBus {

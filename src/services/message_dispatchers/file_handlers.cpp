@@ -51,6 +51,12 @@ void FileStartHandler::handleMessageOnServer(
                                   context->serializer.serialize(msg));
 }
 
+void FileStartHandler::handleOnRecvPeer(const Message &msg,
+                                        std::shared_ptr<PeerContext> context) {}
+
+void FileStartHandler::handleOnSendPeer(const Message &msg,
+                                        std::shared_ptr<PeerContext> context) {}
+
 MessageType FileChunkHandler::getMessageType() const {
   return MessageType::FileChunk;
 }
@@ -107,6 +113,12 @@ void FileChunkHandler::handleMessageOnServer(
                                   context->serializer.serialize(msg));
 }
 
+void FileChunkHandler::handleOnRecvPeer(const Message &msg,
+                                        std::shared_ptr<PeerContext> context) {}
+
+void FileChunkHandler::handleOnSendPeer(const Message &msg,
+                                        std::shared_ptr<PeerContext> context) {}
+
 MessageType FileEndHandler::getMessageType() const {
   return MessageType::FileEnd;
 }
@@ -162,3 +174,9 @@ void FileEndHandler::handleMessageOnServer(
   context->transport_server->send(*recipient_fd_res,
                                   context->serializer.serialize(msg));
 }
+
+void FileEndHandler::handleOnRecvPeer(const Message &msg,
+                                      std::shared_ptr<PeerContext> context) {}
+
+void FileEndHandler::handleOnSendPeer(const Message &msg,
+                                      std::shared_ptr<PeerContext> context) {}

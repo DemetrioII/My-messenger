@@ -16,6 +16,12 @@ void TextMessageHandler::handleMessageOnServer(
             << std::endl;
 }
 
+void TextMessageHandler::handleOnRecvPeer(
+    const Message &msg, std::shared_ptr<PeerContext> context) {}
+
+void TextMessageHandler::handleOnSendPeer(
+    const Message &msg, std::shared_ptr<PeerContext> context) {}
+
 MessageType TextMessageHandler::getMessageType() const {
   return MessageType::Text;
 }

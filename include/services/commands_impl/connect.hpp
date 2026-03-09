@@ -1,13 +1,18 @@
 #pragma once
 #include "../command_interface.hpp"
 
-class JoinCommand : public ICommandHandler {
-  std::vector<uint8_t> chat_name;
+class ConnectCommand : public ICommandHandler {
+  std::string ip;
+  int port;
+  std::vector<uint8_t> DH_bytes;
+  std::vector<uint8_t> identity_bytes;
+  std::vector<uint8_t> signature;
+  std::vector<uint8_t> username;
 
 public:
   CommandType getType() const override;
 
-  void fromParsedCommand(const ParsedCommand &parsed) override;
+  void fromParsedCommand(const ParsedCommand &pc) override;
 
   Message toMessage() const override;
 
@@ -21,5 +26,5 @@ public:
 
   void recv_on_peer(int fd, std::shared_ptr<PeerContext> context) override;
 
-  ~JoinCommand() override;
+  ~ConnectCommand() override;
 };

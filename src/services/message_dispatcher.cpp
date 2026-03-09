@@ -1,5 +1,53 @@
 #include "../../../include/services/message_dispatcher.hpp"
 
+void PeerMessageDispatcher::registerHandler(
+    MessageType type, std::unique_ptr<IMessageHandler> handler) {
+  handlers[type] = std::move(handler);
+}
+
+void PeerMessageDispatcher::setContext(
+    const std::shared_ptr<PeerContext> &context) {
+  context_ = context;
+}
+
+bool PeerMessageDispatcher::dispatchSending(const Message &msg) {
+  auto it = handlers.find(msg.get_type());
+  if (it == handlers.end()) {
+    std::cerr << "[MessageDispatcher] No handler for message type: "
+              << static_cast<int>(msg.get_type()) << std::endl;
+    return false;
+  }
+  bool handled = false;
+  try {
+    it->second->handleOnSendPeer(msg, context_);
+    handled = true;
+  } catch (std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    handled = false;
+  }
+  return handled;
+}
+
+bool PeerMessageDispatcher::dispatchReceiving(const Message &msg) {
+  auto it = handlers.find(msg.get_type());
+  if (it == handlers.end()) {
+    std::cerr << "[MessageDispatcher] No handler for message type: "
+              << static_cast<int>(msg.get_type()) << std::endl;
+    return false;
+  }
+
+  bool handled = false;
+  try {
+    it->second->handleOnRecvPeer(msg, context_);
+    handled = true;
+  } catch (std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    handled = false;
+  }
+
+  return handled;
+}
+
 void ClientMessageDispatcher::registerHandler(
     MessageType type, std::unique_ptr<IMessageHandler> handler) {
   handlers[type] = std::move(handler);
@@ -28,6 +76,13 @@ bool ClientMessageDispatcher::dispatch(const Message &msg) {
 
   return handled;
 }
+
+bool PeerMessageDispatcher::hasHandleFor(MessageType type) const {
+  auto it = handlers.find(type);
+  return it != handlers.end();
+}
+
+void PeerMessageDispatcher::clear() { handlers.clear(); }
 
 bool ClientMessageDispatcher::dispatchFromRawBytes(
     const std::vector<uint8_t> &raw_data) {

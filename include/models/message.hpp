@@ -29,7 +29,8 @@ enum class CommandType {
   GET_ID = 0x07,
   PRIVATE_MESSAGE = 0x08,
   SEND_FILE = 0x09,
-  HELP = 0x10,
+  HELP = 0x0A,
+  CONNECT = 0x0B,
   EXIT = 0xFE,
   UNKNOWN = 0xFF,
 };
@@ -98,6 +99,8 @@ struct ClientContext;
 
 struct ServerContext;
 
+struct PeerContext;
+
 class IMessageHandler {
 public:
   virtual ~IMessageHandler() = default;
@@ -109,6 +112,12 @@ public:
   virtual void
   handleMessageOnServer(const Message &msg,
                         std::shared_ptr<ServerContext> context) = 0;
+
+  virtual void handleOnSendPeer(const Message &msg,
+                                std::shared_ptr<PeerContext> context) = 0;
+
+  virtual void handleOnRecvPeer(const Message &msg,
+                                std::shared_ptr<PeerContext> context) = 0;
 
   virtual MessageType getMessageType() const = 0;
 };

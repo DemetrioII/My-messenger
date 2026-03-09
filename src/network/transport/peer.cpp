@@ -30,33 +30,34 @@ void start_listening(PeerNode &node, int port) {
 
 int register_peer_connection(PeerNode &node,
                              std::shared_ptr<PeerSession> session) {
-  std::cout << "New peer: " << session->ip << " (fd=" << session->fd << ")"
-            << std::endl;
+  std::cout << "New peer: " << session->ip << " (fd=" << session->fd.get_fd()
+            << ")" << std::endl;
 
-  if (node.registry_.by_fd.find(session->fd) != node.registry_.by_fd.end())
+  if (node.registry_.by_fd.find(session->fd.get_fd()) !=
+      node.registry_.by_fd.end())
     return 1; // Peer is already connected
 
   node.handler_->add_peer(session);
 
-  node.event_loop_->add_fd(session->fd, node.handler_,
+  node.event_loop_->add_fd(session->fd.get_fd(), node.handler_,
                            EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
 
   if (node.callbacks_.on_peer_connected) {
-    node.callbacks_.on_peer_connected(session->fd);
+    node.callbacks_.on_peer_connected(session->fd.get_fd());
   }
 
   switch (node.connecton_type) {
   case SocketType::TCP: {
     // session.transport = TransportFactory::create_tcp(session.fd);
-    node.registry_.by_ip[session->ip] = session->fd;
-    node.registry_.by_fd[session->fd] = session;
+    node.registry_.by_ip[session->ip] = session->fd.get_fd();
+    node.registry_.by_fd[session->fd.get_fd()] = session;
     break;
   }
   case SocketType::UDP: {
     // session.transport = TransportFactory::create_udp(session.fd,
     // session.addr);
-    node.registry_.by_ip[session->ip] = session->fd;
-    node.registry_.by_fd[session->fd] = session;
+    node.registry_.by_ip[session->ip] = session->fd.get_fd();
+    node.registry_.by_fd[session->fd.get_fd()] = session;
     break;
   }
   }
@@ -92,23 +93,23 @@ int connect_to_peer(PeerNode &node, const std::string &peer_ip, int port) {
   if (peer_socket->setup_connection(peer_ip, port) < 0) {
     std::cerr << "Failed to connect to peer " << peer_ip << ":" << port
               << std::endl;
-    return 1;
+    return 0;
   }
 
   sockaddr_in peer_addr = peer_socket->addr;
   int fd = peer_socket->fd;
 
-  PeerSession session{.fd = peer_socket->fd,
-                      .ip = peer_ip,
-                      .addr = peer_socket->addr,
-                      .transport = TransportFactory::create_tcp(fd)};
-
-  register_peer_connection(node, std::make_shared<PeerSession>(session));
+  register_peer_connection(
+      node, std::make_shared<PeerSession>(
+                PeerSession{.fd = peer_socket->fd,
+                            .ip = peer_ip,
+                            .addr = peer_socket->addr,
+                            .transport = TransportFactory::create_tcp(fd)}));
 
   std::cout << "Connected to peer " << peer_ip << ":" << port << " (fd=" << fd
             << ")" << std::endl;
 
-  return 0;
+  return fd;
 }
 
 void send_to_buffer(PeerSession &session, const std::vector<uint8_t> &data) {
@@ -149,8 +150,6 @@ int disconnect_from_peer(PeerNode &node, int fd) {
 
   if (node.callbacks_.on_peer_disconnected)
     node.callbacks_.on_peer_disconnected(fd);
-
-  ::close(fd);
 
   return 0;
 }

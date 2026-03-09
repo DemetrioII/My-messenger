@@ -37,6 +37,13 @@ void PrivateMessageCommand::executeOnClient(
   payload.clear();
 }
 
+void PrivateMessageCommand::send_from_peer(
+    int fd, std::shared_ptr<PeerContext> context) {}
+
+void PrivateMessageCommand::recv_on_peer(int fd,
+                                         std::shared_ptr<PeerContext> context) {
+}
+
 void PrivateMessageCommand::fromMessage(const Message &msg) {
   recipient = msg.get_meta(1);
   payload = msg.get_payload();

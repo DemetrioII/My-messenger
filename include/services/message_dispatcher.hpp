@@ -43,3 +43,25 @@ public:
 
   void clear();
 };
+
+class PeerMessageDispatcher {
+  std::unordered_map<MessageType, std::unique_ptr<IMessageHandler>> handlers;
+  std::shared_ptr<PeerContext> context_;
+  Serializer serializer;
+
+public:
+  void registerHandler(MessageType type,
+                       std::unique_ptr<IMessageHandler> handler);
+
+  void setContext(const std::shared_ptr<PeerContext> &context);
+
+  bool dispatchSending(const Message &msg);
+
+  bool dispatchReceiving(const Message &msg);
+
+  bool dispatchFromRawBytes(const std::vector<uint8_t> &raw_data);
+
+  bool hasHandleFor(MessageType type) const;
+
+  void clear();
+};

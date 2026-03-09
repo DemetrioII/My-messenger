@@ -53,4 +53,10 @@ void GetPubkeyCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
   client->send_to_server(serializer->serialize(toMessage()));
 }
 
+void GetPubkeyCommand::recv_on_peer(int fd,
+                                    std::shared_ptr<PeerContext> context) {}
+
+void GetPubkeyCommand::send_from_peer(int fd,
+                                      std::shared_ptr<PeerContext> context) {}
+
 GetPubkeyCommand::~GetPubkeyCommand() {}

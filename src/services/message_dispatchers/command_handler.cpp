@@ -2,7 +2,16 @@
 
 MessageCommandHandler::MessageCommandHandler()
     : clientCommandBus(clientCommandRegistry),
-      serverCommandBus(serverCommandRegistry) {
+      serverCommandBus(serverCommandRegistry),
+      peerCommandBus(peerCommandRegistry) {
+
+  peerCommandRegistry.registerCommand("exit", std::make_unique<ExitCommand>());
+
+  peerCommandRegistry.registerCommand("connect",
+                                      std::make_unique<ConnectCommand>());
+
+  peerCommandRegistry.registerCommand("login",
+                                      std::make_unique<LoginCommand>());
 
   clientCommandRegistry.registerCommand("exit",
                                         std::make_unique<ExitCommand>());
@@ -68,6 +77,16 @@ void MessageCommandHandler::handleMessageOnClient(
 void MessageCommandHandler::handleMessageOnServer(
     const Message &msg, std::shared_ptr<ServerContext> context) {
   serverCommandBus.dispatch(msg, context);
+}
+
+void MessageCommandHandler::handleOnRecvPeer(
+    const Message &msg, std::shared_ptr<PeerContext> context) {
+  peerCommandBus.dispatchReceiving(msg, context);
+}
+
+void MessageCommandHandler::handleOnSendPeer(
+    const Message &msg, std::shared_ptr<PeerContext> context) {
+  peerCommandBus.dispatchSending(msg, context);
 }
 
 MessageType MessageCommandHandler::getMessageType() const {

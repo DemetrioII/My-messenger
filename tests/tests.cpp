@@ -324,52 +324,25 @@ int main(int argc, char *argv[]) {
 #include <string>
 #include <thread>
 
+#include "../../../include/services/messaging_peer.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <thread>
 
 int main(int argc, char *argv[]) {
+  int port;
+  std::cin >> port;
+  MessagingPeer peer(port);
+  std::jthread loop_thread([&]() { peer.run(); });
   std::string s;
-  if (argc < 2) {
-    std::cout << "port missed" << std::endl;
-    return 0;
-  }
-  auto peer_node = PeerNodeFactory::create_tcp_peer();
-  start_listening(*peer_node, std::stoi(argv[1]));
-  peer_node->callbacks_.on_data_callback =
-      ([](int fd, const std::vector<uint8_t> &data) {
-        std::cout << "Message from " << fd << ": "
-                  << std::string(data.begin(), data.end()) << std::endl;
-      });
-  std::cout << peer_node->listening_socket_->fd << std::endl;
-  std::thread loop_thread([&]() { run_event_loop(*peer_node); });
-  while (std::cin >> s) {
-    if (s == "/connect") {
-      std::string ip;
-      int port;
-      std::cin >> ip >> port;
-      std::cout << "Connecting" << std::endl;
-      connect_to_peer(*peer_node, ip, port);
-    } else if (s == "/quit") {
-      stop(*peer_node);
+  while (getline(std::cin, s)) {
+    if (s == "/exit") {
+      peer.stop_peer();
       break;
-    } else if (s == "/disconnect") {
-      std::string ip;
-      int port;
-      std::cin >> ip >> port;
-      auto fd = peer_node->registry_.by_ip[ip];
-      disconnect_from_peer(*peer_node, fd);
-    } else if (s == "/send") {
-      int fd;
-      std::string message;
-      std::cin >> fd >> message;
-      send_to_peer(*peer_node, fd,
-                   std::vector<uint8_t>(message.begin(), message.end()));
+    } else if (s[0] == '/') {
+      peer.send_msg(s);
     }
   }
-
-  if (loop_thread.joinable())
-    loop_thread.join();
   return 0;
 }

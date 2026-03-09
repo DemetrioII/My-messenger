@@ -16,8 +16,9 @@ struct ParsedCommand {
 
 class Parser {
   const std::unordered_map<std::string, int> CMD_TABLE = {
-      {"login", 3},  {"room", 2},  {"join", 2}, {"send", 2},     {"pmess", 2},
-      {"getpub", 4}, {"getid", 1}, {"exit", 1}, {"sendfile", 3}, {"", 0}};
+      {"login", 2},   {"room", 2},     {"join", 2},   {"send", 2},
+      {"connect", 3}, {"pmess", 2},    {"getpub", 4}, {"getid", 1},
+      {"exit", 1},    {"sendfile", 3}, {"", 0}};
 
   const std::unordered_map<CommandType, std::string> command_names = {
       {CommandType::LOGIN, "login"},
@@ -27,6 +28,7 @@ class Parser {
       {CommandType::PRIVATE_MESSAGE, "pmess"},
       {CommandType::GET_PUBKEY, "getpub"},
       {CommandType::SEND_FILE, "sendfile"},
+      {CommandType::CONNECT, "connect"},
       {CommandType::EXIT, "exit"}};
 
   const std::unordered_map<std::string, CommandType> command_types = {
@@ -37,6 +39,7 @@ class Parser {
       {"pmess", CommandType::PRIVATE_MESSAGE},
       {"getpub", CommandType::GET_PUBKEY},
       {"sendfile", CommandType::SEND_FILE},
+      {"connect", CommandType::CONNECT},
       {"exit", CommandType::EXIT}};
 
 public:

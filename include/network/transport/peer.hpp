@@ -13,7 +13,7 @@
 enum class ConnectionState { DISCONNECTED, CONNECTED };
 
 struct PeerSession {
-  int fd;
+  Fd fd;
   FramerMessage framer;
   std::string ip;
   sockaddr_in addr;
@@ -79,7 +79,7 @@ int connect_to_peer(PeerNode &node, const std::string &ip, int port);
 
 void send_to_peer(PeerNode &node, int fd, const std::vector<uint8_t> data);
 
-void broadcast(PeerNode &node, const std::vector<uint8_t> data);
+void broadcast(PeerNode &node, const std::vector<uint8_t> &data);
 
 int disconnect_from_peer(PeerNode &node, int fd);
 

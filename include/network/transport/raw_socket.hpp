@@ -74,11 +74,16 @@ public:
 };*/
 
 struct TCPSocket {
-  Fd fd{-1};
+  int fd{-1};
 
   sockaddr_in addr;
 
   TCPSocket() : fd(-1) {}
+
+  ~TCPSocket() {
+    if (fd != -1)
+      ::close(fd);
+  }
 
   void server(const std::string &ip, uint16_t port);
 
@@ -88,11 +93,16 @@ struct TCPSocket {
 };
 
 struct UDPSocket {
-  Fd fd{-1};
+  int fd{-1};
 
   sockaddr_in addr;
 
   UDPSocket() : fd(-1) {}
+
+  ~UDPSocket() {
+    if (fd != -1)
+      ::close(fd);
+  }
 
   void server(const std::string &ip, uint16_t port);
 

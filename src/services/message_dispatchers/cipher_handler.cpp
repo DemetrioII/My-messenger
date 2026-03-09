@@ -79,6 +79,20 @@ void CipherMessageHandler::handleMessageOnServer(
                                   context->serializer.serialize(msg_to_send));
 }
 
+void CipherMessageHandler::handleOnSendPeer(
+    const Message &msg, std::shared_ptr<PeerContext> context) {
+  std::cout << std::string(context->my_username.begin(),
+                           context->my_username.end())
+            << " sent message" << std::endl;
+}
+
+void CipherMessageHandler::handleOnRecvPeer(
+    const Message &msg, std::shared_ptr<PeerContext> context) {
+  std::cout << std::string(context->my_username.begin(),
+                           context->my_username.end())
+            << " got message" << std::endl;
+}
+
 MessageType CipherMessageHandler::getMessageType() const {
   return MessageType::CipherMessage;
 }

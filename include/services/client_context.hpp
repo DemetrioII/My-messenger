@@ -63,6 +63,8 @@ struct PeerContext {
       std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
       pending_files;
 
+  int fd;
+
   PeerContext()
       : peer_node(PeerNodeFactory::create_tcp_peer()),
         user_service(std::make_shared<UserService>()),
