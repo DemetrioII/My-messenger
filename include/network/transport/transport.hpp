@@ -10,6 +10,7 @@
 
 struct TCPTransport {
   int fd;
+  std::vector<uint8_t> accumulation_buffer;
 
   TCPTransport(int FD) : fd(FD) {}
 
@@ -23,6 +24,7 @@ struct TCPTransport {
 struct UDPTransport {
   int fd;
   sockaddr_in addr;
+  std::vector<uint8_t> accumulation_buffer;
 
   UDPTransport(int f, struct sockaddr_in address) : fd(f), addr(address) {}
 
@@ -36,6 +38,7 @@ struct UDPTransport {
 struct TLSTransport {
   int fd;
   SSL *ssl_;
+  std::vector<uint8_t> accumulation_buffer;
 
   TLSTransport(int f, SSL *ssl_obj) : fd(f), ssl_(ssl_obj) {}
 

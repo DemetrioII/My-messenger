@@ -39,7 +39,7 @@ ssize_t TCPTransport::send(const std::vector<uint8_t> &data) {
 
 ReceiveResult TCPTransport::receive() {
   char temp[4096]; // Больше для эффективности
-  std::vector<uint8_t> accumulation_buffer;
+  accumulation_buffer.clear();
 
   while (true) {
     ssize_t bytes = ::recv(fd, temp, sizeof(temp), 0);
@@ -190,7 +190,7 @@ ssize_t TLSTransport::send(const std::vector<uint8_t> &data) {
 
 ReceiveResult TLSTransport::receive() {
   char temp[4096]; // Больше для эффективности
-  std::vector<uint8_t> accumulation_buffer;
+  accumulation_buffer.clear();
 
   while (true) {
     ssize_t bytes = SSL_read(ssl_, temp, sizeof(temp));

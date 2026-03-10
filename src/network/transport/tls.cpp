@@ -23,6 +23,8 @@ ServerTLSWrapper::ServerTLSWrapper(SSL_CTX *ctx, int fd) {
   ssl = SSL_new(ctx);
   SSL_set_fd(ssl, fd);
 
+  SSL_set_tlsext_host_name(ssl, "chat.example.com");
+
   tls_handshake();
 }
 
@@ -54,6 +56,8 @@ ClientTLSWrapper::ClientTLSWrapper(SSL_CTX *ctx, int fd) {
   server_fd_ = fd;
   ssl = SSL_new(ctx);
   SSL_set_fd(ssl, fd);
+
+  SSL_set_tlsext_host_name(ssl, "chat.example.com");
 
   tls_handshake();
 }
