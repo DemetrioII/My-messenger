@@ -5,6 +5,12 @@ include/network/.tmpobject
 .tmpobject
 build/
 a.out
+key.pem
+*.pem
+.evn
+*.key
+secrets.*
+cert.pem
 compile_commands.json
 client
 OLDMESSSERVER
@@ -14,3 +20,4 @@ temp.txt
 .err
 .clangd
 .cache/
+*.txt

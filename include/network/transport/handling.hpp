@@ -5,84 +5,86 @@
 #include <mutex>
 #include <unordered_map>
 
-class Acceptor;
+class TCPAcceptor;
+
+struct PeerNode;
+
+struct PeerSession;
 
 class AcceptHandler : public IEventHandler {
   std::weak_ptr<IServer> server;
-  Acceptor acceptor;
+  std::unique_ptr<IAcceptor> acceptor;
 
 public:
   AcceptHandler() = default;
-  void init(std::shared_ptr<IServer> server_, Acceptor acceptor_) {
-    server = server_;
-    acceptor = acceptor_;
-  }
 
-  void handle_event(int fd, uint32_t event_mask) override {
-    if (event_mask & EPOLLIN) {
-      auto conn = acceptor.accept(fd);
-      if (conn != std::nullopt) {
-        server.lock()->on_client_connected(conn.value());
-      }
-    }
-  }
+  void init(std::shared_ptr<IServer> server_,
+            std::unique_ptr<IAcceptor> acceptor_);
 
-  ~AcceptHandler() override {}
+  void set_acceptor(std::unique_ptr<IAcceptor> acceptor);
+
+  void handle_event(int fd, uint32_t event_mask) override;
+
+  ~AcceptHandler() override;
+};
+
+class PeerAcceptHandler : public IEventHandler {
+  PeerNode *peer_;
+  std::unique_ptr<IPeerAcceptor> acceptor_;
+
+public:
+  void init(PeerNode *peer);
+
+  void set_acceptor(std::unique_ptr<IPeerAcceptor> acceptor);
+
+  void handle_event(int fd, uint32_t event_mask) override;
+  PeerAcceptHandler() = default;
+
+  ~PeerAcceptHandler() override {}
 };
 
 class ServerHandler : public IEventHandler {
   std::weak_ptr<IServer> server;
   std::recursive_mutex server_mutex;
   // std::unordered_map<int, std::shared_ptr<T>> transport;
-  std::unordered_map<int, std::weak_ptr<ClientConnection>> clients;
+  std::unordered_map<int, std::weak_ptr<IConnection>> clients;
 
 public:
   ServerHandler() = default;
-  void init(std::shared_ptr<IServer> server_) { server = server_; }
 
-  void add_client(int fd, std::shared_ptr<ClientConnection> client_connection) {
-    std::lock_guard<std::recursive_mutex> lock(server_mutex);
-    clients[fd] = client_connection;
-  }
+  void init(std::shared_ptr<IServer> server_);
 
-  void remove_client(int fd) {
-    std::lock_guard<std::recursive_mutex> lock(server_mutex);
-    if (clients.find(fd) != clients.end())
-      clients.erase(fd);
-  }
+  void add_client(int fd, std::shared_ptr<IConnection> client_connection);
 
-  void handle_event(int fd, uint32_t event_mask) override {
-    std::lock_guard<std::recursive_mutex> lock(server_mutex);
-    if (!server.lock())
-      return;
+  void remove_client(int fd);
 
-    if (event_mask & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
-      remove_client(fd);
-      server.lock()->on_client_disconnected(fd);
-      return;
-    }
+  void handle_event(int fd, uint32_t event_mask) override;
 
-    if (event_mask & EPOLLIN) {
-      auto it = clients.find(fd);
-      if (it == clients.end())
-        return;
+  void clear();
 
-      if (it->second.lock()->try_receive()) {
-        if (!it->second.lock()->has_complete_message())
-          return;
+  ~ServerHandler() override;
+};
 
-        auto msg = it->second.lock()->extract_message();
-        server.lock()->on_client_message(fd, msg);
-      } else {
-        remove_client(fd);
-        server.lock()->on_client_disconnected(fd);
-      }
-    }
-  }
+class PeerEventHandler : public IEventHandler {
+private:
+  PeerNode *peer_node_;
+  std::unordered_map<int, std::weak_ptr<PeerSession>> peers_;
+  std::recursive_mutex peers_mutex_;
 
-  void clear() { clients.clear(); }
+public:
+  PeerEventHandler() = default;
 
-  ~ServerHandler() override {}
+  void init(PeerNode *peer_node);
+
+  void add_peer(std::shared_ptr<PeerSession> peer_connection);
+
+  void remove_peer(int fd);
+
+  void handle_event(int fd, uint32_t events) override;
+
+  void clear();
+
+  ~PeerEventHandler() override;
 };
 
 class ClientHandler : public IEventHandler {
@@ -90,15 +92,10 @@ class ClientHandler : public IEventHandler {
 
 public:
   ClientHandler() = default;
-  void init(std::shared_ptr<IClient> client_) { client = client_; }
 
-  void handle_event(int fd, uint32_t event_mask) override {
-    if (event_mask & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
-      client.lock()->disconnect();
-    } else if (event_mask & EPOLLIN) {
-      client.lock()->on_server_message();
-    }
-  }
+  void init(std::shared_ptr<IClient> client_);
 
-  ~ClientHandler() override {}
+  void handle_event(int fd, uint32_t event_mask) override;
+
+  ~ClientHandler() override;
 };

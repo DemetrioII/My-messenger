@@ -2,7 +2,7 @@
 #include "../models/message.hpp"
 #include "../network/protocol/parser.hpp"
 #include "client_context.hpp"
-#include "messageing_service.hpp"
+#include "messaging_service.hpp"
 #include <any>
 #include <string>
 #include <vector>
@@ -45,6 +45,10 @@ public:
 
   virtual void executeOnClient(std::shared_ptr<ClientContext> context) = 0;
 
+  virtual void send_from_peer(int fd, std::shared_ptr<PeerContext> context) = 0;
+
+  virtual void recv_on_peer(int fd, std::shared_ptr<PeerContext> context) = 0;
+
   virtual bool isClientOnly() const { return false; }
 
   virtual CommandType getType() const = 0;
@@ -59,25 +63,27 @@ class ClientCommandRegistry {
 
 public:
   void registerCommand(const std::string &name,
-                       std::unique_ptr<ICommandHandler> cmd) {
-    commands[name] = std::move(cmd);
-  }
+                       std::unique_ptr<ICommandHandler> cmd);
 
-  void setClientContext(const std::shared_ptr<ClientContext> context) {
-    clientContext = context;
-  }
+  void setClientContext(const std::shared_ptr<ClientContext> context);
 
-  ICommandHandler *find(const std::string &name) const {
-    auto it = commands.find(name);
-    if (it != commands.end())
-      return it->second.get();
-    else
-      return nullptr;
-  }
+  ICommandHandler *find(const std::string &name) const;
 
-  bool exists(const std::string &name) const {
-    return commands.find(name) != commands.end();
-  }
+  bool exists(const std::string &name) const;
+};
+
+class PeerCommandRegistry {
+  using CommandHandler =
+      std::function<void(const std::vector<std::vector<uint8_t>> &)>;
+  std::unordered_map<std::string, std::unique_ptr<ICommandHandler>> commands;
+  std::shared_ptr<PeerContext> peerContext;
+
+public:
+  void registerCommand(const std::string &name,
+                       std::unique_ptr<ICommandHandler> cmd);
+  void setPeerContext(const std::shared_ptr<PeerContext> context);
+  ICommandHandler *find(const std::string &name) const;
+  bool exists(const std::string &name) const;
 };
 
 class ServerCommandRegistry {
@@ -88,61 +94,43 @@ class ServerCommandRegistry {
 
 public:
   void registerCommand(const std::string &name,
-                       std::unique_ptr<ICommandHandler> cmd) {
-    commands[name] = std::move(cmd);
-  }
+                       std::unique_ptr<ICommandHandler> cmd);
 
-  void setServerContext(const std::shared_ptr<ServerContext> context) {
-    server_context = context;
-  }
+  void setServerContext(const std::shared_ptr<ServerContext> context);
 
-  ICommandHandler *find(const std::string &name) const {
-    auto it = commands.find(name);
-    if (it != commands.end())
-      return it->second.get();
-    else
-      return nullptr;
-  }
+  ICommandHandler *find(const std::string &name) const;
 
-  bool exists(const std::string &name) const {
-    return commands.find(name) != commands.end();
-  }
+  bool exists(const std::string &name) const;
 };
 
 class ClientCommandBus {
   ClientCommandRegistry &registry;
 
 public:
-  ClientCommandBus(ClientCommandRegistry &registry_) : registry(registry_) {}
+  ClientCommandBus(ClientCommandRegistry &registry_);
+
   void dispatch(const Message &msg,
-                const std::shared_ptr<ClientContext> context) {
-    ParsedCommand cmd = context->parser.make_struct_from_command(msg);
-    auto handler = registry.find(cmd.name);
-    if (!handler) {
-      std::cerr << "[CommandBus] Unknown command type: " << cmd.name
-                << std::endl;
-      return;
-    }
-    handler->fromMessage(msg);
-    handler->executeOnClient(context);
-  }
+                const std::shared_ptr<ClientContext> context);
+};
+
+class PeerCommandBus {
+  PeerCommandRegistry &registry_;
+
+public:
+  PeerCommandBus(PeerCommandRegistry &registry);
+
+  void dispatchSending(const Message &msg,
+                       const std::shared_ptr<PeerContext> context);
+
+  void dispatchReceiving(const Message &msg,
+                         const std::shared_ptr<PeerContext> context);
 };
 
 class ServerCommandBus {
   ServerCommandRegistry &registry;
 
 public:
-  ServerCommandBus(ServerCommandRegistry &registry_) : registry(registry_) {}
+  ServerCommandBus(ServerCommandRegistry &registry_);
 
-  void dispatch(const Message &msg, std::shared_ptr<ServerContext> context) {
-    ParsedCommand cmd = context->parser.make_struct_from_command(msg);
-    auto handler = registry.find(cmd.name);
-    if (!handler) {
-      std::cerr << "[CommandBus] Unknown command type: " << cmd.name
-                << std::endl;
-      return;
-    }
-    handler->fromMessage(msg);
-    handler->execeuteOnServer(context);
-  }
+  void dispatch(const Message &msg, std::shared_ptr<ServerContext> context);
 };

@@ -9,6 +9,8 @@ class MessageBridge : public QObject {
 public:
   explicit MessageBridge(QObject *parent = nullptr) : QObject(parent) {}
 
+  std::function<void(const std::string &)> onOutboundMessage;
+
   void postResponse(const std::string &data) {
     emit responseReceived(QString::fromStdString(data));
   }
@@ -16,6 +18,13 @@ public:
   void postSend(const QString &text) { emit sendToClient(text); }
 
   ~MessageBridge() override {}
+
+public slots:
+  void sendToServer(const std::string &data) {
+    if (onOutboundMessage) {
+      onOutboundMessage(data);
+    }
+  }
 
 signals:
   // Только объявление! Реализацию напишет MOC.

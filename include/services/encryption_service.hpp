@@ -1,58 +1,42 @@
 #pragma once
+#include "../bytes_hash.hpp"
 #include "../encryption/AESGCMEncryption.hpp"
 #include "../encryption/KDF.hpp"
 #include "../encryption/identity_key.hpp"
 #include "../models/message.hpp"
 
 class EncryptionService {
+  DH_Key DH_key;
   IdentityKey identity_key;
 
   AESGCMEncryptor aes_gcm_encryptor;
 
-  std::unordered_map<std::vector<uint8_t>, IdentityKey> keys;
+  std::unordered_map<std::vector<uint8_t>, DH_Key> DH_keys;
+  std::unordered_map<std::vector<uint8_t>, IdentityKey> identity_keys;
 
-  auto load_or_generate_key() { return IdentityKey::generate(); }
+  auto load_or_generate_key() { return DH_Key::generate(); }
 
 public:
-  void set_identity_key() { identity_key = load_or_generate_key(); }
+  void set_key();
 
-  std::vector<uint8_t> get_public_bytes() {
-    return identity_key.public_bytes();
-  }
+  std::vector<uint8_t> get_DH_bytes();
+
+  std::vector<uint8_t> get_identity_bytes();
+
+  std::vector<uint8_t> sign();
 
   std::vector<uint8_t> encrypt_for(const std::vector<uint8_t> &sender,
                                    const std::vector<uint8_t> &username,
-                                   const std::vector<uint8_t> &plaintext) {
-
-    // auto encryption_key = HKDF::derive_for_messaging(
-    // shared_secret, userid, msg_to_send.recipient_id, "encryption");
-    if (keys.find(username) == keys.end())
-      throw std::runtime_error("User public " +
-                               std::string(username.begin(), username.end()) +
-                               " key not found");
-    auto shared_secret = identity_key.compute_shared_secret(keys[username]);
-    auto encryption_key = HKDF::derive_for_messaging(shared_secret, sender,
-                                                     username, "encryption");
-    auto ciphertext = aes_gcm_encryptor.encrypt(encryption_key, plaintext);
-    return ciphertext;
-  }
+                                   const std::vector<uint8_t> &plaintext,
+                                   uint64_t counter);
 
   std::vector<uint8_t> decrypt_for(const std::vector<uint8_t> &sender,
                                    const std::vector<uint8_t> &username,
-                                   const std::vector<uint8_t> &ciphertext) {
-    if (keys.find(sender) == keys.end())
-      throw std::runtime_error("User public " +
-                               std::string(username.begin(), username.end()) +
-                               " key not found");
-    auto shared_secret = identity_key.compute_shared_secret(keys[sender]);
-    auto decryption_key = HKDF::derive_for_messaging(shared_secret, sender,
-                                                     username, "encryption");
-    auto plaintext = aes_gcm_encryptor.decrypt(decryption_key, ciphertext);
-    return plaintext;
-  }
+                                   const std::vector<uint8_t> &ciphertext,
+                                   const std::vector<uint8_t> &signature,
+                                   uint64_t counter);
 
   void cache_public_key(const std::vector<uint8_t> &username,
-                        const std::vector<uint8_t> &pubkey) {
-    keys[username] = IdentityKey::from_public_bytes(pubkey);
-  }
+                        const std::vector<uint8_t> &DH_pubkey,
+                        const std::vector<uint8_t> &identity_key);
 };

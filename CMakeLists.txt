@@ -5,70 +5,125 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_AUTOMOC ON) # Генерация кода для сигналов и слотов
-set(CMAKE_AUTORCC ON) # Ресурсы (.qrc)
-set(CMAKE_AUTOUIC ON) # Дизайн форм (.ui)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_FLAGS -g)
+add_compile_options(-g -std=c++23 -Wall -Wextra)
 
-# Находим OpenSSL
+# OpenSSL + Qt
 find_package(OpenSSL REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
-# Все заголовки
-set(HEADERS
-    include/models/chat.hpp
-    include/models/message.hpp
-    include/models/user.hpp
-    include/encryption/AESGCMEncryption.hpp
-    include/encryption/identity_key.hpp
-    include/network/transport/interface.hpp
-    include/network/transport/raw_socket.hpp
-    include/network/transport/transport.hpp
-    include/network/transport/connection.hpp
-    include/network/transport/event_loop.hpp
-    include/network/transport/acceptor.hpp
-    include/network/transport/server.hpp
-    include/network/transport/client.hpp
-    include/network/transport/handling.hpp
-    include/network/protocol/framing.hpp
-    include/network/protocol/parser.hpp
-    include/services/messageing_service.hpp
-    include/services/messaging_server.hpp
-    include/services/messaging_client.hpp
-	include/services/message_bridge.hpp
-	include/ui/simple_window.hpp
-    common.hpp
+# Пути к заголовкам
+include_directories(include)
+
+# Собираем cpp из src/
+file(GLOB_RECURSE SRC_FILES
+    src/*.cpp
+)
+
+# Заголовки (чисто чтобы IDE знали про них)
+file(GLOB_RECURSE HEADER_FILES
+    include/*.hpp
+    include/*.h
 )
 
 # Сервер
 add_executable(messenger_server
-    main.cpp
-    ${HEADERS}
+    main.cpp         # точка входа сервера
+    ${SRC_FILES}
+    ${HEADER_FILES}
 )
 
-target_include_directories(messenger_server PRIVATE src)
-target_link_libraries(messenger_server PRIVATE 
-	OpenSSL::SSL 
-	OpenSSL::Crypto 
-	Qt6::Widgets
-	pthread)
+target_link_libraries(messenger_server PRIVATE
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    Qt6::Widgets
+    pthread
+)
 
 # Клиент
 add_executable(messenger_client
-    client.cpp
-    ${HEADERS}
+    client.cpp       # точка входа клиента
+    ${SRC_FILES}
+    ${HEADER_FILES}
 )
 
-target_include_directories(messenger_client PRIVATE src)
-target_link_libraries(messenger_client PRIVATE 
-	OpenSSL::SSL 
-	OpenSSL::Crypto
-	Qt6::Widgets
-	pthread)
+target_link_libraries(messenger_client PRIVATE
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    Qt6::Widgets
+    pthread
+)
 
-# Для Windows
+# ==========================================
+# ТЕСТЫ
+# ==========================================
+
+# Включаем GoogleTest
+enable_testing()
+include(FetchContent)
+FetchContent_Declare(
+	googletest
+	GIT_REPOSITORY https://github.com/google/googletest.git
+	GIT_TAG release-1.12.1
+)
+
+# Для Windows: отключаем установку, чтобы не попасть в PATH
+if(WIN32)
+	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+endif()
+
+set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(googletest)
+
+add_executable(run_tests 
+	tests/tests.cpp
+    ${SRC_FILES}
+    ${HEADER_FILES}
+)
+
+target_link_libraries(run_tests PRIVATE 
+    GTest::gtest 
+    GTest::gtest_main 
+    OpenSSL::SSL 
+    OpenSSL::Crypto
+	Qt6::Widgets
+    pthread
+)
+# Регистрируем тесты
+add_test(NAME all_tests COMMAND run_tests)
+
+# Опционально: добавить запуск тестов в CI/CD
+add_custom_target(check
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+    DEPENDS run_tests
+    COMMENT "Running tests..."
+)
+
+# Для отладки тестов (опционально)
+add_executable(run_tests_debug
+    tests/tests.cpp
+    ${SRC_FILES}
+    ${HEADER_FILES}
+)
+
+target_include_directories(run_tests_debug PRIVATE src)
+target_link_libraries(run_tests_debug PRIVATE 
+    GTest::gtest 
+    GTest::gtest_main 
+    OpenSSL::SSL 
+	Qt6::Widgets
+    OpenSSL::Crypto
+    pthread
+)
+set_target_properties(run_tests_debug PROPERTIES
+    COMPILE_FLAGS "-g -O0"
+)
+
 if(WIN32)
     target_link_libraries(messenger_server ws2_32)
     target_link_libraries(messenger_client ws2_32)

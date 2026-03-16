@@ -1,13 +1,16 @@
 #pragma once
 #include "../network/protocol/parser.hpp"
 #include "../network/transport/interface.hpp"
+#include "../network/transport/peer.hpp"
 #include "../network/transport/server.hpp"
 #include "encryption_service.hpp"
 #include "message_queue.hpp"
-#include "messageing_service.hpp"
+#include "messaging_service.hpp"
+#include <fstream>
+#include <functional>
 
 struct ClientContext {
-
+  std::function<void(const std::string &)> ui_callback = nullptr;
   std::shared_ptr<IClient> client;
   std::shared_ptr<MessageQueue> mq;
 
@@ -25,8 +28,11 @@ struct ClientContext {
       std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
       pending_files;
 
-  ClientContext()
-      : client(Client::create()), mq(std::make_shared<MessageQueue>(client)),
+  std::unordered_map<std::vector<uint8_t>, uint64_t> messages_counter;
+
+  ClientContext(const std::string &server_ip, uint16_t port)
+      : client(ClientFactory::tcp_client(server_ip, port)),
+        mq(std::make_shared<MessageQueue>(client)),
         encryption_service(std::make_shared<EncryptionService>()),
         serializer(std::make_shared<Serializer>()),
         pending_files(std::make_shared<std::unordered_map<
@@ -35,13 +41,50 @@ struct ClientContext {
             std::make_shared<std::unordered_map<
                 std::vector<uint8_t>, std::vector<std::vector<uint8_t>>>>()) {
 
-    encryption_service->set_identity_key();
+    encryption_service->set_key();
+  }
+};
+
+struct PeerContext {
+  std::shared_ptr<PeerNode> peer_node;
+  std::shared_ptr<MessageQueue> message_queue;
+  std::shared_ptr<EncryptionService> encryption_service;
+  Parser parser;
+  std::shared_ptr<Serializer> serializer;
+  std::vector<uint8_t> my_username;
+  std::shared_ptr<UserService> user_service;
+  std::shared_ptr<SessionManager> session_manager;
+  std::unordered_map<std::vector<uint8_t>, uint64_t> messages_counter;
+  std::mutex pending_messages_mutex;
+  std::shared_ptr<std::unordered_map<std::vector<uint8_t>,
+                                     std::vector<std::vector<uint8_t>>>>
+      pending_messages;
+  std::shared_ptr<
+      std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
+      pending_files;
+
+  int fd;
+
+  PeerContext()
+      : peer_node(PeerNodeFactory::create_tcp_peer()),
+        user_service(std::make_shared<UserService>()),
+        session_manager(std::make_shared<SessionManager>()),
+        pending_messages(
+            std::make_shared<std::unordered_map<
+                std::vector<uint8_t>, std::vector<std::vector<uint8_t>>>>()),
+        pending_files(std::make_shared<std::unordered_map<
+                          std::string, std::unique_ptr<std::ofstream>>>()),
+        serializer(std::make_shared<Serializer>()),
+        encryption_service(std::make_shared<EncryptionService>()) {
+    encryption_service->set_key();
   }
 };
 
 struct ServerContext {
-  std::shared_ptr<Server> transport_server;
-  std::shared_ptr<MessagingService> messaging_service;
+  std::shared_ptr<IServer> transport_server;
+  std::shared_ptr<UserService> user_service;
+  std::shared_ptr<ChatService> chat_service;
+  std::shared_ptr<SessionManager> session_manager;
   Serializer serializer;
 
   int fd;
@@ -50,6 +93,8 @@ struct ServerContext {
   Stream<std::pair<int, Message>> command_stream;
 
   ServerContext()
-      : transport_server(Server::create()),
-        messaging_service(std::make_shared<MessagingService>()) {}
+      : transport_server(ServerFactory::tcp_server("127.0.0.1", 8080)),
+        user_service(std::make_shared<UserService>()),
+        chat_service(std::make_shared<ChatService>()),
+        session_manager(std::make_shared<SessionManager>()) {}
 };

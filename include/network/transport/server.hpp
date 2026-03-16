@@ -5,13 +5,14 @@
 #include "handling.hpp"
 #include "interface.hpp"
 #include "raw_socket.hpp"
+#include "tls.hpp"
 #include <atomic>
 #include <functional>
 #include <mutex>
 
 class Server : public IServer, public std::enable_shared_from_this<Server> {
-  Acceptor acceptor;
   std::atomic<bool> running{false};
+  std::unique_ptr<IAcceptor> acceptor;
 
   std::unique_ptr<EventLoop> event_loop;
   struct epoll_event ev, events[MAX_EVENTS];
@@ -22,150 +23,90 @@ class Server : public IServer, public std::enable_shared_from_this<Server> {
   std::shared_ptr<AcceptHandler> acceptHandler;
   std::shared_ptr<ServerHandler> handler;
 
+  std::unordered_map<int, std::unique_ptr<ServerTLSWrapper>> tls_wrapper_;
+
+  SSL_CTX *ssl_ctx_;
+
   std::function<void(int fd, std::vector<uint8_t>)> on_data_callback;
+  std::function<void(int fd)> on_disconnected_callback;
 
 private:
-  std::unique_ptr<ISocket> socket_visitor;
-  Server(std::unique_ptr<ISocket> socket)
-      : event_loop(std::make_unique<EventLoop>()),
-        acceptHandler(std::make_shared<AcceptHandler>()),
-        handler(std::make_shared<ServerHandler>()),
-        socket_visitor(std::move(socket)) {}
+  std::unique_ptr<ISocket> socket_;
+  Server(std::unique_ptr<ISocket> socket, std::unique_ptr<IAcceptor> acceptor_);
 
-  void process_pending_messages() {
-    // Для фоновых задач
-  }
+  void process_pending_messages();
 
 public:
-  static std::shared_ptr<Server> create(SocketType type = SocketType::TCP) {
+  static std::shared_ptr<Server> create(std::unique_ptr<ISocket> &socket_,
+                                        std::unique_ptr<IAcceptor> &acceptor_) {
     std::unique_ptr<ISocket> socket;
-    switch (type) {
-    case SocketType::TCP:
-      socket = std::make_unique<TCPSocket>();
-      break;
-    case SocketType::UDP:
-      socket = std::make_unique<UDPSocket>();
-      break;
-    default:
-      throw std::invalid_argument("Unknown socket type");
-    }
+    std::unique_ptr<IAcceptor> accept;
+
+    socket = std::move(socket_);
+    accept = std::move(acceptor_);
+
     struct make_shared_enabler : public Server {
-      make_shared_enabler(std::unique_ptr<ISocket> sock)
-          : Server(std::move(sock)) {}
+      make_shared_enabler(std::unique_ptr<ISocket> sock,
+                          std::unique_ptr<IAcceptor> acc)
+          : Server(std::move(sock), std::move(acc)) {}
     };
-    return std::make_shared<make_shared_enabler>(std::move(socket));
+    return std::make_shared<make_shared_enabler>(std::move(socket),
+                                                 std::move(accept));
   }
 
   // Удалить копирование
   Server(const Server &) = delete;
   Server &operator=(const Server &) = delete;
-  void
-  set_data_callback(std::function<void(int, std::vector<uint8_t>)> callback) {
-    on_data_callback = callback;
+  void set_data_callback(
+      std::function<void(int, std::vector<uint8_t>)> data_callback,
+      std::function<void(int)> disconnect_callback) override;
+
+  void start(int port) override;
+
+  void run_event_loop() override;
+
+  void stop() override;
+
+  void tls_handshake(int fd) override;
+
+  bool tls_handshake_done(int fd) override;
+
+  void on_client_error(int fd) override;
+
+  void on_client_connected(std::shared_ptr<IConnection> conn) override;
+
+  void on_client_disconnected(int fd) override;
+
+  void on_client_message(int fd, const std::vector<uint8_t> &data) override;
+
+  void on_client_writable(int fd) override;
+
+  bool is_running() const override;
+
+  void send(int fd, const std::vector<uint8_t> &raw_data) override;
+
+  void send(const std::string &message);
+
+  int get_fd() const;
+
+  ~Server() override;
+};
+
+class ServerFactory {
+public:
+  static std::shared_ptr<Server> tcp_server(const std::string &ip, int port) {
+    auto tcp_socket = std::make_unique<ISocket>(SocketType::TCP);
+    std::unique_ptr<IAcceptor> tcp_acceptor = std::make_unique<TCPAcceptor>();
+    auto server = Server::create(tcp_socket, tcp_acceptor);
+    // server->start(port);
+    return server;
   }
 
-  void start(int port) override {
-    socket_visitor->create_socket();
-    if (socket_visitor->get_fd() != -1) {
-      running = true;
-      socket_visitor->setup_server(port, "127.0.0.1");
-      socket_visitor->make_address_reusable();
-
-      // acceptHandler = std::make_shared<AcceptHandler>();
-      acceptHandler->init(shared_from_this(), acceptor);
-      // handler = std::make_shared<ServerHandler>();
-      handler->init(shared_from_this());
-      event_loop->add_fd(socket_visitor->get_fd(), acceptHandler,
-                         EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
-      std::cout << "Сервер запущен на порту " << port << "\n";
-    } else {
-      std::runtime_error("Ошибка в создании сокета");
-    }
-  }
-
-  void run_event_loop() {
-    while (running) {
-      event_loop->run_once(100);
-      process_pending_messages();
-    }
-  }
-
-  void stop() override {
-    std::cout << "Сервер отключается" << std::endl;
-    if (!running)
-      return; // Защита от повторного вызова
-
-    running = false;
-
-    // 1. Пробуждаем цикл, чтобы он увидел running = false
-    if (event_loop) {
-      event_loop->stop();
-    }
-
-    // 2. Закрываем слушающий сокет
-    // Используйте только один метод закрытия!
-    // socket_visitor.close() внутри Fd сделает всё остальное.
-    socket_visitor->close();
-  }
-
-  void on_client_error(int fd) override {}
-
-  void on_client_connected(std::shared_ptr<ClientConnection> conn) override {
-    // std::lock_guard<std::mutex> lock(server_mutex);
-    std::cout << "Новое подключение от " << conn->get_fd() << '\n'
-              << "IP=" << inet_ntoa(conn->get_addr().sin_addr) << ":"
-              << ntohs(conn->get_addr().sin_port) << std::endl;
-
-    int fd = conn->get_fd();
-
-    connection_manager.add_connection(fd, conn);
-    handler->add_client(fd, conn);
-    event_loop->add_fd(fd, handler,
-                       EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
-  }
-
-  void on_client_disconnected(int fd) override {
-    std::cout << "Клиент " << fd << " отключился\n";
-    if (event_loop) {
-      event_loop->remove_fd(fd);
-    }
-
-    // Потом удалить всё остальное
-    connection_manager.remove_connection(fd);
-
-    // socket_visitor.close();
-    // stop();
-  }
-
-  void on_client_message(int fd, const std::vector<uint8_t> &data) override {
-    if (!data.empty()) {
-      std::string message(data.begin(), data.end());
-      if (message == "/exit")
-        return;
-
-      on_data_callback(fd, data);
-    }
-  }
-
-  void on_client_writable(int fd) override {
-    auto it = connection_manager.get_connection(fd);
-    if (it == std::nullopt) {
-      return;
-    }
-  }
-
-  bool is_running() const override { return running; }
-
-  void send(int fd, const std::vector<uint8_t> &raw_data) {
-    connection_manager.send_to_buffer(fd, raw_data);
-  }
-
-  void send(const std::string &message) {}
-
-  int get_fd() const { return socket_visitor->get_fd(); }
-
-  ~Server() override {
-    std::cout << "~TCPServer()" << std::endl;
-    stop();
+  static std::shared_ptr<Server> udp_server(const std::string &ip, int port) {
+    auto udp_socket = std::make_unique<ISocket>(SocketType::UDP);
+    std::unique_ptr<IAcceptor> udp_acceptor = std::make_unique<UDPAcceptor>();
+    auto server = Server::create(udp_socket, udp_acceptor);
+    // server->start(port);
+    return server;
   }
 };

@@ -15,29 +15,42 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-class Acceptor {
-  TransportFabric transport_fabric;
+struct PeerSession;
 
+class TCPAcceptor : public IAcceptor {
 public:
-  Acceptor() = default;
-  std::optional<std::shared_ptr<ClientConnection>> accept(int server_fd) {
-    struct sockaddr_in addr;
-    socklen_t addr_len = sizeof(addr);
-    int client_fd = ::accept(server_fd, (struct sockaddr *)&addr, &addr_len);
-    if (client_fd == -1) {
-      if (errno != EAGAIN && errno != EWOULDBLOCK) {
-        std::cerr << "Ошибка accept: " << strerror(errno) << std::endl;
-      }
-      return std::nullopt;
-    }
+  TCPAcceptor() = default;
 
-    int flags = fcntl(client_fd, F_GETFL, 0);
-    fcntl(client_fd, F_SETFL, O_NONBLOCK | flags);
+  std::optional<std::shared_ptr<IConnection>> accept(int server_fd) override;
 
-    auto connection = std::make_shared<ClientConnection>(client_fd, addr);
-    connection->init_transport(std::move(transport_fabric.create_tcp()));
-    return connection;
-  }
+  ~TCPAcceptor() override;
+};
 
-  ~Acceptor() = default;
+class UDPAcceptor : public IAcceptor {
+public:
+  UDPAcceptor() = default;
+
+  std::optional<std::shared_ptr<IConnection>> accept(int server_fd) override;
+
+  ~UDPAcceptor() override;
+};
+
+class IPeerAcceptor {
+public:
+  virtual std::optional<std::shared_ptr<PeerSession>> accept(int fd) = 0;
+  virtual ~IPeerAcceptor() = default;
+};
+
+class PeerTCPAcceptor : public IPeerAcceptor {
+public:
+  std::optional<std::shared_ptr<PeerSession>> accept(int fd) override;
+
+  ~PeerTCPAcceptor() override;
+};
+
+class PeerUDPAcceptor : public IPeerAcceptor {
+public:
+  std::optional<std::shared_ptr<PeerSession>> accept(int fd) override;
+
+  ~PeerUDPAcceptor() override;
 };
