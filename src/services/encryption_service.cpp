@@ -60,12 +60,12 @@ std::vector<uint8_t> EncryptionService::decrypt_for(
                                     signature)) {
     throw std::runtime_error("MITM detected!");
   } else {
-    std::cout << "Verification for user "
+    /* std::cout << "Verification for user "
               << std::string(sender.begin(), sender.end()) << " was successful!"
               << std::endl;
     std::cout << std::string(signature.begin(), signature.end()) << std::endl;
     auto temp = identity_keys[sender].public_bytes();
-    std::cout << std::string(temp.begin(), temp.end()) << std::endl;
+    std::cout << std::string(temp.begin(), temp.end()) << std::endl; */
   }
   auto shared_secret = DH_key.compute_shared_secret(DH_keys[sender]);
   auto decryption_key =

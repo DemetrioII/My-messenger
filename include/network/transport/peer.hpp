@@ -77,7 +77,7 @@ int register_peer_connection(PeerNode &node,
 
 int connect_to_peer(PeerNode &node, const std::string &ip, int port);
 
-void send_to_peer(PeerNode &node, int fd, const std::vector<uint8_t> data);
+void send_to_peer(PeerNode &node, int fd, const std::vector<uint8_t> &data);
 
 void broadcast(PeerNode &node, const std::vector<uint8_t> &data);
 

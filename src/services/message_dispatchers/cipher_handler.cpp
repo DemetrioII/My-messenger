@@ -90,7 +90,18 @@ void CipherMessageHandler::handleOnRecvPeer(
     const Message &msg, std::shared_ptr<PeerContext> context) {
   std::cout << std::string(context->my_username.begin(),
                            context->my_username.end())
-            << " got message" << std::endl;
+            << " got message: [Private from "
+            << std::string_view(
+                   reinterpret_cast<const char *>(msg.get_meta(0).data()),
+                   msg.get_meta(0).size())
+            << "]: ";
+  auto encrypted_message = context->encryption_service->decrypt_for(
+      msg.get_meta(0), context->my_username, msg.get_payload(), msg.get_meta(1),
+      context->messages_counter[msg.get_meta(0)]);
+  std::cout << std::string_view(
+                   reinterpret_cast<const char *>(encrypted_message.data()),
+                   encrypted_message.size())
+            << std::endl;
 }
 
 MessageType CipherMessageHandler::getMessageType() const {

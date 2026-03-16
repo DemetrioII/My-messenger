@@ -1,6 +1,7 @@
 #pragma once
 #include "../command_interface.hpp"
 #include "../commands_impl/connect.hpp"
+#include "../commands_impl/disconnect.hpp"
 #include "../commands_impl/exit.hpp"
 #include "../commands_impl/get_pubkey.hpp"
 #include "../commands_impl/help_command.hpp"

@@ -342,6 +342,8 @@ int main(int argc, char *argv[]) {
       break;
     } else if (s[0] == '/') {
       peer.send_msg(s);
+    } else {
+      peer.send_msg(s);
     }
   }
   return 0;

@@ -31,6 +31,7 @@ enum class CommandType {
   SEND_FILE = 0x09,
   HELP = 0x0A,
   CONNECT = 0x0B,
+  DISCONNECT = 0x0C,
   EXIT = 0xFE,
   UNKNOWN = 0xFF,
 };

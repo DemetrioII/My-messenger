@@ -10,6 +10,12 @@ MessageCommandHandler::MessageCommandHandler()
   peerCommandRegistry.registerCommand("connect",
                                       std::make_unique<ConnectCommand>());
 
+  peerCommandRegistry.registerCommand("disconnect",
+                                      std::make_unique<DisconnectCommand>());
+
+  peerCommandRegistry.registerCommand(
+      "pmess", std::make_unique<PrivateMessageCommand>());
+
   peerCommandRegistry.registerCommand("login",
                                       std::make_unique<LoginCommand>());
 

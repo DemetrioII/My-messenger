@@ -59,7 +59,6 @@ struct ITransport {
                             (std::is_same_v<std::decay_t<T>, TCPTransport> ||
                              std::is_same_v<std::decay_t<T>, UDPTransport> ||
                              std::is_same_v<std::decay_t<T>, TLSTransport>)>>
-
   ITransport(T &&t) : transport(std::forward<T>(t)) {}
 
   ssize_t send(const std::vector<uint8_t> &data) {

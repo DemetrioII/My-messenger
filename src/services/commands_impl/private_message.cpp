@@ -38,10 +38,44 @@ void PrivateMessageCommand::executeOnClient(
 }
 
 void PrivateMessageCommand::send_from_peer(
-    int fd, std::shared_ptr<PeerContext> context) {}
+    int fd, std::shared_ptr<PeerContext> context) {
+  if (recipient.empty() || payload.empty()) {
+    std::cout << "Usage: /pmess <recipient> <payload>" << std::endl;
+    return;
+  }
+  auto res_fd = context->session_manager->get_fd(
+      std::string(recipient.begin(), recipient.end()));
+  if (!res_fd.has_value()) {
+    switch (res_fd.error()) {
+    case ServiceError::UserNotFound: {
+      std::cout << "User not found" << std::endl;
+      return;
+    }
+    default: {
+      std::cout << "Unknown error" << std::endl;
+      return;
+    }
+    }
+  }
+  auto cipher_message = context->encryption_service->encrypt_for(
+      context->my_username, recipient, payload,
+      context->messages_counter[recipient]);
+  std::cout << "Sent cipher message to "
+            << std::string_view(
+                   reinterpret_cast<const char *>(recipient.data()),
+                   recipient.size())
+            << std::endl;
+  send_to_peer(*context->peer_node, *res_fd,
+               context->serializer->serialize(
+                   {cipher_message,
+                    2,
+                    {context->my_username, context->encryption_service->sign()},
+                    MessageType::CipherMessage}));
+}
 
 void PrivateMessageCommand::recv_on_peer(int fd,
                                          std::shared_ptr<PeerContext> context) {
+  std::cout << "Peer got a cipher message" << std::endl;
 }
 
 void PrivateMessageCommand::fromMessage(const Message &msg) {

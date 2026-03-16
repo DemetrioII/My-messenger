@@ -74,6 +74,15 @@ void LoginCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
 void LoginCommand::recv_on_peer(int fd, std::shared_ptr<PeerContext> context) {
   std::cout << "Peer with file descriptor " << fd << " has logged in as "
             << std::string(username.begin(), username.end()) << std::endl;
+  send_to_peer(
+      *context->peer_node, fd,
+      context->serializer->serialize(
+          {context->encryption_service->get_DH_bytes(),
+           4,
+           {std::vector<uint8_t>{static_cast<uint8_t>(CommandType::GET_PUBKEY)},
+            username, context->encryption_service->get_identity_bytes(),
+            context->encryption_service->sign()},
+           MessageType::Response}));
 }
 
 void LoginCommand::send_from_peer(int fd,
@@ -82,7 +91,10 @@ void LoginCommand::send_from_peer(int fd,
   identity_pub_bytes = context->encryption_service->get_identity_bytes();
   signature = context->encryption_service->sign();
   context->my_username = username;
-  broadcast(*context->peer_node, context->serializer->serialize(toMessage()));
+  std::cout << "You have logged in as "
+            << std::string(username.begin(), username.end()) << std::endl;
+  // broadcast(*context->peer_node,
+  // context->serializer->serialize(toMessage()));
 }
 
 LoginCommand::~LoginCommand() {}

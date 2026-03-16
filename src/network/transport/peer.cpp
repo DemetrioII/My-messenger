@@ -116,7 +116,7 @@ void send_to_buffer(PeerSession &session, const std::vector<uint8_t> &data) {
   session.framer.form_message(data, session.out);
 }
 
-void send_to_peer(PeerNode &node, int fd, const std::vector<uint8_t> data) {
+void send_to_peer(PeerNode &node, int fd, const std::vector<uint8_t> &data) {
   if (node.registry_.by_fd.find(fd) != node.registry_.by_fd.end()) {
     send_to_buffer(*node.registry_.by_fd[fd], data);
     node.event_loop_->enable_write(fd);

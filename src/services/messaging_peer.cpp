@@ -11,6 +11,9 @@ MessagingPeer::MessagingPeer(int port)
   dispatcher.registerHandler(MessageType::CipherMessage,
                              std::make_unique<CipherMessageHandler>());
 
+  dispatcher.registerHandler(MessageType::Response,
+                             std::make_unique<ResponseMessageHandler>());
+
   dispatcher.registerHandler(MessageType::FileStart,
                              std::make_unique<FileStartHandler>());
 

@@ -82,7 +82,48 @@ void ResponseMessageHandler::handleMessageOnServer(
     const Message &msg, std::shared_ptr<ServerContext> context) {}
 
 void ResponseMessageHandler::handleOnRecvPeer(
-    const Message &msg, std::shared_ptr<PeerContext> context) {}
+    const Message &msg, std::shared_ptr<PeerContext> context) {
+  auto meta0 = msg.get_meta(0);
+  if (meta0.empty())
+    return;
+
+  auto cmd_type = static_cast<CommandType>(meta0[0]);
+  switch (cmd_type) {
+  case CommandType::GET_PUBKEY: {
+    std::string username_str =
+        std::string(msg.get_meta(1).begin(), msg.get_meta(1).end());
+    std::cout << "You got a public key of " << username_str << std::endl;
+    break;
+  }
+  case CommandType::CONNECT: {
+    std::string username_str =
+        std::string(msg.get_payload().begin(), msg.get_payload().end());
+    const std::vector<uint8_t> &DH_bytes = msg.get_meta(1);
+    const std::vector<uint8_t> &identity_bytes = msg.get_meta(2);
+    const std::vector<uint8_t> &signature = msg.get_meta(3);
+    auto register_res = context->user_service->register_user(
+        username_str, DH_bytes, identity_bytes, signature);
+    if (!register_res.has_value()) {
+      switch (register_res.error()) {
+      case ServiceError::AlreadyExists: {
+        std::cout << "This user is already exist" << std::endl;
+        return;
+      }
+
+      default: {
+        std::cout << "Unknown error" << std::endl;
+        return;
+      }
+      }
+    }
+    context->session_manager->bind(context->fd, username_str);
+    context->encryption_service->cache_public_key(msg.get_payload(), DH_bytes,
+                                                  identity_bytes);
+    std::cout << "You got a public keys of " << username_str << std::endl;
+    break;
+  }
+  }
+}
 
 void ResponseMessageHandler::handleOnSendPeer(
     const Message &msg, std::shared_ptr<PeerContext> context) {}

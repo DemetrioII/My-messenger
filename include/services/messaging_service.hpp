@@ -72,11 +72,15 @@ private:
 
 class ChatService {
 public:
+  [[nodiscard]]
   ServiceResult<std::string> create_chat(const std::string &name,
                                          const std::string &creator_id);
 
+  [[nodiscard]]
   ServiceResult<void> add_member(const std::string &chat_id,
                                  const std::string &user_id);
+
+  [[nodiscard]]
   ServiceResult<std::vector<std::string>>
   post_message(const std::string &chat_id, const std::string &username,
                const Message &msg);

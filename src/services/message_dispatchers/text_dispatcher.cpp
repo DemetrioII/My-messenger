@@ -17,10 +17,16 @@ void TextMessageHandler::handleMessageOnServer(
 }
 
 void TextMessageHandler::handleOnRecvPeer(
-    const Message &msg, std::shared_ptr<PeerContext> context) {}
+    const Message &msg, std::shared_ptr<PeerContext> context) {
+  std::cout << "Peer got message "
+            << std::string(msg.get_payload().begin(), msg.get_payload().end())
+            << std::endl;
+}
 
 void TextMessageHandler::handleOnSendPeer(
-    const Message &msg, std::shared_ptr<PeerContext> context) {}
+    const Message &msg, std::shared_ptr<PeerContext> context) {
+  broadcast(*context->peer_node, context->serializer->serialize(msg));
+}
 
 MessageType TextMessageHandler::getMessageType() const {
   return MessageType::Text;
