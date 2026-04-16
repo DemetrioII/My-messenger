@@ -340,11 +340,8 @@ int main(int argc, char *argv[]) {
     if (s == "/exit") {
       peer.stop_peer();
       break;
-    } else if (s[0] == '/') {
-      peer.send_msg(s);
-    } else {
-      peer.send_msg(s);
     }
+    peer.send_msg(s);
   }
   return 0;
 }

@@ -7,9 +7,6 @@ MessageType FileStartHandler::getMessageType() const {
 void FileStartHandler::handleMessageOnClient(
     const Message &msg, std::shared_ptr<ClientContext> context) {
   pending_files = context->pending_files;
-  // auto recipient = msg.get_meta(0);
-  // auto fname = msg.get_meta(1);
-  // auto size_bytes = msg.get_meta(2);
   uint64_t file_size = from_bytes(msg.get_meta(2));
 
   auto name = std::string(msg.get_meta(1).begin(), msg.get_meta(1).end());

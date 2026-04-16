@@ -64,7 +64,7 @@ void SendGroupMessageCommand::executeOnClient(
 }
 
 void SendGroupMessageCommand::send_from_peer(
-    int fd, std::shared_ptr<PeerContext> context) {}
+    std::shared_ptr<PeerContext> context) {}
 
 void SendGroupMessageCommand::recv_on_peer(
     int fd, std::shared_ptr<PeerContext> context) {}

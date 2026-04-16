@@ -81,8 +81,9 @@ void CipherMessageHandler::handleMessageOnServer(
 
 void CipherMessageHandler::handleOnSendPeer(
     const Message &msg, std::shared_ptr<PeerContext> context) {
-  std::cout << std::string(context->my_username.begin(),
-                           context->my_username.end())
+  std::cout << std::string_view(
+                   reinterpret_cast<const char *>(context->my_username.data()),
+                   context->my_username.size())
             << " sent message" << std::endl;
 }
 

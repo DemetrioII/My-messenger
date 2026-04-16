@@ -64,8 +64,7 @@ void MakeRoomCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
   client->send_to_server(serializer.serialize(toMessage()));
 }
 
-void MakeRoomCommand::send_from_peer(int fd,
-                                     std::shared_ptr<PeerContext> context) {}
+void MakeRoomCommand::send_from_peer(std::shared_ptr<PeerContext> context) {}
 
 void MakeRoomCommand::recv_on_peer(int fd,
                                    std::shared_ptr<PeerContext> context) {}

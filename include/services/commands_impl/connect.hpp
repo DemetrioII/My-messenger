@@ -22,7 +22,7 @@ public:
 
   void executeOnClient(std::shared_ptr<ClientContext> context) override;
 
-  void send_from_peer(int fd, std::shared_ptr<PeerContext> context) override;
+  void send_from_peer(std::shared_ptr<PeerContext> context) override;
 
   void recv_on_peer(int fd, std::shared_ptr<PeerContext> context) override;
 

@@ -38,7 +38,7 @@ void PrivateMessageCommand::executeOnClient(
 }
 
 void PrivateMessageCommand::send_from_peer(
-    int fd, std::shared_ptr<PeerContext> context) {
+    std::shared_ptr<PeerContext> context) {
   if (recipient.empty() || payload.empty()) {
     std::cout << "Usage: /pmess <recipient> <payload>" << std::endl;
     return;

@@ -60,9 +60,7 @@ void JoinCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
   client->send_to_server(serializer.serialize(toMessage()));
 }
 
-void JoinCommand::send_from_peer(int fd, std::shared_ptr<PeerContext> context) {
-
-}
+void JoinCommand::send_from_peer(std::shared_ptr<PeerContext> context) {}
 
 void JoinCommand::recv_on_peer(int fd, std::shared_ptr<PeerContext> context) {}
 

@@ -21,8 +21,7 @@ void DisconnectCommand::execeuteOnServer(
 void DisconnectCommand::executeOnClient(
     std::shared_ptr<ClientContext> context) {}
 
-void DisconnectCommand::send_from_peer(int fd,
-                                       std::shared_ptr<PeerContext> context) {
+void DisconnectCommand::send_from_peer(std::shared_ptr<PeerContext> context) {
   if (username.empty()) {
     std::cout << "Usage: disconnect <username>" << std::endl;
     return;
@@ -41,7 +40,7 @@ void DisconnectCommand::send_from_peer(int fd,
     }
   }
   // send_to_peer(*context->peer_node, fd, );
-  fd = *fd_res;
+  int fd = *fd_res;
   send_to_peer(*context->peer_node, fd,
                context->serializer->serialize(toMessage()));
   disconnect_from_peer(*context->peer_node, fd);

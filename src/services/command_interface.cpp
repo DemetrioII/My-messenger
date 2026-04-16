@@ -71,7 +71,7 @@ void PeerCommandBus::dispatchSending(
     return;
   }
   handler->fromMessage(msg);
-  handler->send_from_peer(context->fd, context);
+  handler->send_from_peer(context);
 }
 
 void PeerCommandBus::dispatchReceiving(

@@ -3,7 +3,6 @@
 #include "../network/protocol/parser.hpp"
 #include "client_context.hpp"
 #include "messaging_service.hpp"
-#include <any>
 #include <string>
 #include <vector>
 
@@ -45,7 +44,7 @@ public:
 
   virtual void executeOnClient(std::shared_ptr<ClientContext> context) = 0;
 
-  virtual void send_from_peer(int fd, std::shared_ptr<PeerContext> context) = 0;
+  virtual void send_from_peer(std::shared_ptr<PeerContext> context) = 0;
 
   virtual void recv_on_peer(int fd, std::shared_ptr<PeerContext> context) = 0;
 

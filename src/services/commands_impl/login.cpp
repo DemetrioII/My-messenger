@@ -73,7 +73,9 @@ void LoginCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
 
 void LoginCommand::recv_on_peer(int fd, std::shared_ptr<PeerContext> context) {
   std::cout << "Peer with file descriptor " << fd << " has logged in as "
-            << std::string(username.begin(), username.end()) << std::endl;
+            << std::string_view(reinterpret_cast<const char *>(username.data()),
+                                username.size())
+            << std::endl;
   send_to_peer(
       *context->peer_node, fd,
       context->serializer->serialize(
@@ -85,14 +87,15 @@ void LoginCommand::recv_on_peer(int fd, std::shared_ptr<PeerContext> context) {
            MessageType::Response}));
 }
 
-void LoginCommand::send_from_peer(int fd,
-                                  std::shared_ptr<PeerContext> context) {
+void LoginCommand::send_from_peer(std::shared_ptr<PeerContext> context) {
   DH_public_bytes = context->encryption_service->get_DH_bytes();
   identity_pub_bytes = context->encryption_service->get_identity_bytes();
   signature = context->encryption_service->sign();
   context->my_username = username;
   std::cout << "You have logged in as "
-            << std::string(username.begin(), username.end()) << std::endl;
+            << std::string_view(reinterpret_cast<const char *>(username.data()),
+                                username.size())
+            << std::endl;
   // broadcast(*context->peer_node,
   // context->serializer->serialize(toMessage()));
 }

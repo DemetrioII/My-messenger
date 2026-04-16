@@ -21,7 +21,10 @@ void ResponseMessageHandler::handleMessageOnClient(
     auto username = msg.get_meta(1);
 
     std::cout << "You got a public key of "
-              << std::string(username.begin(), username.end()) << std::endl;
+              << std::string_view(
+                     reinterpret_cast<const char *>(username.data()),
+                     username.size())
+              << std::endl;
     context->encryption_service->cache_public_key(username, msg.get_payload(),
                                                   msg.get_meta(2));
 
@@ -48,7 +51,10 @@ void ResponseMessageHandler::handleMessageOnClient(
       ++context->messages_counter[username];
 
       std::cout << "[Crypto] Sent queued message to "
-                << std::string(username.begin(), username.end()) << std::endl;
+                << std::string_view(
+                       reinterpret_cast<const char *>(username.data()),
+                       username.size())
+                << std::endl;
 
       pending_it = context->mq->find_pending(username);
     }
@@ -70,7 +76,8 @@ void ResponseMessageHandler::handleMessageOnClient(
           context->my_username, context->my_username, pending_ciphertext,
           context->encryption_service->sign(),
           context->messages_counter.find(username)->second);
-      auto plain_str = std::string(plaintext.begin(), plaintext.end());
+      auto plain_str = std::string_view(
+          reinterpret_cast<const char *>(plaintext.data()), plaintext.size());
       std::cout << plain_str << std::endl;
     }
     break;
@@ -90,9 +97,6 @@ void ResponseMessageHandler::handleOnRecvPeer(
   auto cmd_type = static_cast<CommandType>(meta0[0]);
   switch (cmd_type) {
   case CommandType::GET_PUBKEY: {
-    std::string username_str =
-        std::string(msg.get_meta(1).begin(), msg.get_meta(1).end());
-    std::cout << "You got a public key of " << username_str << std::endl;
     break;
   }
   case CommandType::CONNECT: {

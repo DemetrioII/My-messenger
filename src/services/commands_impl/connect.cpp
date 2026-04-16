@@ -28,8 +28,7 @@ void ConnectCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {}
 
 void ConnectCommand::executeOnClient(std::shared_ptr<ClientContext> context) {}
 
-void ConnectCommand::send_from_peer(int fd,
-                                    std::shared_ptr<PeerContext> context) {
+void ConnectCommand::send_from_peer(std::shared_ptr<PeerContext> context) {
   if (context->my_username.empty()) {
     std::cerr << "Sorry, but you need to login first" << std::endl;
     return;

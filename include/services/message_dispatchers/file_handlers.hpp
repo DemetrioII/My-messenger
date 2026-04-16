@@ -2,6 +2,22 @@
 #include "../message_dispatcher.hpp"
 #include <fstream>
 
+struct FileKey {
+  std::string recipient;
+  std::string filename;
+
+  bool operator==(const FileKey &other) const {
+    return recipient == other.recipient && filename == other.filename;
+  }
+};
+
+struct FileKeyHash {
+  std::size_t operator()(const FileKey &k) const {
+    return std::hash<std::string>()(k.recipient) ^
+           (std::hash<std::string>()(k.filename) << 1);
+  }
+};
+
 class FileStartHandler : public IMessageHandler {
   std::shared_ptr<
       std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>

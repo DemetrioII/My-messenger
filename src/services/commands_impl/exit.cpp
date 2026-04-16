@@ -28,7 +28,8 @@ void ExitCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
   client->disconnect();
 }
 
-void ExitCommand::send_from_peer(int fd, std::shared_ptr<PeerContext> context) {
+void ExitCommand::send_from_peer(std::shared_ptr<PeerContext> context) {
+  stop(*context->peer_node);
 }
 
 void ExitCommand::recv_on_peer(int fd, std::shared_ptr<PeerContext> context) {}

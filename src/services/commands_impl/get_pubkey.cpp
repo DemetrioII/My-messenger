@@ -68,8 +68,7 @@ void GetPubkeyCommand::recv_on_peer(int fd,
            MessageType::Response}));
 }
 
-void GetPubkeyCommand::send_from_peer(int fd,
-                                      std::shared_ptr<PeerContext> context) {
+void GetPubkeyCommand::send_from_peer(std::shared_ptr<PeerContext> context) {
   auto res_fd = context->session_manager->get_fd(
       std::string(username.begin(), username.end()));
   switch (res_fd.error()) {
@@ -80,7 +79,7 @@ void GetPubkeyCommand::send_from_peer(int fd,
   default: {
   }
   }
-  fd = *res_fd;
+  int fd = *res_fd;
   send_to_peer(*context->peer_node, fd,
                context->serializer->serialize(toMessage()));
 }
