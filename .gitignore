@@ -21,3 +21,4 @@ temp.txt
 .clangd
 .cache/
 *.txt
+.codex

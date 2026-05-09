@@ -22,39 +22,8 @@ void MakeRoomCommand::fromMessage(const Message &msg) {
 }
 
 void MakeRoomCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
-  auto user_service = context->user_service;
-  auto chat_service = context->chat_service;
-  auto session_manager = context->session_manager;
-  auto fd = context->fd;
-  auto transport_server = context->transport_server;
-  auto parser = context->parser;
-  auto username = session_manager->get_username(fd);
-  if (!username.has_value()) {
-    transport_server->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
-    return;
-  }
-
-  if (chat_name.empty()) {
-    transport_server->send(fd, StaticResponses::EMPTY_CHAT_NAME);
-    return;
-  }
-
-  std::vector<std::string> members{*username};
-  std::string chat_name_str(chat_name.begin(), chat_name.end());
-  auto chat_res = chat_service->create_chat(chat_name_str, *username);
-  if (!chat_res.has_value()) {
-    transport_server->send(fd, StaticResponses::CHAT_ALREADY_EXISTS);
-    return;
-  }
-
-  std::string response_str = "Room " + chat_name_str + " was created!";
-
-  Message response{
-      std::vector<uint8_t>(response_str.begin(), response_str.end()),
-      0,
-      {},
-      MessageType::Text};
-  transport_server->send(fd, context->serializer.serialize(response));
+  context->app_service->create_room(
+      std::string(chat_name.begin(), chat_name.end()));
 }
 
 void MakeRoomCommand::executeOnClient(std::shared_ptr<ClientContext> context) {

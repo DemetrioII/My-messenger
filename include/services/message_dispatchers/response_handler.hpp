@@ -1,21 +1,21 @@
 #pragma once
 #include "../client_context.hpp"
 #include "../encryption_service.hpp"
+#include "../message_handler_interfaces.hpp"
 #include "../message_queue.hpp"
 
-class ResponseMessageHandler : public IMessageHandler {
+class ResponseMessageHandler : public IClientMessageHandler {
+private:
+  void handle_get_pubkey_response(const Message &msg,
+                                  const std::shared_ptr<ClientContext> context);
+  void handle_connect_response(const Message &msg,
+                               const std::shared_ptr<PeerContext> context);
+
 public:
-  void
-  handleMessageOnClient(const Message &msg,
-                        const std::shared_ptr<ClientContext> context) override;
-  void handleMessageOnServer(const Message &msg,
-                             std::shared_ptr<ServerContext> context) override;
-
-  void handleOnSendPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
-
-  void handleOnRecvPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
+  void handleIncoming(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
+  void handleOutgoing(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 
   MessageType getMessageType() const override;
 };

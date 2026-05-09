@@ -22,36 +22,8 @@ void JoinCommand::fromMessage(const Message &msg) {
 }
 
 void JoinCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
-  auto user_service = context->user_service;
-  auto chat_service = context->chat_service;
-  auto session_manager = context->session_manager;
-  auto transport_server = context->transport_server;
-  auto fd = context->fd;
   auto chat_name_string = std::string(chat_name.begin(), chat_name.end());
-
-  auto user_id = session_manager->get_username(fd);
-  if (!user_id.has_value()) {
-    transport_server->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
-    return;
-  }
-  auto res = chat_service->add_member(chat_name_string, *user_id);
-
-  if (!res.has_value()) {
-    if (res.error() == ServiceError::ChatNotFound) {
-      transport_server->send(fd, StaticResponses::CHAT_NOT_FOUND);
-      return;
-    }
-    if (res.error() == ServiceError::AlreadyMember) {
-      transport_server->send(fd, StaticResponses::YOU_ARE_ALREADY_MEMBER);
-      return;
-    }
-  }
-
-  std::string response = "You joined the room " + chat_name_string;
-  transport_server->send(
-      fd, context->serializer.serialize(
-              Message(std::vector<uint8_t>(response.begin(), response.end()), 0,
-                      {}, MessageType::Text)));
+  context->app_service->join_room(chat_name_string);
 }
 
 void JoinCommand::executeOnClient(std::shared_ptr<ClientContext> context) {

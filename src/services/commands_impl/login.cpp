@@ -29,33 +29,9 @@ void LoginCommand::fromMessage(const Message &msg) {
 }
 
 void LoginCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
-  auto user_service = context->user_service;
-  auto session_manager = context->session_manager;
-  auto fd = context->fd;
   auto username_string = std::string(username.begin(), username.end());
-
-  auto username_fd_res = session_manager->get_username(fd);
-  if (username_fd_res.has_value()) {
-    context->transport_server->send(fd, StaticResponses::YOU_ARE_LOGGED_IN);
-    return;
-  }
-
-  auto username_res = user_service->register_user(
-      username_string, DH_public_bytes, identity_pub_bytes, signature);
-  if (!username_res.has_value()) {
-    context->transport_server->send(fd,
-                                    StaticResponses::PUBLIC_KEY_HAS_NOT_SET);
-    return;
-  }
-
-  session_manager->bind(fd, username_string);
-
-  std::string response_string = "Hello, " + username_string + "!";
-  context->transport_server->send(
-      fd,
-      context->serializer.serialize(Message(
-          std::vector<uint8_t>(response_string.begin(), response_string.end()),
-          0, {}, MessageType::Text)));
+  context->app_service->login(username_string, DH_public_bytes,
+                              identity_pub_bytes, signature);
 }
 
 void LoginCommand::executeOnClient(std::shared_ptr<ClientContext> context) {

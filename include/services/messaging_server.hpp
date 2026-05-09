@@ -20,7 +20,9 @@
 #include "encryption_service.hpp"
 #include "message_dispatchers/cipher_handler.hpp"
 #include "message_dispatchers/command_handler.hpp"
-#include "message_dispatchers/file_handlers.hpp"
+#include "message_dispatchers/server_file_handlers.hpp"
+#include "message_dispatchers/server_cipher_handler.hpp"
+#include "message_dispatchers/server_text_handler.hpp"
 #include "message_dispatchers/response_handler.hpp"
 
 #include <random>
@@ -46,6 +48,8 @@ public:
   void start_server(int port);
 
   void run();
+
+  void stop();
 
   void on_tcp_data_received(int fd, std::vector<uint8_t> &raw_data);
 

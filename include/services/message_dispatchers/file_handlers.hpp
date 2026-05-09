@@ -1,5 +1,6 @@
 #pragma once
-#include "../message_dispatcher.hpp"
+
+#include "../message_handler_interfaces.hpp"
 #include <fstream>
 
 struct FileKey {
@@ -18,11 +19,7 @@ struct FileKeyHash {
   }
 };
 
-class FileStartHandler : public IMessageHandler {
-  std::shared_ptr<
-      std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
-      pending_files;
-
+class ClientFileStartHandler : public IClientMessageHandler {
   uint64_t from_bytes(const std::vector<uint8_t> &v) {
     uint64_t r = 0;
     for (int i = 0; i < 8; i++)
@@ -33,24 +30,14 @@ class FileStartHandler : public IMessageHandler {
 public:
   MessageType getMessageType() const override;
 
-  void handleMessageOnClient(const Message &msg,
-                             std::shared_ptr<ClientContext> context) override;
+  void handleIncoming(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 
-  void handleMessageOnServer(const Message &msg,
-                             std::shared_ptr<ServerContext> context) override;
-
-  void handleOnSendPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
-
-  void handleOnRecvPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
+  void handleOutgoing(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 };
 
-class FileChunkHandler : public IMessageHandler {
-  std::shared_ptr<
-      std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
-      pending_files;
-
+class ClientFileChunkHandler : public IClientMessageHandler {
   uint64_t from_bytes(const std::vector<uint8_t> &v) {
     uint64_t r = 0;
     for (int i = 0; i < 8; i++)
@@ -61,25 +48,14 @@ class FileChunkHandler : public IMessageHandler {
 public:
   MessageType getMessageType() const override;
 
-  void
-  handleMessageOnClient(const Message &msg,
-                        const std::shared_ptr<ClientContext> context) override;
+  void handleIncoming(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 
-  void handleMessageOnServer(const Message &msg,
-                             std::shared_ptr<ServerContext> context) override;
-
-  void handleOnSendPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
-
-  void handleOnRecvPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
+  void handleOutgoing(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 };
 
-class FileEndHandler : public IMessageHandler {
-  std::shared_ptr<
-      std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
-      pending_files;
-
+class ClientFileEndHandler : public IClientMessageHandler {
   uint64_t from_bytes(const std::vector<uint8_t> &v) {
     uint64_t r = 0;
     for (int i = 0; i < 8; i++)
@@ -90,17 +66,9 @@ class FileEndHandler : public IMessageHandler {
 public:
   MessageType getMessageType() const override;
 
-  void
-  handleMessageOnClient(const Message &msg,
-                        const std::shared_ptr<ClientContext> context) override;
+  void handleIncoming(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 
-  void
-  handleMessageOnServer(const Message &msg,
-                        const std::shared_ptr<ServerContext> context) override;
-
-  void handleOnSendPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
-
-  void handleOnRecvPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
+  void handleOutgoing(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 };

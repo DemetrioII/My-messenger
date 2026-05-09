@@ -3,22 +3,22 @@
 MessagingServer::MessagingServer()
     : server_context(std::make_shared<ServerContext>()) {
   dispatcher.registerHandler(MessageType::Text,
-                             std::make_unique<TextMessageHandler>());
+                             std::make_unique<ServerTextHandler>());
 
   dispatcher.registerHandler(MessageType::Command,
-                             std::make_unique<MessageCommandHandler>());
+                             std::make_unique<ServerCommandHandler>());
 
   dispatcher.registerHandler(MessageType::CipherMessage,
-                             std::make_unique<CipherMessageHandler>());
+                             std::make_unique<ServerCipherHandler>());
 
   dispatcher.registerHandler(MessageType::FileStart,
-                             std::make_unique<FileStartHandler>());
+                             std::make_unique<ServerFileStartHandler>());
 
   dispatcher.registerHandler(MessageType::FileChunk,
-                             std::make_unique<FileChunkHandler>());
+                             std::make_unique<ServerFileChunkHandler>());
 
   dispatcher.registerHandler(MessageType::FileEnd,
-                             std::make_unique<FileEndHandler>());
+                             std::make_unique<ServerFileEndHandler>());
 }
 
 void MessagingServer::start_server(int port) {
@@ -36,6 +36,12 @@ void MessagingServer::start_server(int port) {
 
 void MessagingServer::run() {
   server_context->transport_server->run_event_loop();
+}
+
+void MessagingServer::stop() {
+  if (server_context && server_context->transport_server) {
+    server_context->transport_server->stop();
+  }
 }
 
 void MessagingServer::on_tcp_data_received(int fd,

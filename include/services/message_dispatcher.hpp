@@ -1,17 +1,19 @@
 #pragma once
 #include "../models/message.hpp"
 #include "client_context.hpp"
+#include "message_handler_interfaces.hpp"
 #include <iostream>
 #include <unordered_map>
 
 class ClientMessageDispatcher {
-  std::unordered_map<MessageType, std::unique_ptr<IMessageHandler>> handlers;
+  std::unordered_map<MessageType, std::unique_ptr<IClientMessageHandler>>
+      handlers;
   std::shared_ptr<ClientContext> context_;
   Serializer serializer;
 
 public:
   void registerHandler(MessageType type,
-                       std::unique_ptr<IMessageHandler> handler);
+                       std::unique_ptr<IClientMessageHandler> handler);
 
   void setContext(const std::shared_ptr<ClientContext> &context);
 
@@ -25,13 +27,14 @@ public:
 };
 
 class ServerMessageDispatcher {
-  std::unordered_map<MessageType, std::unique_ptr<IMessageHandler>> handlers;
+  std::unordered_map<MessageType, std::unique_ptr<IServerMessageHandler>>
+      handlers;
   std::shared_ptr<ServerContext> context_;
   Serializer serializer;
 
 public:
   void registerHandler(MessageType type,
-                       std::unique_ptr<IMessageHandler> handler);
+                       std::unique_ptr<IServerMessageHandler> handler);
 
   void setContext(const std::shared_ptr<ServerContext> &context);
 
@@ -45,13 +48,14 @@ public:
 };
 
 class PeerMessageDispatcher {
-  std::unordered_map<MessageType, std::unique_ptr<IMessageHandler>> handlers;
+  std::unordered_map<MessageType, std::unique_ptr<IPeerMessageHandler>>
+      handlers;
   std::shared_ptr<PeerContext> context_;
   Serializer serializer;
 
 public:
   void registerHandler(MessageType type,
-                       std::unique_ptr<IMessageHandler> handler);
+                       std::unique_ptr<IPeerMessageHandler> handler);
 
   void setContext(const std::shared_ptr<PeerContext> &context);
 

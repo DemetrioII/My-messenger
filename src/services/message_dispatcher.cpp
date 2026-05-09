@@ -1,7 +1,7 @@
 #include "../../../include/services/message_dispatcher.hpp"
 
 void PeerMessageDispatcher::registerHandler(
-    MessageType type, std::unique_ptr<IMessageHandler> handler) {
+    MessageType type, std::unique_ptr<IPeerMessageHandler> handler) {
   handlers[type] = std::move(handler);
 }
 
@@ -19,7 +19,7 @@ bool PeerMessageDispatcher::dispatchSending(const Message &msg) {
   }
   bool handled = false;
   try {
-    it->second->handleOnSendPeer(msg, context_);
+    it->second->handleSending(msg, context_);
     handled = true;
   } catch (std::exception &e) {
     std::cerr << e.what() << std::endl;
@@ -38,7 +38,7 @@ bool PeerMessageDispatcher::dispatchReceiving(const Message &msg) {
 
   bool handled = false;
   try {
-    it->second->handleOnRecvPeer(msg, context_);
+    it->second->handleReceiving(msg, context_);
     handled = true;
   } catch (std::exception &e) {
     std::cerr << e.what() << std::endl;
@@ -49,7 +49,7 @@ bool PeerMessageDispatcher::dispatchReceiving(const Message &msg) {
 }
 
 void ClientMessageDispatcher::registerHandler(
-    MessageType type, std::unique_ptr<IMessageHandler> handler) {
+    MessageType type, std::unique_ptr<IClientMessageHandler> handler) {
   handlers[type] = std::move(handler);
 }
 
@@ -67,7 +67,7 @@ bool ClientMessageDispatcher::dispatch(const Message &msg) {
 
   bool handled = false;
   try {
-    it->second->handleMessageOnClient(msg, context_);
+    it->second->handleOutgoing(msg, context_);
     handled = true;
   } catch (std::exception &e) {
     std::cerr << e.what() << std::endl;
@@ -104,7 +104,7 @@ bool ClientMessageDispatcher::HasHandlerFor(MessageType type) const {
 void ClientMessageDispatcher::clear() { handlers.clear(); }
 
 void ServerMessageDispatcher::registerHandler(
-    MessageType type, std::unique_ptr<IMessageHandler> handler) {
+    MessageType type, std::unique_ptr<IServerMessageHandler> handler) {
   handlers[type] = std::move(handler);
 }
 
@@ -122,7 +122,7 @@ bool ServerMessageDispatcher::dispatch(const Message &msg) {
 
   bool handled = false;
   try {
-    it->second->handleMessageOnServer(msg, context_);
+    it->second->handleMessage(msg, context_);
     handled = true;
   } catch (std::exception &e) {
     std::cerr << e.what() << std::endl;

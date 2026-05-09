@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 project(Messenger VERSION 1.0.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -10,121 +10,108 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_compile_options(-g -std=c++23 -Wall -Wextra)
 
-# OpenSSL + Qt
 find_package(OpenSSL REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Threads REQUIRED)
 
-# Пути к заголовкам
-include_directories(include)
-
-# Собираем cpp из src/
-file(GLOB_RECURSE SRC_FILES
+file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS
     src/*.cpp
 )
 
-# Заголовки (чисто чтобы IDE знали про них)
-file(GLOB_RECURSE HEADER_FILES
+file(GLOB_RECURSE CORE_HEADERS CONFIGURE_DEPENDS
     include/*.hpp
     include/*.h
 )
 
-# Сервер
+list(REMOVE_ITEM CORE_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/client.cpp
+)
+
+add_library(messenger_core STATIC
+    ${CORE_SRC}
+    ${CORE_HEADERS}
+)
+
+target_include_directories(messenger_core
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_compile_options(messenger_core PRIVATE
+    -Wall
+    -Wextra
+)
+
+target_link_libraries(messenger_core
+    PUBLIC
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        Qt6::Widgets
+        Threads::Threads
+)
+
 add_executable(messenger_server
-    main.cpp         # точка входа сервера
-    ${SRC_FILES}
-    ${HEADER_FILES}
+    main.cpp
 )
 
-target_link_libraries(messenger_server PRIVATE
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    Qt6::Widgets
-    pthread
+target_link_libraries(messenger_server
+    PRIVATE
+        messenger_core
 )
 
-# Клиент
 add_executable(messenger_client
-    client.cpp       # точка входа клиента
-    ${SRC_FILES}
-    ${HEADER_FILES}
+    client.cpp
 )
 
-target_link_libraries(messenger_client PRIVATE
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    Qt6::Widgets
-    pthread
+target_link_libraries(messenger_client
+    PRIVATE
+        messenger_core
 )
 
-# ==========================================
-# ТЕСТЫ
-# ==========================================
-
-# Включаем GoogleTest
+include(CTest)
 enable_testing()
-include(FetchContent)
-FetchContent_Declare(
-	googletest
-	GIT_REPOSITORY https://github.com/google/googletest.git
-	GIT_TAG release-1.12.1
-)
 
-# Для Windows: отключаем установку, чтобы не попасть в PATH
-if(WIN32)
-	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+option(BUILD_TESTS "Build tests" ON)
+
+if(BUILD_TESTS)
+  include(FetchContent)
+  FetchContent_Declare(
+      googletest
+      GIT_REPOSITORY https://github.com/google/googletest.git
+      GIT_TAG release-1.12.1
+  )
+
+  if(WIN32)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  endif()
+
+  set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
+
+  add_executable(run_tests
+      tests/tests.cpp
+  )
+
+  target_link_libraries(run_tests
+      PRIVATE
+          messenger_core
+          GTest::gtest
+          GTest::gtest_main
+  )
+
+  add_test(NAME all_tests COMMAND run_tests)
+
+  add_custom_target(check
+      COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+      DEPENDS run_tests
+      COMMENT "Running tests..."
+  )
 endif()
 
-set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
-
-FetchContent_MakeAvailable(googletest)
-
-add_executable(run_tests 
-	tests/tests.cpp
-    ${SRC_FILES}
-    ${HEADER_FILES}
-)
-
-target_link_libraries(run_tests PRIVATE 
-    GTest::gtest 
-    GTest::gtest_main 
-    OpenSSL::SSL 
-    OpenSSL::Crypto
-	Qt6::Widgets
-    pthread
-)
-# Регистрируем тесты
-add_test(NAME all_tests COMMAND run_tests)
-
-# Опционально: добавить запуск тестов в CI/CD
-add_custom_target(check
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS run_tests
-    COMMENT "Running tests..."
-)
-
-# Для отладки тестов (опционально)
-add_executable(run_tests_debug
-    tests/tests.cpp
-    ${SRC_FILES}
-    ${HEADER_FILES}
-)
-
-target_include_directories(run_tests_debug PRIVATE src)
-target_link_libraries(run_tests_debug PRIVATE 
-    GTest::gtest 
-    GTest::gtest_main 
-    OpenSSL::SSL 
-	Qt6::Widgets
-    OpenSSL::Crypto
-    pthread
-)
-set_target_properties(run_tests_debug PROPERTIES
-    COMPILE_FLAGS "-g -O0"
-)
-
 if(WIN32)
-    target_link_libraries(messenger_server ws2_32)
-    target_link_libraries(messenger_client ws2_32)
+  target_link_libraries(messenger_server PRIVATE ws2_32)
+  target_link_libraries(messenger_client PRIVATE ws2_32)
 endif()

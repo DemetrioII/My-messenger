@@ -13,34 +13,53 @@
 #include "../commands_impl/sendfile.hpp"
 #include "../message_dispatcher.hpp"
 
-class MessageCommandHandler : public IMessageHandler {
-
-  ClientCommandRegistry clientCommandRegistry;
-  ClientCommandBus clientCommandBus;
-
-  ServerCommandBus serverCommandBus;
-  ServerCommandRegistry serverCommandRegistry;
-
-  PeerCommandBus peerCommandBus;
-  PeerCommandRegistry peerCommandRegistry;
-
-  Parser parser;
+class ClientCommandHandler : public IClientMessageHandler {
+  ClientCommandRegistry registry_;
+  ClientCommandBus bus_;
 
 public:
-  MessageCommandHandler();
+  ClientCommandHandler();
 
-  void
-  handleMessageOnClient(const Message &msg,
-                        const std::shared_ptr<ClientContext> context) override;
+  void handleOutgoing(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 
-  void handleMessageOnServer(const Message &msg,
-                             std::shared_ptr<ServerContext> context) override;
+  void handleIncoming(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 
-  void handleOnSendPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
+  MessageType getMessageType() const override { return MessageType::Command; }
 
-  void handleOnRecvPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
+  ~ClientCommandHandler() override;
+};
 
-  MessageType getMessageType() const override;
+class ServerCommandHandler : public IServerMessageHandler {
+  ServerCommandRegistry registry_;
+  ServerCommandBus bus_;
+
+public:
+  ServerCommandHandler();
+
+  void handleMessage(const Message &msg,
+                     std::shared_ptr<ServerContext> context) override;
+
+  MessageType getMessageType() const override { return MessageType::Command; }
+
+  ~ServerCommandHandler() override;
+};
+
+class PeerCommandHandler : public IPeerMessageHandler {
+  PeerCommandRegistry registry_;
+  PeerCommandBus bus_;
+
+public:
+  PeerCommandHandler();
+
+  void handleSending(const Message &msg,
+                     std::shared_ptr<PeerContext> context) override;
+
+  void handleReceiving(const Message &msg,
+                       std::shared_ptr<PeerContext> context) override;
+
+  MessageType getMessageType() const override { return MessageType::Command; }
+
+  ~PeerCommandHandler() override;
 };

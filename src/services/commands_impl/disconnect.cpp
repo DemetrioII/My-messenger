@@ -26,26 +26,8 @@ void DisconnectCommand::send_from_peer(std::shared_ptr<PeerContext> context) {
     std::cout << "Usage: disconnect <username>" << std::endl;
     return;
   }
-  auto fd_res = context->session_manager->get_fd(username);
-  if (!fd_res.has_value()) {
-    switch (fd_res.error()) {
-    case ServiceError::UserNotFound: {
-      std::cout << "User not found or not been connected" << std::endl;
-      return;
-    }
-    default: {
-      std::cout << "Unknown error" << std::endl;
-      return;
-    }
-    }
-  }
-  // send_to_peer(*context->peer_node, fd, );
-  int fd = *fd_res;
-  send_to_peer(*context->peer_node, fd,
-               context->serializer->serialize(toMessage()));
-  disconnect_from_peer(*context->peer_node, fd);
-  context->user_service->remove_user(username);
-  context->session_manager->unbind(fd);
+  PeerApplicationService service;
+  service.disconnect_peer(username, context);
 }
 
 void DisconnectCommand::recv_on_peer(int fd,

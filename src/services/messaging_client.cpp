@@ -4,22 +4,32 @@ void MessagingClient::handle_command(const std::string &msg) {
   ParsedCommand cmd_struct = context->parser.parse_line(msg);
 }
 
+void MessagingClient::dispatch_incoming(const Message &msg) {
+  dispatcher.setContext(context);
+  dispatcher.dispatch(msg);
+}
+
+void MessagingClient::dispatch_outgoing(const Message &msg) {
+  dispatcher.setContext(context);
+  dispatcher.dispatch(msg);
+}
+
 MessagingClient::MessagingClient(const std::string &server_ip, int port)
     : context(std::make_shared<ClientContext>(server_ip, port)) {
   dispatcher.registerHandler(MessageType::Text,
-                             std::make_unique<TextMessageHandler>());
+                             std::make_unique<ClientTextHandler>());
   dispatcher.registerHandler(MessageType::Command,
-                             std::make_unique<MessageCommandHandler>());
+                             std::make_unique<ClientCommandHandler>());
   dispatcher.registerHandler(MessageType::Response,
                              std::make_unique<ResponseMessageHandler>());
   dispatcher.registerHandler(MessageType::CipherMessage,
                              std::make_unique<CipherMessageHandler>());
   dispatcher.registerHandler(MessageType::FileStart,
-                             std::make_unique<FileStartHandler>());
+                             std::make_unique<ClientFileStartHandler>());
   dispatcher.registerHandler(MessageType::FileChunk,
-                             std::make_unique<FileChunkHandler>());
+                             std::make_unique<ClientFileChunkHandler>());
   dispatcher.registerHandler(MessageType::FileEnd,
-                             std::make_unique<FileEndHandler>());
+                             std::make_unique<ClientFileEndHandler>());
 }
 
 int MessagingClient::init_client(const std::string &server_ip, int port) {
@@ -31,8 +41,7 @@ int MessagingClient::init_client(const std::string &server_ip, int port) {
 void MessagingClient::on_tcp_data_received(
     const std::vector<uint8_t> &raw_data) {
   Message msg = context->serializer->deserialize(raw_data);
-  dispatcher.setContext(context);
-  dispatcher.dispatch(msg);
+  dispatch_incoming(msg);
   // context->ui_callback(msg.get_payload());
 }
 
@@ -48,8 +57,7 @@ MessagingClient::query_user_info(std::string &username) {}
 
 void MessagingClient::get_data(const std::string &data) {
   Message msg = context->parser.parse(data);
-  dispatcher.setContext(context);
-  dispatcher.dispatch(msg);
+  dispatch_outgoing(msg);
   // context->ui_callback(msg.get_payload());
 }
 

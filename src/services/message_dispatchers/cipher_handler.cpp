@@ -10,6 +10,7 @@ void CipherMessageHandler::process_encrypted_message(
     const std::vector<uint8_t> &signature,
     std::shared_ptr<ClientContext> context) {
   try {
+    auto encryption_service = context->encryption_service;
     encryption_service->cache_public_key(sender, pubkey_bytes, identity_key);
     auto counter_it = context->messages_counter.find(sender);
     if (counter_it == context->messages_counter.end()) {
@@ -32,9 +33,8 @@ void CipherMessageHandler::process_encrypted_message(
   }
 }
 
-void CipherMessageHandler::handleMessageOnClient(
+void CipherMessageHandler::handleIncoming(
     const Message &msg, std::shared_ptr<ClientContext> context) {
-  encryption_service = context->encryption_service;
   auto payload = msg.get_payload();
   auto sender_id = msg.get_meta(1);
   auto recipient_id = msg.get_meta(0);
@@ -46,63 +46,9 @@ void CipherMessageHandler::handleMessageOnClient(
                             identity_key, signauture, context);
 }
 
-void CipherMessageHandler::handleMessageOnServer(
-    const Message &msg, std::shared_ptr<ServerContext> context) {
-  auto username = context->session_manager->get_username(context->fd);
-  if (!username.has_value()) {
-    context->transport_server->send(context->fd,
-                                    StaticResponses::YOU_NEED_TO_LOGIN);
-    return;
-  }
-  auto recipient_username =
-      std::string(msg.get_meta(0).begin(), msg.get_meta(0).end());
-  auto recipient_fd = context->session_manager->get_fd(recipient_username);
-  if (!recipient_fd.has_value()) {
-    context->transport_server->send(context->fd,
-                                    StaticResponses::USER_NOT_FOUND);
-    return;
-  }
-  auto sender = context->user_service->find_user(*username);
-  if (!sender.has_value()) {
-    context->transport_server->send(context->fd,
-                                    StaticResponses::YOU_NEED_TO_LOGIN);
-    return;
-  }
-  Message msg_to_send(
-      {std::move(msg.get_payload()),
-       5,
-       {msg.get_meta(0), msg.get_meta(1), (*sender)->get_public_DH_key(),
-        (*sender)->get_public_Identity_key(), (*sender)->get_key_signature()},
-       MessageType::CipherMessage});
-  std::cout << "Message was sent to " << recipient_username << std::endl;
-  context->transport_server->send(*recipient_fd,
-                                  context->serializer.serialize(msg_to_send));
-}
-
-void CipherMessageHandler::handleOnSendPeer(
-    const Message &msg, std::shared_ptr<PeerContext> context) {
-  std::cout << std::string_view(
-                   reinterpret_cast<const char *>(context->my_username.data()),
-                   context->my_username.size())
-            << " sent message" << std::endl;
-}
-
-void CipherMessageHandler::handleOnRecvPeer(
-    const Message &msg, std::shared_ptr<PeerContext> context) {
-  std::cout << std::string(context->my_username.begin(),
-                           context->my_username.end())
-            << " got message: [Private from "
-            << std::string_view(
-                   reinterpret_cast<const char *>(msg.get_meta(0).data()),
-                   msg.get_meta(0).size())
-            << "]: ";
-  auto encrypted_message = context->encryption_service->decrypt_for(
-      msg.get_meta(0), context->my_username, msg.get_payload(), msg.get_meta(1),
-      context->messages_counter[msg.get_meta(0)]);
-  std::cout << std::string_view(
-                   reinterpret_cast<const char *>(encrypted_message.data()),
-                   encrypted_message.size())
-            << std::endl;
+void CipherMessageHandler::handleOutgoing(
+    const Message &msg, std::shared_ptr<ClientContext> context) {
+  handleIncoming(msg, context);
 }
 
 MessageType CipherMessageHandler::getMessageType() const {

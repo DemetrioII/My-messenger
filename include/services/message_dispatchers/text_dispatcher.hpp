@@ -1,20 +1,12 @@
 #pragma once
-#include "../message_dispatcher.hpp"
+#include "../message_handler_interfaces.hpp"
 
-class TextMessageHandler : public IMessageHandler {
+class ClientTextHandler : public IClientMessageHandler {
 public:
-  void
-  handleMessageOnClient(const Message &msg,
-                        const std::shared_ptr<ClientContext> context) override;
-
-  void handleMessageOnServer(const Message &msg,
-                             std::shared_ptr<ServerContext> context) override;
-
-  void handleOnSendPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
-
-  void handleOnRecvPeer(const Message &msg,
-                        std::shared_ptr<PeerContext> context) override;
+  void handleIncoming(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
+  void handleOutgoing(const Message &msg,
+                      const std::shared_ptr<ClientContext> context) override;
 
   MessageType getMessageType() const override;
 };

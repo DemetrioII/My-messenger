@@ -109,71 +109,52 @@ private:
   std::unordered_map<std::string, int> name_to_fd_;
 };
 
-/*class MessagingService {
-private:
-  std::unordered_map<std::string, User> users;
-  std::unordered_map<std::string, Chat> chats;
-  std::unordered_map<std::string, std::string> auth_tokens;
-  std::unordered_map<int, std::string> connections;
-  std::unordered_map<std::string, int> fds;
-  std::unordered_map<std::string, std::string> username_to_id;
-  std::unordered_map<std::string, std::string> chat_name_to_id;
-
+class ServerApplicationService {
 public:
-  Stream<User> user_logged_in;
-  Stream<std::pair<std::string, Chat>> chat_created;
-  Stream<std::tuple<std::string, std::string, Message>> message_sent;
-  MessagingService() = default;
+  ServerApplicationService(std::shared_ptr<UserService> user_service,
+                           std::shared_ptr<ChatService> chat_service,
+                           std::shared_ptr<SessionManager> session_manager,
+                           std::shared_ptr<IServer> transport_server,
+                           Serializer *serializer, int *fd_ref);
 
-  std::string authenticate(const std::string &username,
-                           const std::string &password_hash,
-                           const std::vector<uint8_t> &pubkey_bytes);
+  void login(const std::string &username, const std::vector<uint8_t> &dh_pubkey,
+             const std::vector<uint8_t> &identity_pub,
+             const std::vector<uint8_t> &signature) const;
 
-  std::string get_user_id_by_token(std::string &token);
+  void join_room(const std::string &chat_name) const;
 
-  void remove_user_by_fd(int fd);
+  void create_room(const std::string &chat_name) const;
 
-  void bind_connection(int fd, const std::string &user_id);
+  void send_group_message(const std::string &chat_name,
+                          const Message &message) const;
 
-  bool is_authenticated(int fd);
+  void disconnect_username(const std::string &username) const;
 
-  int get_fd_by_user_id(const std::string &user_id);
+  void exit_current_session() const;
 
-  bool send_message(const std::string &from_user_id,
-                    const std::string &to_chat_id, const Message &message);
+  void deliver_cipher_message(int fd, const Message &msg);
 
-  std::expected<bool, ServiceError>
-  join_chat_by_name(const std::string &user_id, const std::string &chat_name);
+  void handle_cipher_message(const Message &msg);
 
-  std::expected<User *, ServiceError>
-  get_user_by_id(const std::string &user_id);
+  void send_pubkey(const std::vector<uint8_t> &username) const;
 
-  std::expected<User *, ServiceError>
-  get_user_by_name(const std::string &username);
-
-  std::expected<std::string, ServiceError>
-  get_user_id_by_name(const std::string &username);
-
-  std::expected<std::string, ServiceError> get_user_id_by_fd(int fd);
-
-  std::string generate_chat_id();
-
-  std::expected<Chat *, ServiceError>
-  get_chat_by_id(const std::string &chat_id);
-
-  std::expected<Chat *, ServiceError>
-  get_chat_by_name(const std::string &chat_name);
-
-  std::expected<std::string, ServiceError>
-  get_chat_id_by_name(const std::string &chat_name);
-
-  bool is_member_of_chat(const std::string &chat_name,
-                         const std::string &user_id);
-
-  std::string create_chat(const std::string &creator_id,
-                          const std::string &name, ChatType type,
-                          const std::vector<std::string> &initial_members);
+  std::optional<std::string> current_username() const;
 
 private:
-  std::string generate_token();
-}; */
+  std::shared_ptr<UserService> user_service_;
+  std::shared_ptr<ChatService> chat_service_;
+  std::shared_ptr<SessionManager> session_manager_;
+  std::shared_ptr<IServer> transport_server_;
+  Serializer *serializer_ = nullptr;
+  int *fd_ref_ = nullptr;
+};
+
+class PeerApplicationService {
+public:
+  void disconnect_peer(const std::string &username,
+                       const std::shared_ptr<PeerContext> context) const;
+
+  void send_private_message(const std::vector<uint8_t> &recipient,
+                            const std::vector<uint8_t> &payload,
+                            const std::shared_ptr<PeerContext> context) const;
+};

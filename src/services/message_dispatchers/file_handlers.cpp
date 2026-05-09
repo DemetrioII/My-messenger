@@ -1,12 +1,12 @@
 #include "../../../include/services/message_dispatchers/file_handlers.hpp"
 
-MessageType FileStartHandler::getMessageType() const {
+MessageType ClientFileStartHandler::getMessageType() const {
   return MessageType::FileStart;
 }
 
-void FileStartHandler::handleMessageOnClient(
+void ClientFileStartHandler::handleIncoming(
     const Message &msg, std::shared_ptr<ClientContext> context) {
-  pending_files = context->pending_files;
+  auto pending_files = context->pending_files;
   uint64_t file_size = from_bytes(msg.get_meta(2));
 
   auto name = std::string(msg.get_meta(1).begin(), msg.get_meta(1).end());
@@ -26,41 +26,18 @@ void FileStartHandler::handleMessageOnClient(
   }
 }
 
-void FileStartHandler::handleMessageOnServer(
-    const Message &msg, std::shared_ptr<ServerContext> context) {
-  uint64_t file_size = from_bytes(msg.get_meta(2));
-
-  std::string_view name(reinterpret_cast<const char *>(msg.get_meta(1).data()),
-                        msg.get_meta(1).size());
-  std::cout << "[File] Server Receiving " << name << " (" << file_size
-            << " bytes)" << std::endl;
-
-  std::string recipient_username_str =
-      std::string(msg.get_meta(0).begin(), msg.get_meta(0).end());
-
-  auto recipient_fd_res =
-      context->session_manager->get_fd(recipient_username_str);
-  if (!recipient_fd_res.has_value()) {
-    context->transport_server->send(context->fd,
-                                    StaticResponses::USER_NOT_FOUND);
-  }
-  context->transport_server->send(*recipient_fd_res,
-                                  context->serializer.serialize(msg));
+void ClientFileStartHandler::handleOutgoing(
+    const Message &msg, std::shared_ptr<ClientContext> context) {
+  handleIncoming(msg, context);
 }
 
-void FileStartHandler::handleOnRecvPeer(const Message &msg,
-                                        std::shared_ptr<PeerContext> context) {}
-
-void FileStartHandler::handleOnSendPeer(const Message &msg,
-                                        std::shared_ptr<PeerContext> context) {}
-
-MessageType FileChunkHandler::getMessageType() const {
+MessageType ClientFileChunkHandler::getMessageType() const {
   return MessageType::FileChunk;
 }
 
-void FileChunkHandler::handleMessageOnClient(
+void ClientFileChunkHandler::handleIncoming(
     const Message &msg, const std::shared_ptr<ClientContext> context) {
-  pending_files = context->pending_files;
+  auto pending_files = context->pending_files;
 
   auto name = std::string(msg.get_meta(1).begin(), msg.get_meta(1).end());
 
@@ -86,44 +63,19 @@ void FileChunkHandler::handleMessageOnClient(
   std::cout << "[File] File chunk has been received " << name << std::endl;
 }
 
-void FileChunkHandler::handleMessageOnServer(
-    const Message &msg, std::shared_ptr<ServerContext> context) {
-  // auto recipient = msg.get_meta(0);
-  // auto fname = msg.get_meta(1);
-  std::string_view name(reinterpret_cast<const char *>(msg.get_meta(1).data()),
-                        msg.get_meta(1).size());
-
-  std::string recipient_username_str =
-      std::string(msg.get_meta(0).begin(), msg.get_meta(0).end());
-
-  auto recipient_fd_res =
-      context->session_manager->get_fd(recipient_username_str);
-
-  if (!recipient_fd_res.has_value()) {
-    context->transport_server->send(context->fd,
-                                    StaticResponses::USER_NOT_FOUND);
-    return;
-  }
-
-  std::cout << "[File] Server file chunk is sending " << name << std::endl;
-  context->transport_server->send(*recipient_fd_res,
-                                  context->serializer.serialize(msg));
+void ClientFileChunkHandler::handleOutgoing(
+    const Message &msg, const std::shared_ptr<ClientContext> context) {
+  handleIncoming(msg, context);
 }
 
-void FileChunkHandler::handleOnRecvPeer(const Message &msg,
-                                        std::shared_ptr<PeerContext> context) {}
-
-void FileChunkHandler::handleOnSendPeer(const Message &msg,
-                                        std::shared_ptr<PeerContext> context) {}
-
-MessageType FileEndHandler::getMessageType() const {
+MessageType ClientFileEndHandler::getMessageType() const {
   return MessageType::FileEnd;
 }
 
-void FileEndHandler::handleMessageOnClient(
+void ClientFileEndHandler::handleIncoming(
     const Message &msg, const std::shared_ptr<ClientContext> context) {
 
-  pending_files = context->pending_files;
+  auto pending_files = context->pending_files;
   // auto fname = msg.get_meta(1);
   // auto recipient = msg.get_meta(0);
   std::string name =
@@ -147,33 +99,7 @@ void FileEndHandler::handleMessageOnClient(
   }
 }
 
-void FileEndHandler::handleMessageOnServer(
-    const Message &msg, const std::shared_ptr<ServerContext> context) {
-  // auto fname = msg.get_meta(1);
-  // auto recipient = msg.get_meta(0);
-  auto name =
-      std::string_view(reinterpret_cast<const char *>(msg.get_meta(1).data()),
-                       msg.get_meta(1).size());
-
-  std::string recipient_username_str =
-      std::string(msg.get_meta(0).begin(), msg.get_meta(0).end());
-
-  auto recipient_fd_res =
-      context->session_manager->get_fd(recipient_username_str);
-
-  if (!recipient_fd_res.has_value()) {
-    context->transport_server->send(context->fd,
-                                    StaticResponses::USER_NOT_FOUND);
-    return;
-  }
-
-  std::cout << "[File] Completed: " << name << std::endl;
-  context->transport_server->send(*recipient_fd_res,
-                                  context->serializer.serialize(msg));
+void ClientFileEndHandler::handleOutgoing(
+    const Message &msg, const std::shared_ptr<ClientContext> context) {
+  handleIncoming(msg, context);
 }
-
-void FileEndHandler::handleOnRecvPeer(const Message &msg,
-                                      std::shared_ptr<PeerContext> context) {}
-
-void FileEndHandler::handleOnSendPeer(const Message &msg,
-                                      std::shared_ptr<PeerContext> context) {}

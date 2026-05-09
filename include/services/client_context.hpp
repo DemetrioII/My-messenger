@@ -75,6 +75,7 @@ struct PeerContext {
         pending_files(std::make_shared<std::unordered_map<
                           std::string, std::unique_ptr<std::ofstream>>>()),
         serializer(std::make_shared<Serializer>()),
+        // message_queue(std::make_shared<MessageQueue>()),
         encryption_service(std::make_shared<EncryptionService>()) {
     encryption_service->set_key();
   }
@@ -85,6 +86,7 @@ struct ServerContext {
   std::shared_ptr<UserService> user_service;
   std::shared_ptr<ChatService> chat_service;
   std::shared_ptr<SessionManager> session_manager;
+  std::shared_ptr<ServerApplicationService> app_service;
   Serializer serializer;
 
   int fd;
@@ -96,5 +98,9 @@ struct ServerContext {
       : transport_server(ServerFactory::tcp_server("127.0.0.1", 8080)),
         user_service(std::make_shared<UserService>()),
         chat_service(std::make_shared<ChatService>()),
-        session_manager(std::make_shared<SessionManager>()) {}
+        session_manager(std::make_shared<SessionManager>()) {
+    app_service = std::make_shared<ServerApplicationService>(
+        user_service, chat_service, session_manager, transport_server,
+        &serializer, &fd);
+  }
 };

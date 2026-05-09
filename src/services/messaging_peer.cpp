@@ -3,25 +3,25 @@
 MessagingPeer::MessagingPeer(int port)
     : context_(std::make_shared<PeerContext>()) {
   dispatcher.registerHandler(MessageType::Text,
-                             std::make_unique<TextMessageHandler>());
+                             std::make_unique<PeerTextHandler>());
 
   dispatcher.registerHandler(MessageType::Command,
-                             std::make_unique<MessageCommandHandler>());
+                             std::make_unique<PeerCommandHandler>());
 
   dispatcher.registerHandler(MessageType::CipherMessage,
-                             std::make_unique<CipherMessageHandler>());
+                             std::make_unique<PeerCipherHandler>());
 
   dispatcher.registerHandler(MessageType::Response,
-                             std::make_unique<ResponseMessageHandler>());
+                             std::make_unique<PeerResponseHandler>());
 
   dispatcher.registerHandler(MessageType::FileStart,
-                             std::make_unique<FileStartHandler>());
+                             std::make_unique<PeerFileStartHandler>());
 
   dispatcher.registerHandler(MessageType::FileChunk,
-                             std::make_unique<FileChunkHandler>());
+                             std::make_unique<PeerFileChunkHandler>());
 
   dispatcher.registerHandler(MessageType::FileEnd,
-                             std::make_unique<FileEndHandler>());
+                             std::make_unique<PeerFileEndHandler>());
 
   start_listening(*context_->peer_node, port);
   context_->peer_node->callbacks_.on_peer_connected = ([](int fd) {

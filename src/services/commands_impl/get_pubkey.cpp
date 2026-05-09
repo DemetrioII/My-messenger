@@ -21,30 +21,7 @@ void GetPubkeyCommand::fromMessage(const Message &msg) {
 
 void GetPubkeyCommand::execeuteOnServer(
     std::shared_ptr<ServerContext> context) {
-  auto transport_server = context->transport_server;
-  int fd = context->fd;
-  if (username.empty()) {
-    transport_server->send(fd, StaticResponses::WRONG_COMMAND_USAGE);
-    return;
-  }
-
-  auto user_service = context->user_service;
-  auto session_manager = context->session_manager;
-  auto user_res =
-      user_service->find_user(std::string(username.begin(), username.end()));
-  if (!user_res.has_value()) {
-    transport_server->send(fd, StaticResponses::USER_NOT_FOUND);
-    return;
-  }
-  Message msg(
-      {(*user_res)->get_public_DH_key(),
-       4,
-       {std::vector<uint8_t>{static_cast<uint8_t>(CommandType::GET_PUBKEY)},
-        username, (*user_res)->get_public_Identity_key(),
-        (*user_res)->get_key_signature()},
-       MessageType::Response});
-  context->transport_server->send(context->fd,
-                                  context->serializer.serialize(msg));
+  context->app_service->send_pubkey(username);
 }
 
 void GetPubkeyCommand::executeOnClient(std::shared_ptr<ClientContext> context) {

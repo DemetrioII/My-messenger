@@ -106,19 +106,10 @@ class IMessageHandler {
 public:
   virtual ~IMessageHandler() = default;
 
-  virtual void
-  handleMessageOnClient(const Message &msg,
-                        const std::shared_ptr<ClientContext> context) = 0;
-
-  virtual void
-  handleMessageOnServer(const Message &msg,
-                        std::shared_ptr<ServerContext> context) = 0;
-
-  virtual void handleOnSendPeer(const Message &msg,
-                                std::shared_ptr<PeerContext> context) = 0;
-
-  virtual void handleOnRecvPeer(const Message &msg,
-                                std::shared_ptr<PeerContext> context) = 0;
+  virtual void handleOutgoing(const Message &msg,
+                              std::shared_ptr<ClientContext> context) = 0;
+  virtual void handleIncoming(const Message &msg,
+                              std::shared_ptr<ClientContext> context) = 0;
 
   virtual MessageType getMessageType() const = 0;
 };

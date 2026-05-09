@@ -2,7 +2,9 @@
 
 #include <QApplication>
 #include <atomic>
+#include <csignal>
 #include <iostream>
+#include <chrono>
 #include <thread>
 
 // UI и Мост
@@ -15,6 +17,9 @@
 
 // Глобальный флаг для потоков
 std::atomic<bool> is_running{true};
+inline volatile std::sig_atomic_t g_shutdown_requested = 0;
+
+inline void handle_sigint(int) { g_shutdown_requested = 1; }
 
 // -----------------------------------------------------------
 // СЕРВЕР (Оставляем как было, тут консоль ок)
@@ -23,7 +28,18 @@ void start_server() {
   MessagingServer messaging_server;
   messaging_server.start_server(8080);
   std::cout << "Server started on port 8080..." << std::endl;
-  messaging_server.run();
+
+  std::signal(SIGINT, handle_sigint);
+
+  std::thread server_thread([&messaging_server]() { messaging_server.run(); });
+  while (!g_shutdown_requested) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  messaging_server.stop();
+
+  if (server_thread.joinable())
+    server_thread.join();
 }
 
 // -----------------------------------------------------------

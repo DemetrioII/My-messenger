@@ -31,6 +31,8 @@ private:
   }
 
   void handle_command(const std::string &msg);
+  void dispatch_incoming(const Message &msg);
+  void dispatch_outgoing(const Message &msg);
 
 public:
   MessagingClient(const std::string &server_ip, int port);

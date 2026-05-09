@@ -4,11 +4,11 @@
 #include "../network/transport/peer.hpp"
 #include "client_context.hpp"
 #include "message_dispatcher.hpp"
-#include "message_dispatchers/cipher_handler.hpp"
 #include "message_dispatchers/command_handler.hpp"
-#include "message_dispatchers/file_handlers.hpp"
-#include "message_dispatchers/response_handler.hpp"
-#include "message_dispatchers/text_dispatcher.hpp"
+#include "message_dispatchers/peer_cipher_handler.hpp"
+#include "message_dispatchers/peer_file_handlers.hpp"
+#include "message_dispatchers/peer_response_handler.hpp"
+#include "message_dispatchers/peer_text_handler.hpp"
 
 class MessagingPeer {
   std::shared_ptr<PeerContext> context_;

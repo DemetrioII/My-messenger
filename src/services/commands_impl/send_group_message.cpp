@@ -12,46 +12,8 @@ Message SendGroupMessageCommand::toMessage() const {
 
 void SendGroupMessageCommand::execeuteOnServer(
     std::shared_ptr<ServerContext> context) {
-  auto user_service = context->user_service;
-  auto chat_service = context->chat_service;
-  auto session_manager = context->session_manager;
-
-  auto username_res = session_manager->get_username(context->fd);
-  if (!username_res.has_value()) {
-    context->transport_server->send(context->fd,
-                                    StaticResponses::YOU_NEED_TO_LOGIN);
-    return;
-  }
-
   auto chat_name_str = std::string(chat_name.begin(), chat_name.end());
-  if (chat_name_str.empty()) {
-    context->transport_server->send(context->fd,
-                                    StaticResponses::CHAT_NOT_FOUND);
-    return;
-  }
-
-  auto send_res =
-      chat_service->post_message(chat_name_str, *username_res, toMessage());
-  if (!send_res.has_value()) {
-    if (send_res.error() == ServiceError::AccessDenied) {
-      context->transport_server->send(context->fd,
-                                      StaticResponses::YOU_ARE_NOT_MEMBER);
-      return;
-    }
-    if (send_res.error() == ServiceError::ChatNotFound) {
-      context->transport_server->send(context->fd,
-                                      StaticResponses::CHAT_NOT_FOUND);
-      return;
-    }
-  }
-
-  for (auto username : *send_res) {
-    auto his_fd = session_manager->get_fd(username);
-    if (his_fd.has_value()) {
-      context->transport_server->send(
-          *his_fd, context->serializer.serialize(toMessage()));
-    }
-  }
+  context->app_service->send_group_message(chat_name_str, toMessage());
 }
 
 void SendGroupMessageCommand::executeOnClient(
