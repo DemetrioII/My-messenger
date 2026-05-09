@@ -15,6 +15,21 @@ find_package(OpenSSL REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Threads REQUIRED)
 
+option(BUILD_TESTS "Build tests" ON)
+option(BUILD_LOGGING "Build with log4cplus" ON)
+
+if(BUILD_LOGGING)
+  include(FetchContent)
+  FetchContent_Declare(
+      log4cplus
+      GIT_REPOSITORY https://github.com/log4cplus/log4cplus.git
+      GIT_TAG REL_2_1_2
+  )
+  set(LOG4CPLUS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+  set(LOG4CPLUS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(log4cplus)
+endif()
+
 file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS
     src/*.cpp
 )
@@ -53,6 +68,13 @@ target_link_libraries(messenger_core
         Threads::Threads
 )
 
+if(BUILD_LOGGING)
+  target_link_libraries(messenger_core
+      PUBLIC
+          log4cplus::log4cplus
+  )
+endif()
+
 add_executable(messenger_server
     main.cpp
 )
@@ -73,8 +95,6 @@ target_link_libraries(messenger_client
 
 include(CTest)
 enable_testing()
-
-option(BUILD_TESTS "Build tests" ON)
 
 if(BUILD_TESTS)
   include(FetchContent)

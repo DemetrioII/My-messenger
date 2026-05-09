@@ -1,33 +1,32 @@
-#pragma once
+#include "../../include/app/runtime.hpp"
+#include "../../include/app/config.hpp"
 
 #include <QApplication>
 #include <atomic>
+#include <chrono>
 #include <csignal>
 #include <iostream>
-#include <chrono>
 #include <thread>
 
-// UI и Мост
-#include "include/services/message_bridge.hpp"
-#include "include/ui/chat_window.hpp"
-#include "include/ui/login_window.hpp"
+#include "../../include/services/message_bridge.hpp"
+#include "../../include/services/messaging_client.hpp"
+#include "../../include/services/messaging_server.hpp"
+#include "../../include/utils/logger.hpp"
+#include "../../include/ui/chat_window.hpp"
+#include "../../include/ui/login_window.hpp"
 
-#include "include/services/messaging_client.hpp"
-#include "include/services/messaging_server.hpp"
-
-// Глобальный флаг для потоков
 std::atomic<bool> is_running{true};
 inline volatile std::sig_atomic_t g_shutdown_requested = 0;
 
 inline void handle_sigint(int) { g_shutdown_requested = 1; }
 
-// -----------------------------------------------------------
-// СЕРВЕР (Оставляем как было, тут консоль ок)
-// -----------------------------------------------------------
 void start_server() {
-  MessagingServer messaging_server;
-  messaging_server.start_server(8080);
-  std::cout << "Server started on port 8080..." << std::endl;
+  messenger::log::init();
+  AppConfig config;
+  MessagingServer messaging_server(config);
+  messaging_server.start_server();
+  messenger::log::info("Server started on " + config.server_host + ":" +
+                       std::to_string(config.server_port));
 
   std::signal(SIGINT, handle_sigint);
 
@@ -42,19 +41,17 @@ void start_server() {
     server_thread.join();
 }
 
-// -----------------------------------------------------------
-// КЛИЕНТ (Теперь с Qt UI)
-// -----------------------------------------------------------
 void start_gui_client(int argc, char *argv[]) {
-  // 1. Initialize QApplication (main loop)
   QApplication app(argc, argv);
+  app.setQuitOnLastWindowClosed(true);
+  messenger::log::init();
 
-  // 2. Initialize main objects (bridge and windows)
-  std::shared_ptr<MessageBridge> bridge = std::make_shared<MessageBridge>();
+  auto bridge = std::make_shared<MessageBridge>();
   LoginWindow *loginWindow = new LoginWindow();
   ChatWindow *chatWindow = nullptr;
+  AppConfig config;
+  auto client = std::make_shared<MessagingClient>(config);
 
-  // When user enters we should open the chat window
   QObject::connect(loginWindow, &LoginWindow::loginSuccess,
                    [&](const QString &nickname) {
                      if (chatWindow) {
@@ -74,10 +71,7 @@ void start_gui_client(int argc, char *argv[]) {
                                       });
                    });
 
-  // Qt крутится в main, а socket read/write будет здесь
-  std::thread net_thread([bridge, &chatWindow]() {
-    auto client = std::make_shared<MessagingClient>("127.0.0.1", 8080);
-
+  std::thread net_thread([bridge, &chatWindow, client]() {
     QObject::connect(bridge.get(), &MessageBridge::responseReceived,
                      [&chatWindow](const QString &text) {
                        if (chatWindow) {
@@ -85,11 +79,12 @@ void start_gui_client(int argc, char *argv[]) {
                        }
                      });
 
-    // Эмуляция/Подключение
-    if (!client->init_client("127.0.0.1", 8080)) {
+    if (!client->init_client()) {
+      messenger::log::error("Client failed to connect to server");
       bridge->postResponse("Ошибка: Сервер недоступен!");
       return;
     }
+    messenger::log::info("Client connected to server");
     bridge->postResponse("Подключено к серверу! 🐧");
 
     auto ctx = client->get_context();
@@ -103,14 +98,17 @@ void start_gui_client(int argc, char *argv[]) {
                      });
 
     client->run();
+  });
 
-    client->get_data("/exit");
+  QObject::connect(&app, &QCoreApplication::aboutToQuit, [&]() {
+    if (client) {
+      client->stop();
+    }
   });
 
   loginWindow->show();
   app.exec();
 
-  // Когда окно закрыли — выходим
   is_running = false;
 
   if (net_thread.joinable())

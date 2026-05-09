@@ -1,4 +1,5 @@
 #pragma once
+#include "../app/config.hpp"
 #include "../encryption/AESGCMEncryption.hpp"
 #include "../encryption/identity_key.hpp"
 #include "../models/chat.hpp"
@@ -43,9 +44,9 @@ private:
   }
 
 public:
-  MessagingServer();
+  explicit MessagingServer(const AppConfig &config);
 
-  void start_server(int port);
+  void start_server();
 
   void run();
 

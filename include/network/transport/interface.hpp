@@ -126,7 +126,7 @@ public:
 
 class IServer {
 public:
-  virtual void start(int port) = 0;
+  virtual void start(const std::string &ip, int port) = 0;
   virtual void stop() = 0;
   virtual bool is_running() const = 0;
   virtual void on_client_error(int fd) = 0;

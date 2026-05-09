@@ -61,7 +61,7 @@ public:
       std::function<void(int, std::vector<uint8_t>)> data_callback,
       std::function<void(int)> disconnect_callback) override;
 
-  void start(int port) override;
+  void start(const std::string &ip, int port) override;
 
   void run_event_loop() override;
 

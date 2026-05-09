@@ -1,4 +1,5 @@
 #include "../../../include/network/transport/client.hpp"
+#include "../../../include/utils/logger.hpp"
 
 Client::Client(std::unique_ptr<ISocket> socket)
     : event_loop(std::make_unique<EventLoop>()),
@@ -38,14 +39,17 @@ bool Client::tls_handshake_done() { return tls_wrapper_->handshake_done_; }
 struct sockaddr_in Client::get_addr() { return server_addr; }
 
 void Client::disconnect() {
-  if (socket_visitor->fd != -1) {
-    event_loop->remove_fd(socket_visitor->fd);
-    ::shutdown(socket_visitor->fd, SHUT_RDWR);
-    // socket_visitor->close(); // Вызовется в деструкторе Fd автоматически
+  if (socket_visitor && socket_visitor->fd != -1) {
+    int fd = socket_visitor->fd;
+    event_loop->remove_fd(fd);
+    ::shutdown(fd, SHUT_RDWR);
+    socket_visitor->fd = -1;
+    event_loop->stop();
   }
   if (ssl_ctx_) {
     SSL_CTX_free(ssl_ctx_);
     EVP_cleanup();
+    ssl_ctx_ = nullptr;
   }
 }
 
@@ -89,7 +93,7 @@ void Client::on_server_message() {
 }
 
 void Client::run_event_loop() {
-  std::cout << "Введите сообщение (или /exit): " << std::endl;
+  messenger::log::info("Client event loop started");
   while (isConnected()) {
     event_loop->run_once(50); // Небольшой таймаут, чтобы не грузить CPU
     // Внимание: std::cin блокирует поток!
@@ -100,8 +104,10 @@ void Client::run_event_loop() {
 
 void Client::on_writable(int fd) {}
 void Client::on_disconnected() {
-  std::cout << "Соединение разорвано" << std::endl;
+  messenger::log::info("Connection closed");
 }
-bool Client::isConnected() const { return socket_visitor->fd != -1; }
-int Client::get_fd() const { return socket_visitor->fd; }
+bool Client::isConnected() const {
+  return socket_visitor && socket_visitor->fd != -1;
+}
+int Client::get_fd() const { return socket_visitor ? socket_visitor->fd : -1; }
 Client::~Client() { disconnect(); }

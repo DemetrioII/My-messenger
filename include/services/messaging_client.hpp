@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../app/config.hpp"
 #include "../network/protocol/parser.hpp"
 
 #include "message_dispatcher.hpp"
@@ -35,9 +36,9 @@ private:
   void dispatch_outgoing(const Message &msg);
 
 public:
-  MessagingClient(const std::string &server_ip, int port);
+  explicit MessagingClient(const AppConfig &config);
 
-  int init_client(const std::string &server_ip, int port);
+  int init_client();
 
   void on_tcp_data_received(const std::vector<uint8_t> &raw_data);
 
@@ -49,6 +50,8 @@ public:
   query_user_info(std::string &username);
 
   void get_data(const std::string &data);
+
+  void stop();
 
   void run();
 };

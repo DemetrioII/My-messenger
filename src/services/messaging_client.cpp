@@ -14,8 +14,8 @@ void MessagingClient::dispatch_outgoing(const Message &msg) {
   dispatcher.dispatch(msg);
 }
 
-MessagingClient::MessagingClient(const std::string &server_ip, int port)
-    : context(std::make_shared<ClientContext>(server_ip, port)) {
+MessagingClient::MessagingClient(const AppConfig &config)
+    : context(std::make_shared<ClientContext>(config)) {
   dispatcher.registerHandler(MessageType::Text,
                              std::make_unique<ClientTextHandler>());
   dispatcher.registerHandler(MessageType::Command,
@@ -32,7 +32,7 @@ MessagingClient::MessagingClient(const std::string &server_ip, int port)
                              std::make_unique<ClientFileEndHandler>());
 }
 
-int MessagingClient::init_client(const std::string &server_ip, int port) {
+int MessagingClient::init_client() {
   context->client->set_data_callback(
       [this](const std::vector<uint8_t> &data) { on_tcp_data_received(data); });
   return 1;
@@ -59,6 +59,12 @@ void MessagingClient::get_data(const std::string &data) {
   Message msg = context->parser.parse(data);
   dispatch_outgoing(msg);
   // context->ui_callback(msg.get_payload());
+}
+
+void MessagingClient::stop() {
+  if (context && context->client) {
+    context->client->disconnect();
+  }
 }
 
 void MessagingClient::run() { context->client->run_event_loop(); }

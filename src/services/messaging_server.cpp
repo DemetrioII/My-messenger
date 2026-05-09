@@ -1,7 +1,7 @@
 #include "../../../include/services/messaging_server.hpp"
 
-MessagingServer::MessagingServer()
-    : server_context(std::make_shared<ServerContext>()) {
+MessagingServer::MessagingServer(const AppConfig &config)
+    : server_context(std::make_shared<ServerContext>(config)) {
   dispatcher.registerHandler(MessageType::Text,
                              std::make_unique<ServerTextHandler>());
 
@@ -21,8 +21,9 @@ MessagingServer::MessagingServer()
                              std::make_unique<ServerFileEndHandler>());
 }
 
-void MessagingServer::start_server(int port) {
-  server_context->transport_server->start(port);
+void MessagingServer::start_server() {
+  server_context->transport_server->start(server_context->config.server_host,
+                                          server_context->config.server_port);
   server_context->transport_server->set_data_callback(
       [this](int fd, auto data) { on_tcp_data_received(fd, data); },
       [this](int fd) {

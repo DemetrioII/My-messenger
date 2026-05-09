@@ -1,4 +1,5 @@
 #include "../../../include/network/transport/server.hpp"
+#include "../../../include/utils/logger.hpp"
 
 Server::Server(std::unique_ptr<ISocket> socket,
                std::unique_ptr<IAcceptor> acceptor_)
@@ -34,8 +35,8 @@ void Server::set_data_callback(
   on_disconnected_callback = disconnect_callback;
 }
 
-void Server::start(int port) {
-  socket_->setup_server("127.0.0.1", port);
+void Server::start(const std::string &ip, int port) {
+  socket_->setup_server(ip, port);
   if (socket_->fd != -1) {
     running = true;
     // acceptHandler = std::make_shared<AcceptHandler>();
@@ -44,7 +45,7 @@ void Server::start(int port) {
     handler->init(shared_from_this());
     event_loop->add_fd(socket_->fd, acceptHandler,
                        EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP);
-    std::cout << "Сервер запущен на порту " << port << "\n";
+    messenger::log::info("Server started on port " + std::to_string(port));
   } else {
     std::runtime_error("Ошибка в создании сокета");
   }
@@ -58,7 +59,7 @@ void Server::run_event_loop() {
 }
 
 void Server::stop() {
-  std::cout << "Сервер отключается" << std::endl;
+  messenger::log::info("Server stopping");
   if (!running)
     return; // Защита от повторного вызова
 
@@ -85,9 +86,7 @@ void Server::tls_handshake(int fd) { tls_wrapper_[fd]->tls_handshake(); }
 
 void Server::on_client_connected(std::shared_ptr<IConnection> conn) {
   // std::lock_guard<std::mutex> lock(server_mutex);
-  std::cout << "Новое подключение от " << conn->get_fd() << '\n'
-            << "IP=" << inet_ntoa(conn->get_addr().sin_addr) << ":"
-            << ntohs(conn->get_addr().sin_port) << std::endl;
+  messenger::log::info("New connection fd=" + std::to_string(conn->get_fd()));
 
   int fd = conn->get_fd();
 
@@ -103,7 +102,7 @@ void Server::on_client_connected(std::shared_ptr<IConnection> conn) {
 }
 
 void Server::on_client_disconnected(int fd) {
-  std::cout << "Клиент " << fd << " отключился\n";
+  messenger::log::info("Client disconnected fd=" + std::to_string(fd));
   if (event_loop) {
     event_loop->remove_fd(fd);
   }
@@ -152,7 +151,7 @@ void Server::send(const std::string &message) {}
 int Server::get_fd() const { return socket_->fd; }
 
 Server::~Server() {
-  std::cout << "~TCPServer()" << std::endl;
+  messenger::log::debug("~TCPServer()");
   if (ssl_ctx_) {
     SSL_CTX_free(ssl_ctx_);
     EVP_cleanup();

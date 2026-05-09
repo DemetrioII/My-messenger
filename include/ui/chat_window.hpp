@@ -1,15 +1,20 @@
 #pragma once
 
 #include <QDateTime>
+#include <QScrollArea>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QTextEdit>
+#include <QFrame>
+#include <QScrollBar>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
+#include <QTimer>
 #include <memory>
 #include <vector>
 
@@ -29,9 +34,14 @@ private slots:
   void handleSend();
 
 private:
+  QWidget *makeBubble(const QString &text, bool outgoing);
+  void appendBubble(const QString &text, bool outgoing);
+
   QString userNickname;
   QLabel *titleLabel;
-  QTextEdit *historyArea;
+  QScrollArea *historyArea;
+  QWidget *historyContent;
+  QVBoxLayout *historyLayout;
   QLineEdit *inputField;
   QLabel *statusLabel;
 };

@@ -1,4 +1,5 @@
 #pragma once
+#include "../app/config.hpp"
 #include "../network/protocol/parser.hpp"
 #include "../network/transport/interface.hpp"
 #include "../network/transport/peer.hpp"
@@ -10,6 +11,7 @@
 #include <functional>
 
 struct ClientContext {
+  AppConfig config;
   std::function<void(const std::string &)> ui_callback = nullptr;
   std::shared_ptr<IClient> client;
   std::shared_ptr<MessageQueue> mq;
@@ -30,8 +32,9 @@ struct ClientContext {
 
   std::unordered_map<std::vector<uint8_t>, uint64_t> messages_counter;
 
-  ClientContext(const std::string &server_ip, uint16_t port)
-      : client(ClientFactory::tcp_client(server_ip, port)),
+  ClientContext(const AppConfig &cfg)
+      : config(cfg),
+        client(ClientFactory::tcp_client(config.server_host, config.server_port)),
         mq(std::make_shared<MessageQueue>(client)),
         encryption_service(std::make_shared<EncryptionService>()),
         serializer(std::make_shared<Serializer>()),
@@ -82,6 +85,7 @@ struct PeerContext {
 };
 
 struct ServerContext {
+  AppConfig config;
   std::shared_ptr<IServer> transport_server;
   std::shared_ptr<UserService> user_service;
   std::shared_ptr<ChatService> chat_service;
@@ -94,8 +98,10 @@ struct ServerContext {
   Parser parser;
   Stream<std::pair<int, Message>> command_stream;
 
-  ServerContext()
-      : transport_server(ServerFactory::tcp_server("127.0.0.1", 8080)),
+  ServerContext(const AppConfig &cfg)
+      : config(cfg),
+        transport_server(
+            ServerFactory::tcp_server(config.server_host, config.server_port)),
         user_service(std::make_shared<UserService>()),
         chat_service(std::make_shared<ChatService>()),
         session_manager(std::make_shared<SessionManager>()) {
