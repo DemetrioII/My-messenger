@@ -1,1 +1,1 @@
-#pragma once
+#include "infrastructure/crypto/entropy.hpp"

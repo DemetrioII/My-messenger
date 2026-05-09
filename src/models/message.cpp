@@ -1,4 +1,4 @@
-#include "../../include/models/message.hpp"
+#include "include/models/message.hpp"
 
 Message::Message(const std::vector<uint8_t> &payload_, uint8_t metalen_,
                  const std::vector<std::vector<uint8_t>> &metadata_,

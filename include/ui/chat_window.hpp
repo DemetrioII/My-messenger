@@ -1,24 +1,24 @@
 #pragma once
 
 #include <QDateTime>
-#include <QScrollArea>
+#include <QFrame>
+#include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QPropertyAnimation>
 #include <QPushButton>
-#include <QFrame>
+#include <QScrollArea>
 #include <QScrollBar>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <QGraphicsOpacityEffect>
-#include <QPropertyAnimation>
-#include <QTimer>
 #include <memory>
 #include <vector>
 
-#include "../services/messaging_client.hpp"
+#include "include/application/messaging/messaging_client.hpp"
 
 class ChatWindow : public QWidget {
   Q_OBJECT

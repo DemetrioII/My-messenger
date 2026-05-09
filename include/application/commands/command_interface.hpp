@@ -1,0 +1,136 @@
+#pragma once
+#include "include/application/services/peer_application_service.hpp"
+#include "include/application/session/client_context.hpp"
+#include "include/models/message.hpp"
+#include "include/protocol/parser.hpp"
+#include <functional>
+#include <string>
+#include <vector>
+
+#define PREPARE_ARGS(...) std::vector<std::any> args = {__VA_ARGS__}
+
+#define GET_ARG(type, index, name) type name = std::any_cast<type>(args[index])
+
+#define EXECUTE_CMD_CLIENT(cmd_class, msg_obj, ...)                            \
+  {                                                                            \
+    PREPARE_ARGS(__VA_ARGS__)                                                  \
+    cmd_class cmd;                                                             \
+    cmd.fromMessage(msg_obj);                                                  \
+    cmd.executeOnClient(args);                                                 \
+  }
+
+#define EXECUTE_CMD_CLIENTpc(cmd_class, pc, ...)                               \
+  {                                                                            \
+    PREPARE_ARGS(__VA_ARGS__);                                                 \
+    cmd_class cmd;                                                             \
+    cmd.fromParsedCommand(pc);                                                 \
+    cmd.executeOnClient(args);                                                 \
+    if (!cmd.isClientOnly()) {                                                 \
+      Message msg = cmd.toMessage();                                           \
+      client->send_to_server(serializer.serialize(msg));                       \
+    }                                                                          \
+  }
+
+class ICommandHandler {
+public:
+  virtual ~ICommandHandler() = default;
+
+  virtual void fromParsedCommand(const ParsedCommand &parsed) = 0;
+
+  virtual Message toMessage() const = 0;
+
+  virtual void fromMessage(const Message &msg) = 0;
+
+  virtual void execeuteOnServer(std::shared_ptr<ServerContext> context) = 0;
+
+  virtual void executeOnClient(std::shared_ptr<ClientContext> context) = 0;
+
+  virtual void send_from_peer(std::shared_ptr<PeerContext> context) = 0;
+
+  virtual void recv_on_peer(int fd, std::shared_ptr<PeerContext> context) = 0;
+
+  virtual bool isClientOnly() const { return false; }
+
+  virtual CommandType getType() const = 0;
+};
+
+class ClientCommandRegistry {
+  using CommandHandler =
+      std::function<void(const std::vector<std::vector<uint8_t>> &)>;
+  std::unordered_map<std::string, std::unique_ptr<ICommandHandler>> commands;
+
+  std::shared_ptr<ClientContext> clientContext;
+
+public:
+  void registerCommand(const std::string &name,
+                       std::unique_ptr<ICommandHandler> cmd);
+
+  void setClientContext(const std::shared_ptr<ClientContext> context);
+
+  ICommandHandler *find(const std::string &name) const;
+
+  bool exists(const std::string &name) const;
+};
+
+class PeerCommandRegistry {
+  using CommandHandler =
+      std::function<void(const std::vector<std::vector<uint8_t>> &)>;
+  std::unordered_map<std::string, std::unique_ptr<ICommandHandler>> commands;
+  std::shared_ptr<PeerContext> peerContext;
+
+public:
+  void registerCommand(const std::string &name,
+                       std::unique_ptr<ICommandHandler> cmd);
+  void setPeerContext(const std::shared_ptr<PeerContext> context);
+  ICommandHandler *find(const std::string &name) const;
+  bool exists(const std::string &name) const;
+};
+
+class ServerCommandRegistry {
+  using CommandHandler = std::function<void(int, const Message &)>;
+  std::unordered_map<std::string, std::unique_ptr<ICommandHandler>> commands;
+
+  std::shared_ptr<ServerContext> server_context;
+
+public:
+  void registerCommand(const std::string &name,
+                       std::unique_ptr<ICommandHandler> cmd);
+
+  void setServerContext(const std::shared_ptr<ServerContext> context);
+
+  ICommandHandler *find(const std::string &name) const;
+
+  bool exists(const std::string &name) const;
+};
+
+class ClientCommandBus {
+  ClientCommandRegistry &registry;
+
+public:
+  ClientCommandBus(ClientCommandRegistry &registry_);
+
+  void dispatch(const Message &msg,
+                const std::shared_ptr<ClientContext> context);
+};
+
+class PeerCommandBus {
+  PeerCommandRegistry &registry_;
+
+public:
+  PeerCommandBus(PeerCommandRegistry &registry);
+
+  void dispatchSending(const Message &msg,
+                       const std::shared_ptr<PeerContext> context);
+
+  void dispatchReceiving(const Message &msg,
+                         const std::shared_ptr<PeerContext> context);
+};
+
+class ServerCommandBus {
+  ServerCommandRegistry &registry;
+
+public:
+  ServerCommandBus(ServerCommandRegistry &registry_);
+
+  void dispatch(const Message &msg, std::shared_ptr<ServerContext> context);
+};

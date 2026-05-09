@@ -1,4 +1,4 @@
-#include "../../include/ui/login_window.hpp"
+#include "include/ui/login_window.hpp"
 
 #include <QMessageBox>
 

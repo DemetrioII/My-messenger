@@ -1,0 +1,35 @@
+#pragma once
+#include "get_pubkey.hpp"
+#include "include/application/commands/command_interface.hpp"
+#include "include/application/messaging/message_queue.hpp"
+#include "include/application/services/encryption_service.hpp"
+
+class PrivateMessageCommand : public ICommandHandler {
+  std::vector<uint8_t> sender;
+  std::vector<uint8_t> recipient;
+  std::vector<uint8_t> pubkey_bytes;
+  std::vector<uint8_t> payload;
+
+  /* void process_encrypted_message(
+      std::shared_ptr<EncryptionService> encryption_service,
+      std::shared_ptr<ClientContext> context); */
+
+public:
+  CommandType getType() const override;
+
+  void fromParsedCommand(const ParsedCommand &parsed) override;
+
+  Message toMessage() const override;
+
+  void fromMessage(const Message &msg) override;
+
+  void execeuteOnServer(std::shared_ptr<ServerContext> context) override;
+
+  void executeOnClient(std::shared_ptr<ClientContext> context) override;
+
+  void send_from_peer(std::shared_ptr<PeerContext> context) override;
+
+  void recv_on_peer(int fd, std::shared_ptr<PeerContext> context) override;
+
+  ~PrivateMessageCommand() override;
+};

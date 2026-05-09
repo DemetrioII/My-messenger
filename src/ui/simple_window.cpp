@@ -1,4 +1,4 @@
-#include "../../../include/ui/simple_window.hpp"
+#include "include/ui/simple_window.hpp"
 
 MessengerUI::MessengerUI(QWidget *parent) : QWidget(parent) {
   auto *layout = new QVBoxLayout(this);
@@ -36,8 +36,8 @@ MessengerUI::MessengerUI(QWidget *parent) : QWidget(parent) {
           &MessengerUI::handleLogin);
 
   // Настройка внешнего вида (в стиле терминала)
-  this->setStyleSheet(
-      "background: #0f131a; color: #eef2f7; font-family: Inter, 'Segoe UI', sans-serif;");
+  this->setStyleSheet("background: #0f131a; color: #eef2f7; font-family: "
+                      "Inter, 'Segoe UI', sans-serif;");
   inputField->setStyleSheet(
       "background: #171d27; border: 1px solid #2b3444; border-radius: 14px; "
       "padding: 12px 14px; color: #f4f7fb;");

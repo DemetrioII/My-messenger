@@ -1,18 +1,16 @@
-#include "../../include/ui/chat_window.hpp"
+#include "include/ui/chat_window.hpp"
 
-#include <QDateTime>
 #include <QAbstractAnimation>
+#include <QDateTime>
 #include <QGraphicsOpacityEffect>
-#include <QSizePolicy>
-#include <QScrollBar>
 #include <QPropertyAnimation>
-#include <QTimer>
 #include <QPushButton>
+#include <QScrollBar>
+#include <QSizePolicy>
+#include <QTimer>
 
 namespace {
-QString htmlEscape(const QString &text) {
-  return text.toHtmlEscaped();
-}
+QString htmlEscape(const QString &text) { return text.toHtmlEscaped(); }
 } // namespace
 
 ChatWindow::ChatWindow(const QString &nickname, QWidget *parent)
@@ -59,8 +57,8 @@ ChatWindow::ChatWindow(const QString &nickname, QWidget *parent)
 
   historyContent = new QWidget(historyArea);
   historyLayout = new QVBoxLayout(historyContent);
-  historyLayout->setContentsMargins(8, 8, 8, 8);
-  historyLayout->setSpacing(10);
+  historyLayout->setContentsMargins(12, 12, 12, 12);
+  historyLayout->setSpacing(12);
   historyLayout->addStretch();
 
   historyArea->setWidget(historyContent);
@@ -122,7 +120,26 @@ ChatWindow::ChatWindow(const QString &nickname, QWidget *parent)
       border-radius: 18px;
     }
     QWidget#historyContent {
+      background: transparent; 
+    }
+    QWidget#messageRow {
       background: transparent;
+    }
+    QLabel#inBubble, QLabel#outBubble {
+      padding: 12px 14px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.35;
+      color: #eef2f7;
+    }
+    QLabel#inBubble {
+      background: #151b24;
+      border: 1px solid #263043;
+    }
+    QLabel#outBubble {
+      background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                  stop:0 #5b8def, stop:1 #7c5cff);
+      border: 1px solid #6d85f7;
     }
     QLineEdit#composerInput {
       background: #151b24;
@@ -168,8 +185,8 @@ QWidget *ChatWindow::makeBubble(const QString &text, bool outgoing) {
   bubble->setTextFormat(Qt::RichText);
   bubble->setTextInteractionFlags(Qt::TextSelectableByMouse);
   bubble->setObjectName(outgoing ? "outBubble" : "inBubble");
-  bubble->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-  bubble->setMaximumWidth(640);
+  bubble->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+  bubble->setMaximumWidth(620);
   bubble->setContentsMargins(0, 0, 0, 0);
 
   auto *bubbleWrapper = new QWidget(row);
@@ -191,15 +208,6 @@ QWidget *ChatWindow::makeBubble(const QString &text, bool outgoing) {
 }
 
 void ChatWindow::appendBubble(const QString &text, bool outgoing) {
-  while (historyLayout->count() > 1) {
-    auto *item = historyLayout->takeAt(0);
-    if (!item)
-      break;
-    if (item->widget())
-      item->widget()->setParent(nullptr);
-    delete item;
-  }
-
   auto *row = makeBubble(text, outgoing);
   row->setGraphicsEffect(new QGraphicsOpacityEffect(row));
   auto *effect = qobject_cast<QGraphicsOpacityEffect *>(row->graphicsEffect());
@@ -222,7 +230,7 @@ void ChatWindow::appendBubble(const QString &text, bool outgoing) {
 
 void ChatWindow::updateResponse(const QString &text) {
   QString timestamp = QDateTime::currentDateTime().toString("[hh:mm:ss]");
-  appendBubble(timestamp + " " + text, false);
+  appendBubble(timestamp + " " + htmlEscape(text), false);
 }
 
 void ChatWindow::handleSend() {
