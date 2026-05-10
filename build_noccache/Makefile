@@ -728,6 +728,54 @@ messenger_server_autogen/mocs_compilation.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_server.dir/build.make CMakeFiles/messenger_server.dir/messenger_server_autogen/mocs_compilation.cpp.s
 .PHONY : messenger_server_autogen/mocs_compilation.cpp.s
 
+src/application/commands/command_catalog.o: src/application/commands/command_catalog.cpp.o
+.PHONY : src/application/commands/command_catalog.o
+
+# target to build an object file
+src/application/commands/command_catalog.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_catalog.cpp.o
+.PHONY : src/application/commands/command_catalog.cpp.o
+
+src/application/commands/command_catalog.i: src/application/commands/command_catalog.cpp.i
+.PHONY : src/application/commands/command_catalog.i
+
+# target to preprocess a source file
+src/application/commands/command_catalog.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_catalog.cpp.i
+.PHONY : src/application/commands/command_catalog.cpp.i
+
+src/application/commands/command_catalog.s: src/application/commands/command_catalog.cpp.s
+.PHONY : src/application/commands/command_catalog.s
+
+# target to generate assembly for a file
+src/application/commands/command_catalog.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_catalog.cpp.s
+.PHONY : src/application/commands/command_catalog.cpp.s
+
+src/application/commands/command_factory.o: src/application/commands/command_factory.cpp.o
+.PHONY : src/application/commands/command_factory.o
+
+# target to build an object file
+src/application/commands/command_factory.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_factory.cpp.o
+.PHONY : src/application/commands/command_factory.cpp.o
+
+src/application/commands/command_factory.i: src/application/commands/command_factory.cpp.i
+.PHONY : src/application/commands/command_factory.i
+
+# target to preprocess a source file
+src/application/commands/command_factory.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_factory.cpp.i
+.PHONY : src/application/commands/command_factory.cpp.i
+
+src/application/commands/command_factory.s: src/application/commands/command_factory.cpp.s
+.PHONY : src/application/commands/command_factory.s
+
+# target to generate assembly for a file
+src/application/commands/command_factory.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_factory.cpp.s
+.PHONY : src/application/commands/command_factory.cpp.s
+
 src/application/commands/command_interface.o: src/application/commands/command_interface.cpp.o
 .PHONY : src/application/commands/command_interface.o
 
@@ -751,6 +799,54 @@ src/application/commands/command_interface.s: src/application/commands/command_i
 src/application/commands/command_interface.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_interface.cpp.s
 .PHONY : src/application/commands/command_interface.cpp.s
+
+src/application/commands/command_pattern.o: src/application/commands/command_pattern.cpp.o
+.PHONY : src/application/commands/command_pattern.o
+
+# target to build an object file
+src/application/commands/command_pattern.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_pattern.cpp.o
+.PHONY : src/application/commands/command_pattern.cpp.o
+
+src/application/commands/command_pattern.i: src/application/commands/command_pattern.cpp.i
+.PHONY : src/application/commands/command_pattern.i
+
+# target to preprocess a source file
+src/application/commands/command_pattern.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_pattern.cpp.i
+.PHONY : src/application/commands/command_pattern.cpp.i
+
+src/application/commands/command_pattern.s: src/application/commands/command_pattern.cpp.s
+.PHONY : src/application/commands/command_pattern.s
+
+# target to generate assembly for a file
+src/application/commands/command_pattern.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_pattern.cpp.s
+.PHONY : src/application/commands/command_pattern.cpp.s
+
+src/application/commands/command_pattern_matcher.o: src/application/commands/command_pattern_matcher.cpp.o
+.PHONY : src/application/commands/command_pattern_matcher.o
+
+# target to build an object file
+src/application/commands/command_pattern_matcher.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_pattern_matcher.cpp.o
+.PHONY : src/application/commands/command_pattern_matcher.cpp.o
+
+src/application/commands/command_pattern_matcher.i: src/application/commands/command_pattern_matcher.cpp.i
+.PHONY : src/application/commands/command_pattern_matcher.i
+
+# target to preprocess a source file
+src/application/commands/command_pattern_matcher.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_pattern_matcher.cpp.i
+.PHONY : src/application/commands/command_pattern_matcher.cpp.i
+
+src/application/commands/command_pattern_matcher.s: src/application/commands/command_pattern_matcher.cpp.s
+.PHONY : src/application/commands/command_pattern_matcher.s
+
+# target to generate assembly for a file
+src/application/commands/command_pattern_matcher.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/commands/command_pattern_matcher.cpp.s
+.PHONY : src/application/commands/command_pattern_matcher.cpp.s
 
 src/application/commands/impl/connect.o: src/application/commands/impl/connect.cpp.o
 .PHONY : src/application/commands/impl/connect.o
@@ -2133,9 +2229,21 @@ help:
 	@echo "... messenger_server_autogen/mocs_compilation.o"
 	@echo "... messenger_server_autogen/mocs_compilation.i"
 	@echo "... messenger_server_autogen/mocs_compilation.s"
+	@echo "... src/application/commands/command_catalog.o"
+	@echo "... src/application/commands/command_catalog.i"
+	@echo "... src/application/commands/command_catalog.s"
+	@echo "... src/application/commands/command_factory.o"
+	@echo "... src/application/commands/command_factory.i"
+	@echo "... src/application/commands/command_factory.s"
 	@echo "... src/application/commands/command_interface.o"
 	@echo "... src/application/commands/command_interface.i"
 	@echo "... src/application/commands/command_interface.s"
+	@echo "... src/application/commands/command_pattern.o"
+	@echo "... src/application/commands/command_pattern.i"
+	@echo "... src/application/commands/command_pattern.s"
+	@echo "... src/application/commands/command_pattern_matcher.o"
+	@echo "... src/application/commands/command_pattern_matcher.i"
+	@echo "... src/application/commands/command_pattern_matcher.s"
 	@echo "... src/application/commands/impl/connect.o"
 	@echo "... src/application/commands/impl/connect.i"
 	@echo "... src/application/commands/impl/connect.s"

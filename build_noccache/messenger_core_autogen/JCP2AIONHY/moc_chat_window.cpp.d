@@ -1,7 +1,10 @@
 /home/demetrio/MyCodesZZZZZ/i_try_messenger/build_noccache/messenger_core_autogen/JCP2AIONHY/moc_chat_window.cpp: /home/demetrio/MyCodesZZZZZ/i_try_messenger/include/ui/chat_window.hpp \
   /home/demetrio/MyCodesZZZZZ/i_try_messenger/build_noccache/messenger_core_autogen/moc_predefs.h \
   /home/demetrio/MyCodesZZZZZ/i_try_messenger/include/app/config.hpp \
+  /home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/command_catalog.hpp \
   /home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/command_interface.hpp \
+  /home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/command_pattern.hpp \
+  /home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/command_pattern_matcher.hpp \
   /home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/impl/connect.hpp \
   /home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/impl/disconnect.hpp \
   /home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/impl/exit.hpp \

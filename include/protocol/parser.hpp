@@ -3,6 +3,8 @@
 #pragma once
 #include "include/models/chat.hpp"
 #include "include/models/message.hpp"
+#include "include/application/commands/command_catalog.hpp"
+#include "include/application/commands/command_pattern_matcher.hpp"
 #include <memory>
 #include <sstream>
 #include <string>
@@ -15,6 +17,8 @@ struct ParsedCommand {
 };
 
 class Parser {
+  app::commands::CommandPatternMatcher command_matcher_;
+
   const std::unordered_map<std::string, int> CMD_TABLE = {
       {"login", 2},   {"room", 2},       {"join", 2},     {"send", 2},
       {"connect", 6}, {"disconnect", 3}, {"pmess", 2},    {"getpub", 4},
@@ -45,7 +49,7 @@ class Parser {
       {"exit", CommandType::EXIT}};
 
 public:
-  Parser() = default;
+  Parser();
 
   Message parse(const std::string &message);
 

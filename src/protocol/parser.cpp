@@ -39,6 +39,12 @@ const std::unordered_map<CommandType, std::string> &command_names_map() {
 }
 } // namespace
 
+Parser::Parser() {
+  for (const auto &pattern : app::commands::default_command_catalog()) {
+    command_matcher_.add_pattern(pattern.command_name, pattern.template_text);
+  }
+}
+
 Message Parser::parse(const std::string &message) {
   if (message.empty()) {
     return {};
@@ -82,6 +88,15 @@ Message Parser::make_command_from_struct(const ParsedCommand &cmd_struct) {
 ParsedCommand Parser::parse_line(const std::string &line) {
   ParsedCommand result;
   if (line.empty()) {
+    return result;
+  }
+
+  const auto match = command_matcher_.match(line);
+  if (match.matched) {
+    result.name = match.command_name;
+    for (const auto &capture : match.captures) {
+      result.args.emplace_back(capture.begin(), capture.end());
+    }
     return result;
   }
 

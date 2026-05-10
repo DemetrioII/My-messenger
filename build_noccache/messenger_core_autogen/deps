@@ -5,7 +5,11 @@ messenger_core_autogen/timestamp: \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/build_noccache/messenger_core_autogen/moc_predefs.h \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/app/config.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/app/runtime.hpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/command_catalog.hpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/command_factory.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/command_interface.hpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/command_pattern.hpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/command_pattern_matcher.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/impl/connect.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/impl/disconnect.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/commands/impl/exit.hpp \
@@ -71,7 +75,11 @@ messenger_core_autogen/timestamp: \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/ui/login_window.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/ui/simple_window.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/utils/base64.hpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/commands/command_catalog.cpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/commands/command_factory.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/commands/command_interface.cpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/commands/command_pattern.cpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/commands/command_pattern_matcher.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/commands/impl/connect.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/commands/impl/disconnect.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/commands/impl/exit.cpp \

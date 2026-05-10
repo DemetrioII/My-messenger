@@ -74,7 +74,6 @@ Message::Message(const std::vector<uint8_t> &payload_, uint8_t metalen_,
              current_timestamp_seconds(),
              kProtocolVersion},
       metalen(metalen_), envelope{}, metadata(metadata_), payload(payload_) {
-  header.timestamp = current_timestamp_seconds();
   metalen = static_cast<uint8_t>(metadata.size());
   header.length = compute_serialized_size(metalen, metadata, payload);
 }
@@ -89,7 +88,6 @@ Message::Message(std::vector<uint8_t> &&payload_, uint8_t metalen_,
              kProtocolVersion},
       metalen(metalen_), envelope{}, metadata(std::move(metadata_)),
       payload(std::move(payload_)) {
-  header.timestamp = current_timestamp_seconds();
   metalen = static_cast<uint8_t>(metadata.size());
   header.length = compute_serialized_size(metalen, metadata, payload);
 }

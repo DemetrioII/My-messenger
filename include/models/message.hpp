@@ -37,11 +37,11 @@ enum class CommandType {
 };
 
 struct MessageHeader {
-  MessageType type;
-  uint32_t length;
-  uint32_t checksum;
-  uint64_t timestamp;
-  uint8_t protocol_version;
+  MessageType type = MessageType::Text;
+  uint32_t length = 0;
+  uint32_t checksum = 0;
+  uint64_t timestamp = 0;
+  uint8_t protocol_version = 1;
 };
 
 struct MessageEnvelope {
@@ -57,7 +57,7 @@ class Message {
 
 private:
   MessageHeader header;
-  uint8_t metalen;
+  uint8_t metalen = 0;
   MessageEnvelope envelope;
   std::vector<std::vector<uint8_t>> metadata;
   std::vector<uint8_t> payload;
