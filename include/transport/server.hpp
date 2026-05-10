@@ -94,7 +94,8 @@ public:
 
 class ServerFactory {
 public:
-  static std::shared_ptr<Server> tcp_server(const std::string &ip, int port) {
+  static std::shared_ptr<Server> tcp_server([[maybe_unused]] const std::string &ip,
+                                            [[maybe_unused]] int port) {
     auto tcp_socket = std::make_unique<ISocket>(SocketType::TCP);
     std::unique_ptr<IAcceptor> tcp_acceptor = std::make_unique<TCPAcceptor>();
     auto server = Server::create(tcp_socket, tcp_acceptor);
@@ -102,7 +103,8 @@ public:
     return server;
   }
 
-  static std::shared_ptr<Server> udp_server(const std::string &ip, int port) {
+  static std::shared_ptr<Server> udp_server([[maybe_unused]] const std::string &ip,
+                                            [[maybe_unused]] int port) {
     auto udp_socket = std::make_unique<ISocket>(SocketType::UDP);
     std::unique_ptr<IAcceptor> udp_acceptor = std::make_unique<UDPAcceptor>();
     auto server = Server::create(udp_socket, udp_acceptor);

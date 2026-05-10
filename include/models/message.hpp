@@ -41,11 +41,14 @@ struct MessageHeader {
   uint32_t length;
   uint32_t checksum;
   uint64_t timestamp;
+  uint8_t protocol_version;
+};
 
-  std::vector<uint8_t> serialize() const;
-  static MessageHeader deserialize(const std::vector<uint8_t> &data);
-
-  // bool validate() const;
+struct MessageEnvelope {
+  std::vector<uint8_t> sender;
+  std::vector<uint8_t> recipient;
+  uint64_t sequence_number = 0;
+  uint32_t flags = 0;
 };
 
 class Message {
@@ -55,6 +58,7 @@ class Message {
 private:
   MessageHeader header;
   uint8_t metalen;
+  MessageEnvelope envelope;
   std::vector<std::vector<uint8_t>> metadata;
   std::vector<uint8_t> payload;
 
@@ -75,6 +79,7 @@ public:
   const std::vector<uint8_t> &get_payload() const;
 
   const std::vector<uint8_t> &get_meta(size_t index) const;
+  size_t meta_count() const;
 
   void insert_metadata(const std::vector<uint8_t> &meta);
   // std::vector<uint8_t> serialize() const;

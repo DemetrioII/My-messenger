@@ -4,7 +4,7 @@ CommandType DisconnectCommand::getType() const {
   return CommandType::DISCONNECT;
 }
 
-void DisconnectCommand::fromParsedCommand(const ParsedCommand &pc) {}
+void DisconnectCommand::fromParsedCommand(const ParsedCommand & /*pc*/) {}
 
 Message DisconnectCommand::toMessage() const {
   return Message(
@@ -16,10 +16,10 @@ void DisconnectCommand::fromMessage(const Message &msg) {
 }
 
 void DisconnectCommand::execeuteOnServer(
-    std::shared_ptr<ServerContext> context) {}
+    std::shared_ptr<ServerContext> /*context*/) {}
 
 void DisconnectCommand::executeOnClient(
-    std::shared_ptr<ClientContext> context) {}
+    std::shared_ptr<ClientContext> /*context*/) {}
 
 void DisconnectCommand::send_from_peer(std::shared_ptr<PeerContext> context) {
   if (username.empty()) {

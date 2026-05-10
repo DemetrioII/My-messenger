@@ -20,17 +20,16 @@ struct ClientContext {
   std::shared_ptr<EncryptionService> encryption_service;
   Parser parser;
   std::shared_ptr<Serializer> serializer;
-  std::vector<uint8_t> my_username;
+  std::shared_ptr<
+      std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
+      pending_files;
 
   std::mutex pending_messages_mutex;
   std::shared_ptr<std::unordered_map<std::vector<uint8_t>,
                                      std::vector<std::vector<uint8_t>>>>
       pending_messages;
 
-  std::shared_ptr<
-      std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
-      pending_files;
-
+  std::vector<uint8_t> my_username;
   std::unordered_map<std::vector<uint8_t>, uint64_t> messages_counter;
 
   ClientContext(const AppConfig &cfg)
@@ -51,21 +50,21 @@ struct ClientContext {
 
 struct PeerContext {
   std::shared_ptr<PeerNode> peer_node;
-  std::shared_ptr<MessageQueue> message_queue;
-  std::shared_ptr<EncryptionService> encryption_service;
-  Parser parser;
-  std::shared_ptr<Serializer> serializer;
-  std::vector<uint8_t> my_username;
   std::shared_ptr<UserService> user_service;
   std::shared_ptr<SessionManager> session_manager;
-  std::unordered_map<std::vector<uint8_t>, uint64_t> messages_counter;
-  std::mutex pending_messages_mutex;
   std::shared_ptr<std::unordered_map<std::vector<uint8_t>,
                                      std::vector<std::vector<uint8_t>>>>
       pending_messages;
+  std::shared_ptr<Serializer> serializer;
+  std::shared_ptr<EncryptionService> encryption_service;
   std::shared_ptr<
       std::unordered_map<std::string, std::unique_ptr<std::ofstream>>>
       pending_files;
+  std::shared_ptr<MessageQueue> message_queue;
+  Parser parser;
+  std::vector<uint8_t> my_username;
+  std::unordered_map<std::vector<uint8_t>, uint64_t> messages_counter;
+  std::mutex pending_messages_mutex;
 
   int fd;
 
@@ -76,11 +75,10 @@ struct PeerContext {
         pending_messages(
             std::make_shared<std::unordered_map<
                 std::vector<uint8_t>, std::vector<std::vector<uint8_t>>>>()),
-        pending_files(std::make_shared<std::unordered_map<
-                          std::string, std::unique_ptr<std::ofstream>>>()),
         serializer(std::make_shared<Serializer>()),
-        // message_queue(std::make_shared<MessageQueue>()),
-        encryption_service(std::make_shared<EncryptionService>()) {
+        encryption_service(std::make_shared<EncryptionService>()),
+        pending_files(std::make_shared<std::unordered_map<
+                          std::string, std::unique_ptr<std::ofstream>>>()) {
     encryption_service->set_key();
   }
 };

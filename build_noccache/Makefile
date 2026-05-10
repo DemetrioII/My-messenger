@@ -1424,30 +1424,6 @@ src/application/messaging/messaging_server.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/messaging/messaging_server.cpp.s
 .PHONY : src/application/messaging/messaging_server.cpp.s
 
-src/application/messaging_service.o: src/application/messaging_service.cpp.o
-.PHONY : src/application/messaging_service.o
-
-# target to build an object file
-src/application/messaging_service.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/messaging_service.cpp.o
-.PHONY : src/application/messaging_service.cpp.o
-
-src/application/messaging_service.i: src/application/messaging_service.cpp.i
-.PHONY : src/application/messaging_service.i
-
-# target to preprocess a source file
-src/application/messaging_service.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/messaging_service.cpp.i
-.PHONY : src/application/messaging_service.cpp.i
-
-src/application/messaging_service.s: src/application/messaging_service.cpp.s
-.PHONY : src/application/messaging_service.s
-
-# target to generate assembly for a file
-src/application/messaging_service.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/messaging_service.cpp.s
-.PHONY : src/application/messaging_service.cpp.s
-
 src/application/runtime/runtime.o: src/application/runtime/runtime.cpp.o
 .PHONY : src/application/runtime/runtime.o
 
@@ -1471,6 +1447,126 @@ src/application/runtime/runtime.s: src/application/runtime/runtime.cpp.s
 src/application/runtime/runtime.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/runtime/runtime.cpp.s
 .PHONY : src/application/runtime/runtime.cpp.s
+
+src/application/services/chat_service.o: src/application/services/chat_service.cpp.o
+.PHONY : src/application/services/chat_service.o
+
+# target to build an object file
+src/application/services/chat_service.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/chat_service.cpp.o
+.PHONY : src/application/services/chat_service.cpp.o
+
+src/application/services/chat_service.i: src/application/services/chat_service.cpp.i
+.PHONY : src/application/services/chat_service.i
+
+# target to preprocess a source file
+src/application/services/chat_service.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/chat_service.cpp.i
+.PHONY : src/application/services/chat_service.cpp.i
+
+src/application/services/chat_service.s: src/application/services/chat_service.cpp.s
+.PHONY : src/application/services/chat_service.s
+
+# target to generate assembly for a file
+src/application/services/chat_service.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/chat_service.cpp.s
+.PHONY : src/application/services/chat_service.cpp.s
+
+src/application/services/peer_application_service.o: src/application/services/peer_application_service.cpp.o
+.PHONY : src/application/services/peer_application_service.o
+
+# target to build an object file
+src/application/services/peer_application_service.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/peer_application_service.cpp.o
+.PHONY : src/application/services/peer_application_service.cpp.o
+
+src/application/services/peer_application_service.i: src/application/services/peer_application_service.cpp.i
+.PHONY : src/application/services/peer_application_service.i
+
+# target to preprocess a source file
+src/application/services/peer_application_service.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/peer_application_service.cpp.i
+.PHONY : src/application/services/peer_application_service.cpp.i
+
+src/application/services/peer_application_service.s: src/application/services/peer_application_service.cpp.s
+.PHONY : src/application/services/peer_application_service.s
+
+# target to generate assembly for a file
+src/application/services/peer_application_service.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/peer_application_service.cpp.s
+.PHONY : src/application/services/peer_application_service.cpp.s
+
+src/application/services/server_application_service.o: src/application/services/server_application_service.cpp.o
+.PHONY : src/application/services/server_application_service.o
+
+# target to build an object file
+src/application/services/server_application_service.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/server_application_service.cpp.o
+.PHONY : src/application/services/server_application_service.cpp.o
+
+src/application/services/server_application_service.i: src/application/services/server_application_service.cpp.i
+.PHONY : src/application/services/server_application_service.i
+
+# target to preprocess a source file
+src/application/services/server_application_service.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/server_application_service.cpp.i
+.PHONY : src/application/services/server_application_service.cpp.i
+
+src/application/services/server_application_service.s: src/application/services/server_application_service.cpp.s
+.PHONY : src/application/services/server_application_service.s
+
+# target to generate assembly for a file
+src/application/services/server_application_service.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/server_application_service.cpp.s
+.PHONY : src/application/services/server_application_service.cpp.s
+
+src/application/services/session_manager.o: src/application/services/session_manager.cpp.o
+.PHONY : src/application/services/session_manager.o
+
+# target to build an object file
+src/application/services/session_manager.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/session_manager.cpp.o
+.PHONY : src/application/services/session_manager.cpp.o
+
+src/application/services/session_manager.i: src/application/services/session_manager.cpp.i
+.PHONY : src/application/services/session_manager.i
+
+# target to preprocess a source file
+src/application/services/session_manager.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/session_manager.cpp.i
+.PHONY : src/application/services/session_manager.cpp.i
+
+src/application/services/session_manager.s: src/application/services/session_manager.cpp.s
+.PHONY : src/application/services/session_manager.s
+
+# target to generate assembly for a file
+src/application/services/session_manager.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/session_manager.cpp.s
+.PHONY : src/application/services/session_manager.cpp.s
+
+src/application/services/user_service.o: src/application/services/user_service.cpp.o
+.PHONY : src/application/services/user_service.o
+
+# target to build an object file
+src/application/services/user_service.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/user_service.cpp.o
+.PHONY : src/application/services/user_service.cpp.o
+
+src/application/services/user_service.i: src/application/services/user_service.cpp.i
+.PHONY : src/application/services/user_service.i
+
+# target to preprocess a source file
+src/application/services/user_service.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/user_service.cpp.i
+.PHONY : src/application/services/user_service.cpp.i
+
+src/application/services/user_service.s: src/application/services/user_service.cpp.s
+.PHONY : src/application/services/user_service.s
+
+# target to generate assembly for a file
+src/application/services/user_service.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/messenger_core.dir/build.make CMakeFiles/messenger_core.dir/src/application/services/user_service.cpp.s
+.PHONY : src/application/services/user_service.cpp.s
 
 src/infrastructure/crypto/AESGCMEncryption.o: src/infrastructure/crypto/AESGCMEncryption.cpp.o
 .PHONY : src/infrastructure/crypto/AESGCMEncryption.o
@@ -2124,12 +2220,24 @@ help:
 	@echo "... src/application/messaging/messaging_server.o"
 	@echo "... src/application/messaging/messaging_server.i"
 	@echo "... src/application/messaging/messaging_server.s"
-	@echo "... src/application/messaging_service.o"
-	@echo "... src/application/messaging_service.i"
-	@echo "... src/application/messaging_service.s"
 	@echo "... src/application/runtime/runtime.o"
 	@echo "... src/application/runtime/runtime.i"
 	@echo "... src/application/runtime/runtime.s"
+	@echo "... src/application/services/chat_service.o"
+	@echo "... src/application/services/chat_service.i"
+	@echo "... src/application/services/chat_service.s"
+	@echo "... src/application/services/peer_application_service.o"
+	@echo "... src/application/services/peer_application_service.i"
+	@echo "... src/application/services/peer_application_service.s"
+	@echo "... src/application/services/server_application_service.o"
+	@echo "... src/application/services/server_application_service.i"
+	@echo "... src/application/services/server_application_service.s"
+	@echo "... src/application/services/session_manager.o"
+	@echo "... src/application/services/session_manager.i"
+	@echo "... src/application/services/session_manager.s"
+	@echo "... src/application/services/user_service.o"
+	@echo "... src/application/services/user_service.i"
+	@echo "... src/application/services/user_service.s"
 	@echo "... src/infrastructure/crypto/AESGCMEncryption.o"
 	@echo "... src/infrastructure/crypto/AESGCMEncryption.i"
 	@echo "... src/infrastructure/crypto/AESGCMEncryption.s"

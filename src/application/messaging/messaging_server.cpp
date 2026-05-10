@@ -54,6 +54,6 @@ void MessagingServer::on_tcp_data_received(int fd,
   dispatcher.dispatch(msg);
 }
 
-void MessagingServer::send_error(int fd, const std::string &error_string) {
+void MessagingServer::send_error(int fd, const std::string & /*error_string*/) {
   server_context->transport_server->send(fd, {'e', 'r', 'r', 'o', 'r'});
 }

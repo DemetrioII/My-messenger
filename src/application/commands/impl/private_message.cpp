@@ -18,7 +18,7 @@ Message PrivateMessageCommand::toMessage() const {
 }
 
 void PrivateMessageCommand::execeuteOnServer(
-    std::shared_ptr<ServerContext> context) {}
+    std::shared_ptr<ServerContext> /*context*/) {}
 
 void PrivateMessageCommand::executeOnClient(
     std::shared_ptr<ClientContext> context) {
@@ -52,8 +52,8 @@ void PrivateMessageCommand::send_from_peer(
             << std::endl;
 }
 
-void PrivateMessageCommand::recv_on_peer(int fd,
-                                         std::shared_ptr<PeerContext> context) {
+void PrivateMessageCommand::recv_on_peer(int /*fd*/,
+                                         std::shared_ptr<PeerContext> /*context*/) {
   std::cout << "Peer got a cipher message" << std::endl;
 }
 

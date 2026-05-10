@@ -34,8 +34,10 @@ private slots:
   void handleSend();
 
 private:
-  QWidget *makeBubble(const QString &text, bool outgoing);
-  void appendBubble(const QString &text, bool outgoing);
+  QWidget *makeBubble(const QString &text, const QString &timestamp,
+                      bool outgoing);
+  void appendBubble(const QString &text, const QString &timestamp,
+                    bool outgoing);
 
   QString userNickname;
   QLabel *titleLabel;

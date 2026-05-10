@@ -36,7 +36,6 @@ messenger_core_autogen/timestamp: \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/messaging/messaging_client.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/messaging/messaging_peer.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/messaging/messaging_server.hpp \
-	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/messaging/messaging_service.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/services/chat_service.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/services/encryption_service.hpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/include/application/services/peer_application_service.hpp \
@@ -101,8 +100,12 @@ messenger_core_autogen/timestamp: \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/messaging/messaging_client.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/messaging/messaging_peer.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/messaging/messaging_server.cpp \
-	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/messaging_service.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/runtime/runtime.cpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/services/chat_service.cpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/services/peer_application_service.cpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/services/server_application_service.cpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/services/session_manager.cpp \
+	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/application/services/user_service.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/infrastructure/crypto/AESGCMEncryption.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/infrastructure/crypto/identity_key.cpp \
 	/home/demetrio/MyCodesZZZZZ/i_try_messenger/src/infrastructure/logging/logger.cpp \

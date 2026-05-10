@@ -11,6 +11,9 @@
 
 namespace {
 QString htmlEscape(const QString &text) { return text.toHtmlEscaped(); }
+QString timestampNow() {
+  return QDateTime::currentDateTime().toString("hh:mm");
+}
 } // namespace
 
 ChatWindow::ChatWindow(const QString &nickname, QWidget *parent)
@@ -141,6 +144,11 @@ ChatWindow::ChatWindow(const QString &nickname, QWidget *parent)
                                   stop:0 #5b8def, stop:1 #7c5cff);
       border: 1px solid #6d85f7;
     }
+    QLabel#metaLabel {
+      color: #7f8aa0;
+      font-size: 11px;
+      padding: 0 8px;
+    }
     QLineEdit#composerInput {
       background: #151b24;
       border: 1px solid #253042;
@@ -171,16 +179,22 @@ ChatWindow::ChatWindow(const QString &nickname, QWidget *parent)
     }
   )");
 
-  appendBubble("Welcome, " + nickname + "!", false);
+  appendBubble("Welcome, " + nickname + "!", timestampNow(), false);
 }
 
-QWidget *ChatWindow::makeBubble(const QString &text, bool outgoing) {
+QWidget *ChatWindow::makeBubble(const QString &text, const QString &timestamp,
+                                bool outgoing) {
   auto *row = new QWidget(historyContent);
   auto *rowLayout = new QHBoxLayout(row);
   rowLayout->setContentsMargins(0, 0, 0, 0);
-  rowLayout->setSpacing(0);
+  rowLayout->setSpacing(8);
 
-  auto *bubble = new QLabel(text, row);
+  auto *stack = new QWidget(row);
+  auto *stackLayout = new QVBoxLayout(stack);
+  stackLayout->setContentsMargins(0, 0, 0, 0);
+  stackLayout->setSpacing(4);
+
+  auto *bubble = new QLabel(htmlEscape(text), stack);
   bubble->setWordWrap(true);
   bubble->setTextFormat(Qt::RichText);
   bubble->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -189,17 +203,20 @@ QWidget *ChatWindow::makeBubble(const QString &text, bool outgoing) {
   bubble->setMaximumWidth(620);
   bubble->setContentsMargins(0, 0, 0, 0);
 
-  auto *bubbleWrapper = new QWidget(row);
-  auto *bubbleLayout = new QHBoxLayout(bubbleWrapper);
-  bubbleLayout->setContentsMargins(0, 0, 0, 0);
-  bubbleLayout->setSpacing(0);
-  bubbleLayout->addWidget(bubble);
+  auto *meta = new QLabel(timestamp, stack);
+  meta->setObjectName("metaLabel");
+  meta->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  meta->setAlignment(outgoing ? Qt::AlignRight : Qt::AlignLeft);
+  meta->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+
+  stackLayout->addWidget(bubble);
+  stackLayout->addWidget(meta, 0, outgoing ? Qt::AlignRight : Qt::AlignLeft);
 
   if (outgoing) {
     rowLayout->addStretch();
-    rowLayout->addWidget(bubbleWrapper, 0, Qt::AlignRight);
+    rowLayout->addWidget(stack, 0, Qt::AlignRight);
   } else {
-    rowLayout->addWidget(bubbleWrapper, 0, Qt::AlignLeft);
+    rowLayout->addWidget(stack, 0, Qt::AlignLeft);
     rowLayout->addStretch();
   }
 
@@ -207,8 +224,9 @@ QWidget *ChatWindow::makeBubble(const QString &text, bool outgoing) {
   return row;
 }
 
-void ChatWindow::appendBubble(const QString &text, bool outgoing) {
-  auto *row = makeBubble(text, outgoing);
+void ChatWindow::appendBubble(const QString &text, const QString &timestamp,
+                               bool outgoing) {
+  auto *row = makeBubble(text, timestamp, outgoing);
   row->setGraphicsEffect(new QGraphicsOpacityEffect(row));
   auto *effect = qobject_cast<QGraphicsOpacityEffect *>(row->graphicsEffect());
   if (effect)
@@ -229,8 +247,7 @@ void ChatWindow::appendBubble(const QString &text, bool outgoing) {
 }
 
 void ChatWindow::updateResponse(const QString &text) {
-  QString timestamp = QDateTime::currentDateTime().toString("[hh:mm:ss]");
-  appendBubble(timestamp + " " + htmlEscape(text), false);
+  appendBubble(text, timestampNow(), false);
 }
 
 void ChatWindow::handleSend() {
@@ -238,9 +255,7 @@ void ChatWindow::handleSend() {
   if (text.isEmpty())
     return;
 
-  appendBubble(QDateTime::currentDateTime().toString("[hh:mm:ss] ") +
-                   htmlEscape(text),
-               true);
+  appendBubble(text, timestampNow(), true);
   emit sendMessage(text.toStdString());
   inputField->clear();
 }

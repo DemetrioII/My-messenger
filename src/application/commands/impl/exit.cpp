@@ -2,7 +2,7 @@
 
 CommandType ExitCommand::getType() const { return CommandType::EXIT; }
 
-void ExitCommand::fromParsedCommand(const ParsedCommand &pc) {}
+void ExitCommand::fromParsedCommand(const ParsedCommand & /*pc*/) {}
 
 Message ExitCommand::toMessage() const {
   return Message(
@@ -10,7 +10,7 @@ Message ExitCommand::toMessage() const {
       MessageType::Command);
 }
 
-void ExitCommand::fromMessage(const Message &msg) {}
+void ExitCommand::fromMessage(const Message & /*msg*/) {}
 
 void ExitCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {
   context->app_service->exit_current_session();
@@ -26,6 +26,6 @@ void ExitCommand::send_from_peer(std::shared_ptr<PeerContext> context) {
   stop(*context->peer_node);
 }
 
-void ExitCommand::recv_on_peer(int fd, std::shared_ptr<PeerContext> context) {}
+void ExitCommand::recv_on_peer(int /*fd*/, std::shared_ptr<PeerContext> /*context*/) {}
 
 ExitCommand::~ExitCommand() {}

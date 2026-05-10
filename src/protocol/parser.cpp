@@ -1,89 +1,96 @@
 #include "include/protocol/parser.hpp"
 
+namespace {
+uint64_t now_seconds() {
+  return static_cast<uint64_t>(
+      std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::system_clock::now().time_since_epoch())
+          .count());
+}
+
+const std::unordered_map<std::string, CommandType> &command_types_map() {
+  static const std::unordered_map<std::string, CommandType> types = {
+      {"login", CommandType::LOGIN},
+      {"room", CommandType::MAKE_ROOM},
+      {"join", CommandType::JOIN},
+      {"send", CommandType::SEND},
+      {"pmess", CommandType::PRIVATE_MESSAGE},
+      {"getpub", CommandType::GET_PUBKEY},
+      {"sendfile", CommandType::SEND_FILE},
+      {"connect", CommandType::CONNECT},
+      {"disconnect", CommandType::DISCONNECT},
+      {"exit", CommandType::EXIT}};
+  return types;
+}
+
+const std::unordered_map<CommandType, std::string> &command_names_map() {
+  static const std::unordered_map<CommandType, std::string> names = {
+      {CommandType::LOGIN, "login"},
+      {CommandType::MAKE_ROOM, "room"},
+      {CommandType::JOIN, "join"},
+      {CommandType::SEND, "send"},
+      {CommandType::PRIVATE_MESSAGE, "pmess"},
+      {CommandType::GET_PUBKEY, "getpub"},
+      {CommandType::SEND_FILE, "sendfile"},
+      {CommandType::CONNECT, "connect"},
+      {CommandType::DISCONNECT, "disconnect"},
+      {CommandType::EXIT, "exit"}};
+  return names;
+}
+} // namespace
+
 Message Parser::parse(const std::string &message) {
-  Message msg;
-
-  if (message.empty())
-    return msg;
-
-  std::vector<uint8_t> bytes;
-  if (message[0] == '/') {
-    ParsedCommand cmd_struct = parse_line(message);
-    msg = make_command_from_struct(cmd_struct);
-  } else if (message[0] == '$') {
-
-  } else {
-    msg.header.type = MessageType::Text;
-    msg.payload.assign(message.begin(), message.end());
-    msg.metalen = 0;
-    msg.metadata.clear();
-    msg.header.length = msg.payload.size() + 1;
-    msg.header.timestamp = std::chrono::time_point_cast<std::chrono::seconds>(
-                               std::chrono::system_clock::now())
-                               .time_since_epoch()
-                               .count();
+  if (message.empty()) {
+    return {};
   }
+
+  if (message.front() == '/') {
+    return make_command_from_struct(parse_line(message));
+  }
+
+  Message msg;
+  msg.header.type = MessageType::Text;
+  msg.header.protocol_version = 1;
+  msg.header.timestamp = now_seconds();
+  msg.set_payload(std::vector<uint8_t>(message.begin(), message.end()));
   return msg;
 }
 
 Message Parser::make_command_from_struct(const ParsedCommand &cmd_struct) {
   Message msg;
   msg.header.type = MessageType::Command;
-  CommandType command_type;
-  /*if (cmd_struct.name == "login")
-    command_type = CommandType::LOGIN;
-  else if (cmd_struct.name == "pmess")
-    command_type = CommandType::PRIVATE_MESSAGE;
-  else if (cmd_struct.name == "getid")
-    command_type = CommandType::GET_ID;
-  else if (cmd_struct.name == "getpub")
-    command_type = CommandType::GET_PUBKEY;
-  else if (cmd_struct.name == "join")
-    command_type = CommandType::JOIN;
-  else if (cmd_struct.name == "room")
-    command_type = CommandType::MAKE_ROOM;
-  else if (cmd_struct.name == "exit")
-    command_type = CommandType::EXIT;
-  else if (cmd_struct.name == "sendfile")
-    command_type = CommandType::SEND_FILE;
-  else if (cmd_struct.name == "send")
-    command_type = CommandType::SEND; */
-  if (command_types.find(cmd_struct.name) != command_types.end())
-    command_type = command_types.find(cmd_struct.name)->second;
-  else
-    command_type = CommandType::UNKNOWN;
-  msg.metadata.push_back({static_cast<uint8_t>(command_type)});
-  for (int i = 0; i < (int)cmd_struct.args.size(); ++i) {
-    msg.metadata.push_back(cmd_struct.args[i]);
+  msg.header.protocol_version = 1;
+  msg.header.timestamp = now_seconds();
+
+  const auto &types = command_types_map();
+  const auto it = types.find(cmd_struct.name);
+  const auto command_type = it != types.end() ? it->second : CommandType::UNKNOWN;
+
+  msg.insert_metadata(std::vector<uint8_t>{static_cast<uint8_t>(command_type)});
+  for (const auto &arg : cmd_struct.args) {
+    msg.insert_metadata(arg);
   }
-  msg.metalen = msg.metadata.size();
-  msg.payload.clear();
+
   if (!cmd_struct.args.empty()) {
-    msg.payload = std::vector<uint8_t>(cmd_struct.args.back());
+    msg.set_payload(cmd_struct.args.back());
+  } else {
+    msg.set_payload({});
   }
-  msg.header.length = msg.payload.size();
-  for (auto &m : msg.metadata)
-    msg.header.length += m.size();
-  msg.header.timestamp = std::chrono::time_point_cast<std::chrono::seconds>(
-                             std::chrono::system_clock::now())
-                             .time_since_epoch()
-                             .count();
   return msg;
 }
 
 ParsedCommand Parser::parse_line(const std::string &line) {
   ParsedCommand result;
-  if (line.empty())
+  if (line.empty()) {
     return result;
+  }
 
   std::stringstream ss(line);
   std::string first_segment;
-
-  // Забираем первую часть — имя команды
-  if (!(ss >> first_segment))
+  if (!(ss >> first_segment)) {
     return result;
+  }
 
-  // Убираем префиксы вроде '/' или '$'
   if (!first_segment.empty() &&
       (first_segment[0] == '/' || first_segment[0] == '$')) {
     result.name = first_segment.substr(1);
@@ -91,44 +98,40 @@ ParsedCommand Parser::parse_line(const std::string &line) {
     result.name = first_segment;
   }
 
-  // Сколько аргументов ожидать
-  int expected_args = 0;
-  auto it = CMD_TABLE.find(result.name);
-  if (it != CMD_TABLE.end())
-    expected_args = it->second - 1;
-
-  // Считываем ожидаемые аргументы
-  for (int i = 0; i < expected_args; ++i) {
-    std::string arg;
-    if (!(ss >> arg))
-      break;
-    result.args.push_back(std::vector<uint8_t>(arg.begin(), arg.end()));
+  std::vector<std::string> tokens;
+  std::string token;
+  while (ss >> token) {
+    tokens.push_back(token);
   }
 
-  // Если остался хвост строки — это "длинный" последний аргумент
-  if (ss.good()) {
-    std::string tail;
-    std::getline(ss, tail);
-    size_t start = tail.find_first_not_of(" \t");
-    if (start != std::string::npos) {
-      size_t end = tail.find_last_not_of(" \t");
-      tail = (tail.substr(start, end - start + 1));
-      result.args.push_back(std::vector<uint8_t>(tail.begin(), tail.end()));
-    }
+  if (tokens.empty()) {
+    return result;
   }
 
+  // Keep compatibility with the old "last argument is the tail" behavior.
+  for (size_t i = 0; i + 1 < tokens.size(); ++i) {
+    result.args.emplace_back(tokens[i].begin(), tokens[i].end());
+  }
+
+  const auto tail = tokens.back();
+  result.args.emplace_back(tail.begin(), tail.end());
   return result;
 }
 
 ParsedCommand Parser::make_struct_from_command(const Message &msg) {
   ParsedCommand res;
-  auto cmd_type = static_cast<CommandType>(msg.get_meta(0)[0]);
-  if (command_names.find(cmd_type) != command_names.end())
-    res.name = command_names.find(cmd_type)->second;
-  else
+  const auto &type_meta = msg.get_meta(0);
+  if (type_meta.empty()) {
     res.name = "unknown";
+    return res;
+  }
 
-  for (size_t i = 1; i < msg.metalen; ++i) {
+  const auto cmd_type = static_cast<CommandType>(type_meta[0]);
+  const auto &names = command_names_map();
+  const auto it = names.find(cmd_type);
+  res.name = it != names.end() ? it->second : "unknown";
+
+  for (size_t i = 1; i < msg.meta_count(); ++i) {
     res.args.push_back(msg.get_meta(i));
   }
   return res;

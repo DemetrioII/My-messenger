@@ -2,7 +2,7 @@
 
 CommandType ConnectCommand::getType() const { return CommandType::CONNECT; }
 
-void ConnectCommand::fromParsedCommand(const ParsedCommand &pc) {}
+void ConnectCommand::fromParsedCommand(const ParsedCommand & /*pc*/) {}
 
 Message ConnectCommand::toMessage() const {
   auto port_str = std::to_string(port);
@@ -24,9 +24,9 @@ void ConnectCommand::fromMessage(const Message &msg) {
   username = msg.get_payload();
 }
 
-void ConnectCommand::execeuteOnServer(std::shared_ptr<ServerContext> context) {}
+void ConnectCommand::execeuteOnServer(std::shared_ptr<ServerContext> /*context*/) {}
 
-void ConnectCommand::executeOnClient(std::shared_ptr<ClientContext> context) {}
+void ConnectCommand::executeOnClient(std::shared_ptr<ClientContext> /*context*/) {}
 
 void ConnectCommand::send_from_peer(std::shared_ptr<PeerContext> context) {
   if (context->my_username.empty()) {

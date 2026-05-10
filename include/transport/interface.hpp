@@ -62,10 +62,9 @@ public:
 
 struct NetBuffer {
   static constexpr size_t SBO_SIZE = 128;
+  std::variant<std::array<uint8_t, SBO_SIZE>, std::vector<uint8_t>> storage;
   size_t length = 0;
   bool is_large = false;
-
-  std::variant<std::array<uint8_t, SBO_SIZE>, std::vector<uint8_t>> storage;
 
   NetBuffer() : storage(std::array<uint8_t, SBO_SIZE>{}), length(0) {}
 

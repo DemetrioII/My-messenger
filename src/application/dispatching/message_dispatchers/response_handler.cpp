@@ -108,6 +108,8 @@ void ResponseMessageHandler::handleIncoming(
     handle_get_pubkey_response(msg, context);
     break;
   }
+  default:
+    break;
   }
 }
 

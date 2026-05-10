@@ -27,7 +27,9 @@ void PeerResponseHandler::handle_connect_response(
 }
 
 void PeerResponseHandler::handleSending(const Message &msg,
-                                        std::shared_ptr<PeerContext> context) {}
+                                        std::shared_ptr<PeerContext> /*context*/) {
+  (void)msg;
+}
 
 void PeerResponseHandler::handleReceiving(
     const Message &msg, std::shared_ptr<PeerContext> context) {
@@ -44,6 +46,8 @@ void PeerResponseHandler::handleReceiving(
     handle_connect_response(msg, context);
     break;
   }
+  default:
+    break;
   }
 }
 
