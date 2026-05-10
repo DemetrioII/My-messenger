@@ -1,19 +1,24 @@
 #pragma once
 
 #include <QDateTime>
+#include <QFrame>
+#include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QPropertyAnimation>
 #include <QPushButton>
-#include <QTextEdit>
+#include <QScrollArea>
+#include <QScrollBar>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <memory>
 #include <vector>
 
-#include "../services/messaging_client.hpp"
+#include "include/application/messaging/messaging_client.hpp"
 
 class ChatWindow : public QWidget {
   Q_OBJECT
@@ -29,9 +34,16 @@ private slots:
   void handleSend();
 
 private:
+  QWidget *makeBubble(const QString &text, const QString &timestamp,
+                      bool outgoing);
+  void appendBubble(const QString &text, const QString &timestamp,
+                    bool outgoing);
+
   QString userNickname;
   QLabel *titleLabel;
-  QTextEdit *historyArea;
+  QScrollArea *historyArea;
+  QWidget *historyContent;
+  QVBoxLayout *historyLayout;
   QLineEdit *inputField;
   QLabel *statusLabel;
 };

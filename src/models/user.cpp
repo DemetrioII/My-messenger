@@ -1,4 +1,4 @@
-#include "../../include/models/user.hpp"
+#include "include/models/user.hpp"
 
 User::User(const std::string &id, const std::string &username)
     : id(id), username(username), status(UserStatus::Offline) {}

@@ -1,26 +1,34 @@
-#include "../../../include/ui/simple_window.hpp"
+#include "include/ui/simple_window.hpp"
 
 MessengerUI::MessengerUI(QWidget *parent) : QWidget(parent) {
   auto *layout = new QVBoxLayout(this);
+  layout->setSpacing(14);
+  layout->setContentsMargins(20, 20, 20, 20);
 
   // Заголовок состояния
   titleLabel = new QLabel("<b>Авторизация</b>", this);
+  titleLabel->setStyleSheet("font-size: 20px; font-weight: 700;");
   layout->addWidget(titleLabel);
 
   // Область истории сообщений (скрыта до логина)
   historyArea = new QTextEdit(this);
   historyArea->setReadOnly(true);
   historyArea->setPlaceholderText("Тут будет ваша переписка...");
+  historyArea->setStyleSheet(
+      "background: #121821; border: 1px solid #2a3342; color: #f4f7fb; "
+      "border-radius: 16px; padding: 14px; font-size: 14px;");
   layout->addWidget(historyArea);
   historyArea->hide(); // Сначала прячем чат
 
   // Поле ввода
   inputField = new QLineEdit(this);
   inputField->setPlaceholderText("Введите никнейм и нажмите Enter...");
+  inputField->setClearButtonEnabled(true);
   layout->addWidget(inputField);
 
   // Статус-бар внизу
   statusLabel = new QLabel("Ожидание подключения...", this);
+  statusLabel->setStyleSheet("color: #8ca0b8;");
   layout->addWidget(statusLabel);
 
   // Соединяем ввод с обработчиком логина
@@ -28,11 +36,11 @@ MessengerUI::MessengerUI(QWidget *parent) : QWidget(parent) {
           &MessengerUI::handleLogin);
 
   // Настройка внешнего вида (в стиле терминала)
-  this->setStyleSheet("background-color: #1e1e1e; color: #dcdcdc; font-family: "
-                      "'Consolas', 'Monaco', monospace;");
+  this->setStyleSheet("background: #0f131a; color: #eef2f7; font-family: "
+                      "Inter, 'Segoe UI', sans-serif;");
   inputField->setStyleSheet(
-      "background-color: #2d2d2d; border: 1px solid #3f3f3f; padding: 5px;");
-  historyArea->setStyleSheet("background-color: #252526; border: none;");
+      "background: #171d27; border: 1px solid #2b3444; border-radius: 14px; "
+      "padding: 12px 14px; color: #f4f7fb;");
 }
 
 void MessengerUI::updateResponse(const QString &text) {

@@ -1,60 +1,110 @@
-# My-messenger
+# My Messenger
 
-***!!!ЭТО МОЙ УЧЕБНЫЙ И ХОББИ ПРОЕКТ ПО РАБОТЕ С СЕТЕВЫМИ ПРИЛОЖЕНИЯМИ!!!***
+Educational messenger written in C++ with a client-server architecture, Qt Widgets UI, encrypted message transport, and a growing application/transport/protocol split.
 
-🧪 Для разработчиков и исследователей
+## Features
 
-Этот проект — идеальная площадка для экспериментов:
+- Client and server modes
+- Qt Widgets GUI
+- Encrypted messages
+- Chat rooms
+- File transfer
+- Command-based UI
+- Logging through `log4cplus`
 
-    📚 Изучение современных сетевых паттернов на C++
+## Project Layout
 
-    🔬 Исследование криптографических протоколов
+- `app/` - runtime and configuration
+- `application/` - commands, dispatching, messaging, session, and use-case services
+- `transport/` - sockets, event loop, connection handling, server/client runtime
+- `protocol/` - message parsing and serialization
+- `domain/` - core data models
+- `infrastructure/` - logging, crypto, and backend helpers
+- `ui/` - Qt windows and widgets
 
-    🎯 Создание форков со своими улучшениями
+## Build
 
-    🧩 Добавление новых функций (P2P, звонки, файлообмен)
+### Requirements
 
-Потенциальные направления развития:
+- CMake 3.20+
+- C++23 compiler
+- Qt6 Widgets
+- Optional: `log4cplus`
 
-    Perfect Forward Secrecy (Double Ratchet)
+### Configure and build
 
-    Децентрализованная P2P-сеть
+```bash
+cmake -S . -B build
+cmake --build build -j
+```
 
-    Поддержка нескольких устройств
+If you want to disable optional logging:
 
-    Голосовые/видеозвонки
+```bash
+cmake -S . -B build -DBUILD_LOGGING=OFF
+```
 
-🤝 Участие в разработке
+## Run
 
-Вклад приветствуется в любом виде:
+The project builds separate client and server executables.
 
-    🐛 Сообщения об ошибках в Issues
+```bash
+./build/messenger_server
+./build/messenger_client
+```
 
-    💡 Предложения улучшений архитектуры
+If your build directory uses another name, replace `build` accordingly.
 
-    🔧 Pull Request'ы с новыми функциями
+## Commands
 
-    📚 Улучшение документации
+The client uses command-style input.
 
-    🔍 Аудит безопасности
+- `/login <username>`
+- `/room <name>`
+- `/join <name>`
+- `/send <chat> <message...>`
+- `/pmess <recipient> <message...>`
+- `/getpub <username>`
+- `/sendfile <recipient> <filename>`
+- `/connect <ip> <port> <dh> <identity> <sig>`
+- `/disconnect <username>`
+- `/exit`
+- `/help`
 
-Обсуждаем идеи открыто — проект следует принципам свободного ПО!
+## Security Notes
 
-**"Если вы не контролируете программу, то программа контролирует вас. Свободное ПО означает контроль пользователя над программой."** — Ричард Столлман
+- Message payloads are encrypted with AES-GCM.
+- The protocol includes replay-protection state.
+- Key exchange and trust establishment are still evolving.
+- This is an educational project, not a security-audited production system.
 
-📜 Лицензия
+## Tests
+
+If tests are enabled in your build:
+
+```bash
+cmake -S . -B build -DBUILD_TESTS=ON
+cmake --build build -j
+ctest --test-dir build
+```
+
+## Status
+
+The project is actively being refactored toward a cleaner separation of responsibilities:
+
+- `application` contains orchestration and commands
+- `transport` contains raw networking
+- `protocol` contains serialization/parsing
+- `ui` contains presentation
+
+Some parts are still transitionary while the architecture is being simplified.
+
+## License
 
 Copyright (C) 2025 DemetrioII
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.

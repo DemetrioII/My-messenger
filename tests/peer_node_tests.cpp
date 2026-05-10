@@ -1,7 +1,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "../include/network/transport/peer.hpp"
+#include "include/transport/peer.hpp"
 #include <atomic>
 #include <chrono>
 #include <future>

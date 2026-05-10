@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include "include/app/runtime.hpp"
 #include "include/ui/simple_window.hpp"
 
 char buffer[2048];

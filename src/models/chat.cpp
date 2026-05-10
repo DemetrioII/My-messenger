@@ -1,4 +1,4 @@
-#include "../../include/models/chat.hpp"
+#include "include/models/chat.hpp"
 
 Chat::Chat(const std::string &id, const std::string &name, ChatType type)
     : id(id), name(name), type(type) {}

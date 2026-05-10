@@ -37,15 +37,18 @@ enum class CommandType {
 };
 
 struct MessageHeader {
-  MessageType type;
-  uint32_t length;
-  uint32_t checksum;
-  uint64_t timestamp;
+  MessageType type = MessageType::Text;
+  uint32_t length = 0;
+  uint32_t checksum = 0;
+  uint64_t timestamp = 0;
+  uint8_t protocol_version = 1;
+};
 
-  std::vector<uint8_t> serialize() const;
-  static MessageHeader deserialize(const std::vector<uint8_t> &data);
-
-  // bool validate() const;
+struct MessageEnvelope {
+  std::vector<uint8_t> sender;
+  std::vector<uint8_t> recipient;
+  uint64_t sequence_number = 0;
+  uint32_t flags = 0;
 };
 
 class Message {
@@ -54,7 +57,8 @@ class Message {
 
 private:
   MessageHeader header;
-  uint8_t metalen;
+  uint8_t metalen = 0;
+  MessageEnvelope envelope;
   std::vector<std::vector<uint8_t>> metadata;
   std::vector<uint8_t> payload;
 
@@ -75,6 +79,7 @@ public:
   const std::vector<uint8_t> &get_payload() const;
 
   const std::vector<uint8_t> &get_meta(size_t index) const;
+  size_t meta_count() const;
 
   void insert_metadata(const std::vector<uint8_t> &meta);
   // std::vector<uint8_t> serialize() const;
@@ -106,19 +111,10 @@ class IMessageHandler {
 public:
   virtual ~IMessageHandler() = default;
 
-  virtual void
-  handleMessageOnClient(const Message &msg,
-                        const std::shared_ptr<ClientContext> context) = 0;
-
-  virtual void
-  handleMessageOnServer(const Message &msg,
-                        std::shared_ptr<ServerContext> context) = 0;
-
-  virtual void handleOnSendPeer(const Message &msg,
-                                std::shared_ptr<PeerContext> context) = 0;
-
-  virtual void handleOnRecvPeer(const Message &msg,
-                                std::shared_ptr<PeerContext> context) = 0;
+  virtual void handleOutgoing(const Message &msg,
+                              std::shared_ptr<ClientContext> context) = 0;
+  virtual void handleIncoming(const Message &msg,
+                              std::shared_ptr<ClientContext> context) = 0;
 
   virtual MessageType getMessageType() const = 0;
 };

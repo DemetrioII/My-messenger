@@ -1,350 +1,314 @@
-#include "../include/network/transport/peer.hpp"
-#include <chrono>
-#include <iostream>
+#include <gtest/gtest.h>
+
+#include "include/app/config.hpp"
+#include "include/application/services/chat_service.hpp"
+#include "include/application/services/server_application_service.hpp"
+#include "include/application/services/session_manager.hpp"
+#include "include/application/services/user_service.hpp"
+#include "include/models/message.hpp"
+#include "include/protocol/parser.hpp"
+#include "include/transport/interface.hpp"
+
+#include <memory>
+#include <algorithm>
+#include <functional>
 #include <string>
-#include <thread>
+#include <utility>
+#include <vector>
 
-/**
- * Пример 1: PeerNode в режиме сервера
- * Ожидает подключения от других peer'ов
- */
-/*
-void example_server_mode() {
-  std::cout << "=== Example: Server Mode ===" << std::endl;
+namespace {
 
-  // Создание TCP PeerNode
-  auto peer = PeerNodeFabric::create_tcp_peer();
-
-  // Установка callback для обработки сообщений
-  peer->set_data_callback(
-      [](const std::string &ip, const std::vector<uint8_t> &data) {
-        std::string message(data.begin(), data.end());
-        std::cout << "[From " << ip << "]: " << message << std::endl;
-      });
-
-  // Установка callback для новых подключений
-  peer->set_peer_connected_callback([](const std::string &ip) {
-    std::cout << "[System] Peer connected: " << ip << std::endl;
-  });
-
-  // Установка callback для отключений
-  peer->set_peer_disconnected_callback([](const std::string &ip) {
-    std::cout << "[System] Peer disconnected: " << ip << std::endl;
-  });
-
-  // Запуск прослушивания на порту 8080
-  peer->start_listening(8080);
-
-  // Запуск event loop в отдельном потоке
-  peer->run_event_loop();
-
-  // Основной поток обрабатывает пользовательский ввод
-  std::string input;
-  std::cout << "Commands: /peers, /quit, or message to broadcast" << std::endl;
-
-  while (std::getline(std::cin, input)) {
-    if (input == "/quit") {
-      break;
-    } else if (input == "/peers") {
-      auto peers = peer->get_connected_peers();
-      std::cout << "Connected peers (" << peers.size() << "):" << std::endl;
-      for (const auto &ip : peers) {
-        std::cout << "  - " << ip << std::endl;
-      }
-    } else {
-      // Широковещание сообщения
-      std::vector<uint8_t> data(input.begin(), input.end());
-      peer->broadcast(data);
-    }
-  }
-
-  peer->stop();
+std::vector<uint8_t> bytes(const std::string &value) {
+  return {value.begin(), value.end()};
 }
 
-
- * Пример 2: PeerNode в режиме клиента
- * Подключается к другому peer'у
- */
-/*
-void example_client_mode() {
-  std::cout << "=== Example: Client Mode ===" << std::endl;
-
-  auto peer = PeerNodeFabric::create_tcp_peer();
-
-  // Обработка входящих сообщений
-  peer->set_data_callback(
-      [](const std::string &ip, const std::vector<uint8_t> &data) {
-        std::string message(data.begin(), data.end());
-        std::cout << "[From " << ip << "]: " << message << std::endl;
-      });
-
-  // Подключение к серверу
-  if (peer->connect_to_peer("127.0.0.1", 8080)) {
-    std::cout << "Connected to server" << std::endl;
-
-    // Запуск event loop в отдельном потоке
-    peer->run_event_loop();
-
-    // Отправка сообщений
-    std::string input;
-    std::cout << "Type messages (or /quit to exit):" << std::endl;
-
-    while (std::getline(std::cin, input)) {
-      if (input == "/quit") {
-        break;
-      }
-
-      std::vector<uint8_t> data(input.begin(), input.end());
-      peer->send_to_peer("127.0.0.1", data);
-    }
-
-    peer->stop();
-  } else {
-    std::cerr << "Failed to connect to server" << std::endl;
-  }
+std::string as_string(const std::vector<uint8_t> &value) {
+  return {value.begin(), value.end()};
 }
 
- * Пример 3: Гибридный режим - и сервер, и клиент
-
-void example_hybrid_mode(int listen_port, const std::string &connect_ip = "",
-                         int connect_port = 0) {
-  std::cout << "=== Example: Hybrid Mode ===" << std::endl;
-
-  auto peer = PeerNodeFabric::create_tcp_peer();
-
-  // Callback для входящих сообщений
-  peer->set_data_callback(
-      [peer](const std::string &ip, const std::vector<uint8_t> &data) {
-        std::string message(data.begin(), data.end());
-        std::cout << "[" << ip << "]: " << message << std::endl;
-
-        // Эхо-ответ отправителю
-        std::string reply = "Echo: " + message;
-        std::vector<uint8_t> reply_data(reply.begin(), reply.end());
-        peer->send_to_peer(ip, reply_data);
-});
-
-  peer->set_peer_connected_callback(
-      [](const std::string &ip) { std::cout << "[+] " << ip << std::endl; });
-
-  peer->set_peer_disconnected_callback(
-      [](const std::string &ip) { std::cout << "[-] " << ip << std::endl; });
-
-  // Запуск как сервера
-  peer->start_listening(listen_port);
-
-  // Если указан адрес для подключения
-  if (!connect_ip.empty() && connect_port > 0) {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    peer->connect_to_peer(connect_ip, connect_port);
-  }
-
-  // Запуск event loop
-  std::thread event_thread([peer]() { peer->run_event_loop(); });
-
-  std::cout << "Commands:" << std::endl;
-  std::cout << "  /peers - list connected peers" << std::endl;
-  std::cout << "  /connect <ip> <port> - connect to peer" << std::endl;
-  std::cout << "  /disconnect <ip> - disconnect from peer" << std::endl;
-  std::cout << "  /quit - exit" << std::endl;
-  std::cout << "  <message> - broadcast to all" << std::endl;
-
-  std::string input;
-  while (std::getline(std::cin, input)) {
-    if (input == "/quit") {
-      break;
-    } else if (input == "/peers") {
-      auto peers = peer->get_connected_peers();
-      std::cout << "Connected peers (" << peers.size() << "):" << std::endl;
-      for (const auto &ip : peers) {
-        std::cout << "  - " << ip << std::endl;
-      }
-    } else if (input.substr(0, 8) == "/connect") {
-      // Парсинг: /connect <ip> <port>
-      size_t first_space = input.find(' ', 9);
-      if (first_space != std::string::npos) {
-        std::string ip = input.substr(9, first_space - 9);
-        int port = std::stoi(input.substr(first_space + 1));
-        peer->connect_to_peer(ip, port);
-      } else {
-        std::cout << "Usage: /connect <ip> <port>" << std::endl;
-      }
-    } else if (input.substr(0, 11) == "/disconnect") {
-      std::string ip = input.substr(12);
-      peer->disconnect_from_peer_by_ip(ip);
-    } else {
-      // Широковещание
-      std::vector<uint8_t> data(input.begin(), input.end());
-      peer->broadcast(data);
-    }
-  }
-
-  peer->stop();
-  event_thread.join();
-}
-
-/**
- * Пример 4: P2P чат
-
-class P2PChatNode {
-private:
-  std::shared_ptr<PeerNode> peer;
-  std::string node_name;
-  std::thread event_thread;
-
+class FakeServer final : public IServer {
 public:
-  P2PChatNode(const std::string &name, int listen_port)
-      : node_name(name), peer(PeerNodeFabric::create_tcp_peer()) {
+  std::vector<std::pair<int, std::vector<uint8_t>>> sent;
+  std::function<void(int, std::vector<uint8_t>)> data_callback;
+  std::function<void(int)> disconnect_callback;
+  bool running = false;
 
-    // Обработка сообщений
-    peer->set_data_callback(
-        [this](const std::string &ip, const std::vector<uint8_t> &data) {
-          std::string message(data.begin(), data.end());
-          std::cout << message << std::endl;
-        });
-
-    peer->set_peer_connected_callback([this](const std::string &ip) {
-      std::cout << "[System] " << ip << " joined the chat" << std::endl;
-
-      // Отправка приветствия
-      std::string greeting = "[" + node_name + "] Hello from " + node_name;
-      std::vector<uint8_t> data(greeting.begin(), greeting.end());
-      peer->send_to_peer(ip, data);
-    });
-
-    peer->set_peer_disconnected_callback([](const std::string &ip) {
-      std::cout << "[System] " << ip << " left the chat" << std::endl;
-    });
-
-    // Запуск прослушивания
-    peer->start_listening(listen_port);
-    std::cout << "Chat node '" << node_name << "' started on port "
-              << listen_port << std::endl;
+  void start(const std::string &, int) override { running = true; }
+  void stop() override { running = false; }
+  bool is_running() const override { return running; }
+  void on_client_error(int) override {}
+  void on_client_connected(std::shared_ptr<IConnection>) override {}
+  void on_client_disconnected(int) override {}
+  void on_client_message(int, const std::vector<uint8_t> &) override {}
+  void on_client_writable(int) override {}
+  void send(int fd, const std::vector<uint8_t> &data) override {
+    sent.emplace_back(fd, data);
   }
-
-  void start() {
-    event_thread = std::thread([this]() { peer->run_event_loop(); });
+  void set_data_callback(std::function<void(int, std::vector<uint8_t>)> callback,
+                         std::function<void(int)> disconnect) override {
+    data_callback = std::move(callback);
+    disconnect_callback = std::move(disconnect);
   }
-
-  void connect_to(const std::string &ip, int port) {
-    peer->connect_to_peer(ip, port);
-  }
-
-  void send_message(const std::string &message) {
-    std::string formatted = "[" + node_name + "] " + message;
-    std::vector<uint8_t> data(formatted.begin(), formatted.end());
-    peer->broadcast(data);
-  }
-
-  void stop() {
-    peer->stop();
-    if (event_thread.joinable()) {
-      event_thread.join();
-    }
-  }
-
-  ~P2PChatNode() { stop(); }
+  void run_event_loop() override {}
+  void tls_handshake(int) override {}
+  bool tls_handshake_done(int) override { return true; }
 };
 
-/**
- * Main функция с примерами
-
-int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    std::cout << "Usage: " << argv[0] << " <mode> [options]" << std::endl;
-    std::cout << "Modes:" << std::endl;
-    std::cout << "  server               - Run as server only" << std::endl;
-    std::cout << "  client               - Run as client only" << std::endl;
-    std::cout << "  hybrid <port>        - Run as hybrid (server+client)"
-              << std::endl;
-    std::cout << "  chat <name> <port>   - Run P2P chat node" << std::endl;
-    return 1;
+class ParserTest : public ::testing::Test {};
+class ServiceTest : public ::testing::Test {};
+class ServerAppTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    fd = 42;
+    transport = std::make_shared<FakeServer>();
+    user_service = std::make_shared<UserService>();
+    chat_service = std::make_shared<ChatService>();
+    session_manager = std::make_shared<SessionManager>();
+    service = std::make_unique<ServerApplicationService>(
+        user_service, chat_service, session_manager, transport, &serializer,
+        &fd);
   }
 
-  std::string mode = argv[1];
+  std::shared_ptr<FakeServer> transport;
+  std::shared_ptr<UserService> user_service;
+  std::shared_ptr<ChatService> chat_service;
+  std::shared_ptr<SessionManager> session_manager;
+  Serializer serializer;
+  int fd = -1;
+  std::unique_ptr<ServerApplicationService> service;
+};
 
-  try {
-    if (mode == "server") {
-      example_server_mode();
-    } else if (mode == "client") {
-      example_client_mode();
-    } else if (mode == "hybrid") {
-      if (argc < 3) {
-        std::cerr << "Usage: " << argv[0]
-                  << " hybrid <listen_port> [connect_ip "
-                     "connect_port]"
-                  << std::endl;
-        return 1;
-      }
-      int listen_port = std::stoi(argv[2]);
-      std::string connect_ip = argc > 3 ? argv[3] : "";
-      int connect_port = argc > 4 ? std::stoi(argv[4]) : 0;
-      example_hybrid_mode(listen_port, connect_ip, connect_port);
-    } else if (mode == "chat") {
-      if (argc < 4) {
-        std::cerr << "Usage: " << argv[0] << " chat <name> <port>" << std::endl;
-        return 1;
-      }
-      std::string name = argv[2];
-      int port = std::stoi(argv[3]);
+} // namespace
 
-      P2PChatNode chat(name, port);
-      chat.start();
+TEST_F(ParserTest, TextMessageRoundTrip) {
+  Parser parser;
+  auto msg = parser.parse("hello messenger");
 
-      // Опционально подключение к другому узлу
-      if (argc > 5) {
-        std::string peer_ip = argv[4];
-        int peer_port = std::stoi(argv[5]);
-        chat.connect_to(peer_ip, peer_port);
-      }
+  ASSERT_EQ(msg.get_type(), MessageType::Text);
+  EXPECT_EQ(as_string(msg.get_payload()), "hello messenger");
 
-      std::cout << "Type messages (or /quit to exit):" << std::endl;
-      std::string input;
-      while (std::getline(std::cin, input)) {
-        if (input == "/quit")
-          break;
-        chat.send_message(input);
-      }
+  Serializer serializer;
+  auto raw = serializer.serialize(msg);
+  auto restored = serializer.deserialize(raw);
 
-      chat.stop();
-    } else {
-      std::cerr << "Unknown mode: " << mode << std::endl;
-      return 1;
-    }
-  } catch (const std::exception &e) {
-    std::cerr << "Error: " << e.what() << std::endl;
-    return 1;
-  }
+  EXPECT_EQ(restored.get_type(), MessageType::Text);
+  EXPECT_EQ(as_string(restored.get_payload()), "hello messenger");
+}
 
-  return 0;
-} */
+TEST_F(ParserTest, CommandParsingAndReverseMapping) {
+  Parser parser;
+  auto msg = parser.parse("/login alice");
 
-#include <atomic>
-#include <iostream>
-#include <string>
-#include <thread>
+  ASSERT_EQ(msg.get_type(), MessageType::Command);
+  ASSERT_FALSE(msg.get_meta(0).empty());
+  EXPECT_EQ(static_cast<CommandType>(msg.get_meta(0)[0]), CommandType::LOGIN);
 
-#include "../../../include/services/messaging_peer.hpp"
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <thread>
+  auto parsed = parser.make_struct_from_command(msg);
+  EXPECT_EQ(parsed.name, "login");
+  ASSERT_EQ(parsed.args.size(), 1u);
+  EXPECT_EQ(as_string(parsed.args[0]), "alice");
+}
 
-int main(int argc, char *argv[]) {
-  int port;
-  std::cin >> port;
-  MessagingPeer peer(port);
-  std::jthread loop_thread([&]() { peer.run(); });
-  std::string s;
-  while (getline(std::cin, s)) {
-    if (s == "/exit") {
-      peer.stop_peer();
-      break;
-    } else if (s[0] == '/') {
-      peer.send_msg(s);
-    } else {
-      peer.send_msg(s);
-    }
-  }
-  return 0;
+TEST_F(ParserTest, SerializerPreservesCommandMetadata) {
+  Parser parser;
+  auto msg = parser.parse("/room general");
+
+  Serializer serializer;
+  auto raw = serializer.serialize(msg);
+  auto restored = serializer.deserialize(raw);
+  auto parsed = parser.make_struct_from_command(restored);
+
+  EXPECT_EQ(parsed.name, "room");
+  ASSERT_EQ(parsed.args.size(), 1u);
+  EXPECT_EQ(as_string(parsed.args[0]), "general");
+}
+
+TEST_F(ServiceTest, UserServiceRegistersFindsAndRemovesUser) {
+  UserService users;
+
+  auto reg = users.register_user("alice", bytes("dh"), bytes("id"), bytes("sig"));
+  ASSERT_TRUE(reg.has_value());
+  EXPECT_EQ(*reg, "alice");
+
+  auto dup = users.register_user("alice", bytes("dh2"), bytes("id2"), bytes("sig2"));
+  ASSERT_FALSE(dup.has_value());
+  EXPECT_EQ(dup.error(), ServiceError::AlreadyExists);
+
+  auto found = users.find_user("alice");
+  ASSERT_TRUE(found.has_value());
+  EXPECT_EQ((*found)->get_username(), "alice");
+  EXPECT_EQ((*found)->get_public_DH_key(), bytes("dh"));
+  EXPECT_EQ((*found)->get_public_Identity_key(), bytes("id"));
+  EXPECT_EQ((*found)->get_key_signature(), bytes("sig"));
+
+  users.remove_user("alice");
+  auto missing = users.find_user("alice");
+  ASSERT_FALSE(missing.has_value());
+  EXPECT_EQ(missing.error(), ServiceError::UserNotFound);
+}
+
+TEST_F(ServiceTest, ChatServiceCreatesMembersAndBroadcastRecipients) {
+  ChatService chats;
+
+  auto created = chats.create_chat("general", "alice");
+  ASSERT_TRUE(created.has_value());
+  EXPECT_EQ(*created, "general");
+
+  auto added = chats.add_member("general", "bob");
+  ASSERT_TRUE(added.has_value());
+
+  auto duplicate = chats.add_member("general", "bob");
+  ASSERT_FALSE(duplicate.has_value());
+  EXPECT_EQ(duplicate.error(), ServiceError::AlreadyMember);
+
+  Message msg(bytes("hello"), 0, {}, MessageType::Text);
+  auto recipients = chats.post_message("general", "alice", msg);
+  ASSERT_TRUE(recipients.has_value());
+  ASSERT_EQ(recipients->size(), 2u);
+  EXPECT_NE(std::find(recipients->begin(), recipients->end(), "alice"),
+            recipients->end());
+  EXPECT_NE(std::find(recipients->begin(), recipients->end(), "bob"),
+            recipients->end());
+}
+
+TEST_F(ServiceTest, SessionManagerBindsAndUnbindsDescriptors) {
+  SessionManager sessions;
+
+  sessions.bind(10, "alice");
+
+  auto username = sessions.get_username(10);
+  ASSERT_TRUE(username.has_value());
+  EXPECT_EQ(*username, "alice");
+
+  auto fd = sessions.get_fd("alice");
+  ASSERT_TRUE(fd.has_value());
+  EXPECT_EQ(*fd, 10);
+
+  sessions.unbind(10);
+
+  auto missing_username = sessions.get_username(10);
+  ASSERT_FALSE(missing_username.has_value());
+  EXPECT_EQ(missing_username.error(), ServiceError::UserNotFound);
+}
+
+TEST_F(ServerAppTest, LoginBindsSessionAndSendsGreeting) {
+  service->login("alice", bytes("dh"), bytes("identity"), bytes("sig"));
+
+  ASSERT_EQ(transport->sent.size(), 1u);
+  EXPECT_EQ(transport->sent.back().first, fd);
+
+  auto reply = serializer.deserialize(transport->sent.back().second);
+  EXPECT_EQ(reply.get_type(), MessageType::Text);
+  EXPECT_EQ(as_string(reply.get_payload()), "Hello, alice!");
+
+  auto current = service->current_username();
+  ASSERT_TRUE(current.has_value());
+  EXPECT_EQ(*current, "alice");
+}
+
+TEST_F(ServerAppTest, LoginTwiceReturnsAlreadyLoggedInResponse) {
+  service->login("alice", bytes("dh"), bytes("identity"), bytes("sig"));
+  transport->sent.clear();
+
+  service->login("alice", bytes("dh2"), bytes("identity2"), bytes("sig2"));
+
+  ASSERT_EQ(transport->sent.size(), 1u);
+  EXPECT_EQ(transport->sent.back().second, StaticResponses::YOU_ARE_LOGGED_IN);
+}
+
+TEST_F(ServerAppTest, JoinRequiresLoginAndThenSucceeds) {
+  service->join_room("general");
+  ASSERT_EQ(transport->sent.size(), 1u);
+  EXPECT_EQ(transport->sent.back().second, StaticResponses::YOU_NEED_TO_LOGIN);
+
+  transport->sent.clear();
+  service->login("alice", bytes("dh"), bytes("identity"), bytes("sig"));
+  transport->sent.clear();
+
+  service->create_room("general");
+  transport->sent.clear();
+
+  fd = 7;
+  session_manager->bind(fd, "bob");
+  user_service->register_user("bob", bytes("dh_b"), bytes("id_b"), bytes("sig_b"));
+  service->join_room("general");
+  ASSERT_EQ(transport->sent.size(), 1u);
+
+  auto reply = serializer.deserialize(transport->sent.back().second);
+  EXPECT_EQ(reply.get_type(), MessageType::Text);
+  EXPECT_EQ(as_string(reply.get_payload()), "You joined the room general");
+}
+
+TEST_F(ServerAppTest, CreateRoomAndPreventDuplicates) {
+  service->login("alice", bytes("dh"), bytes("identity"), bytes("sig"));
+  transport->sent.clear();
+
+  service->create_room("general");
+  ASSERT_EQ(transport->sent.size(), 1u);
+  auto created = serializer.deserialize(transport->sent.back().second);
+  EXPECT_EQ(created.get_type(), MessageType::Text);
+  EXPECT_EQ(as_string(created.get_payload()), "Room general was created!");
+
+  transport->sent.clear();
+  service->create_room("general");
+  ASSERT_EQ(transport->sent.size(), 1u);
+  EXPECT_EQ(transport->sent.back().second, StaticResponses::CHAT_ALREADY_EXISTS);
+}
+
+TEST_F(ServerAppTest, GroupMessageBroadcastsToMembers) {
+  service->login("alice", bytes("dh_a"), bytes("id_a"), bytes("sig_a"));
+  transport->sent.clear();
+  session_manager->bind(7, "bob");
+  user_service->register_user("bob", bytes("dh_b"), bytes("id_b"), bytes("sig_b"));
+  service->create_room("general");
+  chat_service->add_member("general", "bob");
+  transport->sent.clear();
+
+  Message group_msg(bytes("hello group"), 0, {}, MessageType::Text);
+  service->send_group_message("general", group_msg);
+
+  ASSERT_EQ(transport->sent.size(), 2u);
+  EXPECT_EQ(transport->sent[0].first, fd);
+  EXPECT_EQ(transport->sent[1].first, 7);
+
+  auto sent0 = serializer.deserialize(transport->sent[0].second);
+  auto sent1 = serializer.deserialize(transport->sent[1].second);
+  EXPECT_EQ(as_string(sent0.get_payload()), "hello group");
+  EXPECT_EQ(as_string(sent1.get_payload()), "hello group");
+}
+
+TEST_F(ServerAppTest, PubkeyLookupReturnsStoredKeys) {
+  service->login("alice", bytes("dh_a"), bytes("id_a"), bytes("sig_a"));
+  transport->sent.clear();
+
+  service->send_pubkey(bytes("alice"));
+
+  ASSERT_EQ(transport->sent.size(), 1u);
+  auto reply = serializer.deserialize(transport->sent.back().second);
+  EXPECT_EQ(reply.get_type(), MessageType::Response);
+  ASSERT_FALSE(reply.get_meta(0).empty());
+  EXPECT_EQ(static_cast<CommandType>(reply.get_meta(0)[0]),
+            CommandType::GET_PUBKEY);
+  EXPECT_EQ(as_string(reply.get_meta(1)), "alice");
+}
+
+TEST_F(ServerAppTest, CipherMessageIsForwardedToRecipient) {
+  service->login("alice", bytes("dh_a"), bytes("id_a"), bytes("sig_a"));
+  transport->sent.clear();
+
+  user_service->register_user("bob", bytes("dh_b"), bytes("id_b"), bytes("sig_b"));
+  session_manager->bind(7, "bob");
+
+  Message cipher_msg(bytes("ciphertext"), 2,
+                     {bytes("bob"), bytes("alice")}, MessageType::CipherMessage);
+  service->deliver_cipher_message(fd, cipher_msg);
+
+  ASSERT_EQ(transport->sent.size(), 1u);
+  EXPECT_EQ(transport->sent.back().first, 7);
+
+  auto reply = serializer.deserialize(transport->sent.back().second);
+  EXPECT_EQ(reply.get_type(), MessageType::CipherMessage);
+  EXPECT_EQ(as_string(reply.get_payload()), "ciphertext");
+  EXPECT_EQ(as_string(reply.get_meta(0)), "bob");
+  EXPECT_EQ(as_string(reply.get_meta(1)), "alice");
 }

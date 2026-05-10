@@ -1,0 +1,158 @@
+#include "include/transport/connection.hpp"
+
+ClientConnection::ClientConnection(int fd_) : fd(fd_) {}
+ClientConnection::ClientConnection(int fd_, const struct sockaddr_in &addr_)
+    : fd(fd_), addr(addr_),
+      framer(std::move(std::make_unique<FramerMessage>())) {}
+
+// ЧИНЯЕМ MOVE: сбрасываем fd у донора
+ClientConnection::ClientConnection(ClientConnection &&other) noexcept
+    : fd(std::move(other.fd)), addr(other.addr),
+      transport(std::move(other.transport)),
+      recv_buffer(std::move(other.recv_buffer)),
+      send_buffer(std::move(other.send_buffer)),
+      framer(std::move(other.framer)) {
+  other.fd = -1;
+}
+
+ClientConnection &
+ClientConnection::operator=(ClientConnection &&other) noexcept {
+  if (this != &other) {
+    fd = std::move(other.fd);
+    addr = other.addr;
+    transport = std::move(other.transport);
+    recv_buffer = std::move(other.recv_buffer);
+    send_buffer = std::move(other.send_buffer);
+    framer = std::move(other.framer);
+    other.fd = -1;
+  }
+  return *this;
+}
+
+bool ClientConnection::flush() {
+  if (send_buffer.empty())
+    return true;
+  ssize_t sent = transport->send(send_buffer); // send(transport, send_buffer);
+  if (sent > 0) {
+    send_buffer.erase(send_buffer.begin(), send_buffer.begin() + sent);
+    return send_buffer.empty();
+  }
+  return (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
+}
+
+void ClientConnection::init_transport(const ITransport &transport_) {
+  transport = std::make_unique<ITransport>(transport_);
+}
+
+bool ClientConnection::try_receive() {
+  auto result = transport->receive(); // receive(transport);
+  if (result.data.data()) {
+    recv_buffer.insert(recv_buffer.end(), result.data.data(),
+                       result.data.data() + result.data.length);
+  }
+  return (result.status == ReceiveStatus::OK ||
+          result.status == ReceiveStatus::WOULDBLOCK);
+}
+
+// Проверяем, пришло ли сообщение целиком
+bool ClientConnection::has_complete_message() const {
+  return framer->has_message_in_buffer(recv_buffer);
+}
+
+std::vector<uint8_t> ClientConnection::extract_message() {
+  return framer->extract_message(recv_buffer);
+}
+
+void ClientConnection::queue_send(const std::vector<uint8_t> &data) {
+  framer->form_message(data, send_buffer);
+}
+
+struct sockaddr_in ClientConnection::get_addr() { return addr; }
+
+int ClientConnection::get_fd() const { return fd.get_fd(); }
+
+ClientConnection::~ClientConnection() {}
+
+PeerConnection::PeerConnection(int fd, const struct sockaddr_in &addr)
+    : fd_(fd), addr_(addr), transport(std::make_unique<ITransport>(
+                                TransportFactory::create_tcp(fd))) {}
+
+bool PeerConnection::has_complete_message() const {
+  return framer->has_message_in_buffer(recv_buffer);
+}
+
+bool PeerConnection::flush() {
+  if (send_buffer.empty())
+    return true;
+  ssize_t sent = transport->send(send_buffer); // send(transport, send_buffer);
+  if (sent > 0) {
+    send_buffer.erase(send_buffer.begin(), send_buffer.begin() + sent);
+    return send_buffer.empty();
+  }
+  return (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
+}
+
+void PeerConnection::init_transport(const ITransport &transport_) {
+  transport = std::make_unique<ITransport>(transport_);
+}
+
+bool PeerConnection::try_receive() {
+  auto result = transport->receive(); // receive(transport);
+  if (result.data.data()) {
+    recv_buffer.insert(recv_buffer.end(), result.data.data(),
+                       result.data.data() + result.data.length);
+  }
+  return (result.status == ReceiveStatus::OK ||
+          result.status == ReceiveStatus::WOULDBLOCK);
+}
+
+std::vector<uint8_t> PeerConnection::extract_message() {
+  return framer->extract_message(recv_buffer);
+}
+
+void PeerConnection::queue_send(const std::vector<uint8_t> &data) {
+  framer->form_message(data, send_buffer);
+}
+
+struct sockaddr_in PeerConnection::get_addr() { return addr_; }
+
+int PeerConnection::get_fd() const { return fd_.get_fd(); }
+
+void ConnectionManager::add_connection(int fd,
+                                       std::shared_ptr<IConnection> conn) {
+  std::lock_guard<std::mutex> lock(connections_mutex);
+  connections[fd] = conn;
+}
+
+void ConnectionManager::remove_connection(int fd) {
+  std::lock_guard<std::mutex> lock(connections_mutex);
+  if (find_connection(fd))
+    connections.erase(fd);
+}
+
+bool ConnectionManager::find_connection(int fd) {
+  return connections.find(fd) != connections.end();
+}
+
+void ConnectionManager::send_to_buffer(int fd,
+                                       const std::vector<uint8_t> &data) {
+  auto it = get_connection(fd);
+  if (it != std::nullopt) {
+    it->get()->queue_send(data);
+  }
+}
+
+std::optional<std::shared_ptr<IConnection>>
+ConnectionManager::get_connection(int fd) {
+  std::lock_guard<std::mutex> lock(connections_mutex);
+  if (find_connection(fd))
+    return connections[fd];
+  return std::nullopt;
+}
+
+std::unordered_map<int, std::shared_ptr<IConnection>>
+ConnectionManager::get_all_connections() const {
+  return connections;
+}
+
+ConnectionManager::~ConnectionManager() { connections.clear(); }
