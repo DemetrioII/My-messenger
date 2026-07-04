@@ -52,8 +52,8 @@ void PrivateMessageCommand::send_from_peer(
             << std::endl;
 }
 
-void PrivateMessageCommand::recv_on_peer(int /*fd*/,
-                                         std::shared_ptr<PeerContext> /*context*/) {
+void PrivateMessageCommand::recv_on_peer(
+    int /*fd*/, std::shared_ptr<PeerContext> /*context*/) {
   std::cout << "Peer got a cipher message" << std::endl;
 }
 

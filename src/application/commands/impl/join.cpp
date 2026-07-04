@@ -9,12 +9,13 @@ void JoinCommand::fromParsedCommand(const ParsedCommand &parsed) {
 }
 
 Message JoinCommand::toMessage() const {
-  ParsedCommand pc;
-  pc.name = "join";
-  pc.args.push_back(chat_name);
+  Message msg;
+  msg.header.type = MessageType::Command;
+  msg.header.protocol_version = 1;
 
-  Parser parser;
-  return parser.make_command_from_struct(pc);
+  msg.insert_metadata({static_cast<uint8_t>(CommandType::JOIN)});
+  msg.insert_metadata(chat_name);
+  return msg;
 }
 
 void JoinCommand::fromMessage(const Message &msg) {
@@ -34,6 +35,7 @@ void JoinCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
 
 void JoinCommand::send_from_peer(std::shared_ptr<PeerContext> /*context*/) {}
 
-void JoinCommand::recv_on_peer(int /*fd*/, std::shared_ptr<PeerContext> /*context*/) {}
+void JoinCommand::recv_on_peer(int /*fd*/,
+                               std::shared_ptr<PeerContext> /*context*/) {}
 
 JoinCommand::~JoinCommand() {}

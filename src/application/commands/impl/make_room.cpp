@@ -9,12 +9,13 @@ void MakeRoomCommand::fromParsedCommand(const ParsedCommand &parsed) {
 }
 
 Message MakeRoomCommand::toMessage() const {
-  ParsedCommand pc;
-  pc.name = "room";
-  pc.args = {chat_name};
+  Message msg;
+  msg.header.type = MessageType::Command;
+  msg.header.protocol_version = 1;
 
-  Parser parser;
-  return parser.make_command_from_struct(pc);
+  msg.insert_metadata({static_cast<uint8_t>(CommandType::MAKE_ROOM)});
+  msg.insert_metadata(chat_name);
+  return msg;
 }
 
 void MakeRoomCommand::fromMessage(const Message &msg) {
@@ -33,7 +34,8 @@ void MakeRoomCommand::executeOnClient(std::shared_ptr<ClientContext> context) {
   client->send_to_server(serializer.serialize(toMessage()));
 }
 
-void MakeRoomCommand::send_from_peer(std::shared_ptr<PeerContext> /*context*/) {}
+void MakeRoomCommand::send_from_peer(std::shared_ptr<PeerContext> /*context*/) {
+}
 
 void MakeRoomCommand::recv_on_peer(int /*fd*/,
                                    std::shared_ptr<PeerContext> /*context*/) {}

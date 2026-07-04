@@ -39,6 +39,7 @@ enum class CommandType {
 struct MessageHeader {
   MessageType type = MessageType::Text;
   uint32_t length = 0;
+  uint32_t id = 0;
   uint32_t checksum = 0;
   uint64_t timestamp = 0;
   uint8_t protocol_version = 1;
@@ -56,13 +57,13 @@ class Message {
   friend class Parser;
 
 private:
-  MessageHeader header;
   uint8_t metalen = 0;
   MessageEnvelope envelope;
   std::vector<std::vector<uint8_t>> metadata;
   std::vector<uint8_t> payload;
 
 public:
+  MessageHeader header;
   Message() = default;
   Message(const std::vector<uint8_t> &payload_, uint8_t metalen_,
           const std::vector<std::vector<uint8_t>> &metadata_,

@@ -1,5 +1,27 @@
 #include "include/application/services/server_application_service.hpp"
 
+enum class ResponseCode {
+  YOU_NEED_TO_LOGIN = 1,
+  USER_NOT_FOUND,
+  CHAT_NOT_FOUND,
+  CHAT_ALREADY_EXISTS,
+  YOU_ARE_ALREADY_MEMBER,
+  YOU_ARE_NOT_MEMBER,
+  WRONG_COMMAND_USAGE,
+  EMPTY_CHAT_NAME,
+  YOU_ARE_LOGGED_IN,
+  PUBLIC_KEY_HAS_NOT_SET
+};
+
+Message make_response(ResponseCode code, const std::string &text) {
+  Message msg;
+  msg.header.type = MessageType::Text;
+  msg.insert_metadata({static_cast<uint8_t>(code)});
+  msg.set_payload(std::vector<uint8_t>(text.begin(), text.end()));
+
+  return msg;
+}
+
 ServerApplicationService::ServerApplicationService(
     std::shared_ptr<UserService> user_service,
     std::shared_ptr<ChatService> chat_service,
@@ -31,14 +53,18 @@ void ServerApplicationService::login(
   auto fd = *fd_ref_;
   auto username_fd_res = session_manager_->get_username(fd);
   if (username_fd_res.has_value()) {
-    transport_server_->send(fd, StaticResponses::YOU_ARE_LOGGED_IN);
+    transport_server_->send(fd, serializer_->serialize(make_response(
+                                    ResponseCode::YOU_NEED_TO_LOGIN,
+                                    "You must authenticate first")));
     return;
   }
 
   auto username_res = user_service_->register_user(username, dh_pubkey,
                                                    identity_pub, signature);
   if (!username_res.has_value()) {
-    transport_server_->send(fd, StaticResponses::PUBLIC_KEY_HAS_NOT_SET);
+    transport_server_->send(fd, serializer_->serialize(make_response(
+                                    ResponseCode::PUBLIC_KEY_HAS_NOT_SET,
+                                    "Error during setting public key")));
     return;
   }
 
@@ -57,23 +83,23 @@ void ServerApplicationService::join_room(const std::string &chat_name) const {
   auto fd = *fd_ref_;
   auto username = session_manager_->get_username(fd);
   if (!username.has_value()) {
-    transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
+    // transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
 
   if (chat_name.empty()) {
-    transport_server_->send(fd, StaticResponses::EMPTY_CHAT_NAME);
+    // transport_server_->send(fd, StaticResponses::EMPTY_CHAT_NAME);
     return;
   }
 
   auto chat_res = chat_service_->add_member(chat_name, *username);
   if (!chat_res.has_value()) {
     if (chat_res.error() == ServiceError::ChatNotFound) {
-      transport_server_->send(fd, StaticResponses::CHAT_NOT_FOUND);
+      // transport_server_->send(fd, StaticResponses::CHAT_NOT_FOUND);
       return;
     }
     if (chat_res.error() == ServiceError::AlreadyMember) {
-      transport_server_->send(fd, StaticResponses::YOU_ARE_ALREADY_MEMBER);
+      // transport_server_->send(fd, StaticResponses::YOU_ARE_ALREADY_MEMBER);
       return;
     }
   }
@@ -89,19 +115,21 @@ void ServerApplicationService::deliver_cipher_message(int fd,
                                                       const Message &msg) {
   auto username = session_manager_->get_username(fd);
   if (!username.has_value()) {
-    transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
+    // transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
   auto recipient_username =
       std::string(msg.get_meta(0).begin(), msg.get_meta(0).end());
   auto recipient_fd = session_manager_->get_fd(recipient_username);
   if (!recipient_fd.has_value()) {
-    transport_server_->send(fd, StaticResponses::USER_NOT_FOUND);
+    transport_server_->send(
+        fd, serializer_->serialize(
+                make_response(ResponseCode::USER_NOT_FOUND, "User not found")));
     return;
   }
   auto sender = user_service_->find_user(*username);
   if (!sender.has_value()) {
-    transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
+    // transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
   Message msg_to_send(
@@ -121,18 +149,18 @@ void ServerApplicationService::create_room(const std::string &chat_name) const {
   auto fd = *fd_ref_;
   auto username = session_manager_->get_username(fd);
   if (!username.has_value()) {
-    transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
+    // transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
 
   if (chat_name.empty()) {
-    transport_server_->send(fd, StaticResponses::EMPTY_CHAT_NAME);
+    // transport_server_->send(fd, StaticResponses::EMPTY_CHAT_NAME);
     return;
   }
 
   auto chat_res = chat_service_->create_chat(chat_name, *username);
   if (!chat_res.has_value()) {
-    transport_server_->send(fd, StaticResponses::CHAT_ALREADY_EXISTS);
+    // transport_server_->send(fd, StaticResponses::CHAT_ALREADY_EXISTS);
     return;
   }
 
@@ -151,7 +179,7 @@ void ServerApplicationService::send_group_message(
   auto fd = *fd_ref_;
   auto username_res = session_manager_->get_username(fd);
   if (!username_res.has_value()) {
-    transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
+    // transport_server_->send(fd, StaticResponses::YOU_NEED_TO_LOGIN);
     return;
   }
 
@@ -159,11 +187,11 @@ void ServerApplicationService::send_group_message(
       chat_service_->post_message(chat_name, *username_res, message);
   if (!send_res.has_value()) {
     if (send_res.error() == ServiceError::AccessDenied) {
-      transport_server_->send(fd, StaticResponses::YOU_ARE_NOT_MEMBER);
+      // transport_server_->send(fd, StaticResponses::YOU_ARE_NOT_MEMBER);
       return;
     }
     if (send_res.error() == ServiceError::ChatNotFound) {
-      transport_server_->send(fd, StaticResponses::CHAT_NOT_FOUND);
+      // transport_server_->send(fd, StaticResponses::CHAT_NOT_FOUND);
       return;
     }
   }
@@ -204,14 +232,17 @@ void ServerApplicationService::send_pubkey(
     return;
 
   if (username.empty()) {
-    transport_server_->send(*fd_ref_, StaticResponses::WRONG_COMMAND_USAGE);
+    // transport_server_->send(*fd_ref_,
+    // StaticResponses::WRONG_COMMAND_USAGE);
     return;
   }
 
   auto username_str = std::string(username.begin(), username.end());
   auto user_res = user_service_->find_user(username_str);
   if (!user_res.has_value()) {
-    transport_server_->send(*fd_ref_, StaticResponses::USER_NOT_FOUND);
+    transport_server_->send(
+        *fd_ref_, serializer_->serialize(make_response(
+                      ResponseCode::USER_NOT_FOUND, "User not found")));
     return;
   }
 

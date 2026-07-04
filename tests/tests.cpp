@@ -1,5 +1,3 @@
-#include <gtest/gtest.h>
-
 #include "include/app/config.hpp"
 #include "include/application/services/chat_service.hpp"
 #include "include/application/services/server_application_service.hpp"
@@ -9,9 +7,10 @@
 #include "include/protocol/parser.hpp"
 #include "include/transport/interface.hpp"
 
-#include <memory>
 #include <algorithm>
 #include <functional>
+#include <gtest/gtest.h>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -44,8 +43,9 @@ public:
   void send(int fd, const std::vector<uint8_t> &data) override {
     sent.emplace_back(fd, data);
   }
-  void set_data_callback(std::function<void(int, std::vector<uint8_t>)> callback,
-                         std::function<void(int)> disconnect) override {
+  void
+  set_data_callback(std::function<void(int, std::vector<uint8_t>)> callback,
+                    std::function<void(int)> disconnect) override {
     data_callback = std::move(callback);
     disconnect_callback = std::move(disconnect);
   }
@@ -126,11 +126,13 @@ TEST_F(ParserTest, SerializerPreservesCommandMetadata) {
 TEST_F(ServiceTest, UserServiceRegistersFindsAndRemovesUser) {
   UserService users;
 
-  auto reg = users.register_user("alice", bytes("dh"), bytes("id"), bytes("sig"));
+  auto reg =
+      users.register_user("alice", bytes("dh"), bytes("id"), bytes("sig"));
   ASSERT_TRUE(reg.has_value());
   EXPECT_EQ(*reg, "alice");
 
-  auto dup = users.register_user("alice", bytes("dh2"), bytes("id2"), bytes("sig2"));
+  auto dup =
+      users.register_user("alice", bytes("dh2"), bytes("id2"), bytes("sig2"));
   ASSERT_FALSE(dup.has_value());
   EXPECT_EQ(dup.error(), ServiceError::AlreadyExists);
 
@@ -230,7 +232,8 @@ TEST_F(ServerAppTest, JoinRequiresLoginAndThenSucceeds) {
 
   fd = 7;
   session_manager->bind(fd, "bob");
-  user_service->register_user("bob", bytes("dh_b"), bytes("id_b"), bytes("sig_b"));
+  user_service->register_user("bob", bytes("dh_b"), bytes("id_b"),
+                              bytes("sig_b"));
   service->join_room("general");
   ASSERT_EQ(transport->sent.size(), 1u);
 
@@ -252,14 +255,16 @@ TEST_F(ServerAppTest, CreateRoomAndPreventDuplicates) {
   transport->sent.clear();
   service->create_room("general");
   ASSERT_EQ(transport->sent.size(), 1u);
-  EXPECT_EQ(transport->sent.back().second, StaticResponses::CHAT_ALREADY_EXISTS);
+  EXPECT_EQ(transport->sent.back().second,
+            StaticResponses::CHAT_ALREADY_EXISTS);
 }
 
 TEST_F(ServerAppTest, GroupMessageBroadcastsToMembers) {
   service->login("alice", bytes("dh_a"), bytes("id_a"), bytes("sig_a"));
   transport->sent.clear();
   session_manager->bind(7, "bob");
-  user_service->register_user("bob", bytes("dh_b"), bytes("id_b"), bytes("sig_b"));
+  user_service->register_user("bob", bytes("dh_b"), bytes("id_b"),
+                              bytes("sig_b"));
   service->create_room("general");
   chat_service->add_member("general", "bob");
   transport->sent.clear();
@@ -296,11 +301,12 @@ TEST_F(ServerAppTest, CipherMessageIsForwardedToRecipient) {
   service->login("alice", bytes("dh_a"), bytes("id_a"), bytes("sig_a"));
   transport->sent.clear();
 
-  user_service->register_user("bob", bytes("dh_b"), bytes("id_b"), bytes("sig_b"));
+  user_service->register_user("bob", bytes("dh_b"), bytes("id_b"),
+                              bytes("sig_b"));
   session_manager->bind(7, "bob");
 
-  Message cipher_msg(bytes("ciphertext"), 2,
-                     {bytes("bob"), bytes("alice")}, MessageType::CipherMessage);
+  Message cipher_msg(bytes("ciphertext"), 2, {bytes("bob"), bytes("alice")},
+                     MessageType::CipherMessage);
   service->deliver_cipher_message(fd, cipher_msg);
 
   ASSERT_EQ(transport->sent.size(), 1u);
@@ -311,4 +317,106 @@ TEST_F(ServerAppTest, CipherMessageIsForwardedToRecipient) {
   EXPECT_EQ(as_string(reply.get_payload()), "ciphertext");
   EXPECT_EQ(as_string(reply.get_meta(0)), "bob");
   EXPECT_EQ(as_string(reply.get_meta(1)), "alice");
+}
+
+#include "include/application/auth/generate_token.hpp"
+#include <chrono>
+#include <thread>
+
+using namespace auth;
+
+// Создаем фикстуру для тестов авторизации
+class TokenAuthTest : public ::testing::Test {
+protected:
+  std::string master_secret;
+  std::string test_user_pk;
+  uint64_t valid_until;
+
+  // SetUp вызывается перед КАЖДЫМ тестом TEST_F
+  void SetUp() override {
+    master_secret = "super_secret_key_for_ipc_communication_2026";
+    test_user_pk = "ed25519_pubkey_hex_deadbeef1234567890abcdef";
+
+    // Токен будет валиден еще 1000 секунд
+    valid_until = std::chrono::duration_cast<std::chrono::seconds>(
+                      std::chrono::system_clock::now().time_since_epoch())
+                      .count() +
+                  1000;
+  }
+
+  // TearDown вызывается после каждого теста (если нужно что-то зачистить)
+  void TearDown() override {
+    // Здесь пусто, но структура готова
+  }
+};
+
+// 1. Тест успешной генерации и валидации токена
+TEST_F(TokenAuthTest, SuccessTokenVerification) {
+  // Генерируем токен
+  std::string token =
+      generate_session_token(test_user_pk, valid_until, master_secret);
+  ASSERT_FALSE(token.empty()) << "❌ Токен не должен быть пустым!";
+
+  // Получаем текущее время для проверки
+  uint64_t current_time =
+      std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::system_clock::now().time_since_epoch())
+          .count();
+
+  // Проверяем, что валидация проходит успешно
+  bool is_valid = verify_session_token(token, master_secret, current_time);
+  EXPECT_TRUE(is_valid)
+      << "✅ Валидный токен должен успешно проходить верификацию!";
+}
+
+// 2. Тест защиты от протухания токена (Expired Token)
+TEST_F(TokenAuthTest, FailOnExpiredToken) {
+  std::string token =
+      generate_session_token(test_user_pk, valid_until, master_secret);
+
+  // Имитируем, что прошло много времени (текущее время больше, чем valid_until)
+  uint64_t fake_future_time = valid_until + 1;
+
+  bool is_valid = verify_session_token(token, master_secret, fake_future_time);
+  EXPECT_FALSE(is_valid) << "❌ Протухший токен НЕ должен проходить валидацию!";
+}
+
+// 3. Тест защиты от подделки (Invalid Secret Key)
+TEST_F(TokenAuthTest, FailOnWrongSecretKey) {
+  std::string token =
+      generate_session_token(test_user_pk, valid_until, master_secret);
+
+  uint64_t current_time =
+      std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::system_clock::now().time_since_epoch())
+          .count();
+
+  // Пытаемся проверить токен с другим секретным ключом (как будто хакер
+  // пытается угадать)
+  std::string wrong_secret = "hacker_wrong_secret_key_123";
+
+  bool is_valid = verify_session_token(token, wrong_secret, current_time);
+  EXPECT_FALSE(is_valid)
+      << "❌ Токен, проверенный с неверным секретом, должен быть отвергнут!";
+}
+
+// 4. Тест защиты от модификации данных (Data Tampering)
+TEST_F(TokenAuthTest, FailOnTokenTampering) {
+  std::string token =
+      generate_session_token(test_user_pk, valid_until, master_secret);
+
+  // Меняем в токене один символ (например, подменяем ID пользователя внутри
+  // payload)
+  if (!token.empty()) {
+    token[0] = (token[0] == 'a') ? 'b' : 'a';
+  }
+
+  uint64_t current_time =
+      std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::system_clock::now().time_since_epoch())
+          .count();
+
+  bool is_valid = verify_session_token(token, master_secret, current_time);
+  EXPECT_FALSE(is_valid)
+      << "❌ Измененный токен должен провалить проверку HMAC подписи!";
 }

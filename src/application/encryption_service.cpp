@@ -84,6 +84,10 @@ std::vector<uint8_t> EncryptionService::decrypt_for(
 void EncryptionService::cache_public_key(
     const std::vector<uint8_t> &username, const std::vector<uint8_t> &pubkey,
     const std::vector<uint8_t> &identity_key) {
+  std::cout << "[Crypto] cache_public_key user="
+            << std::string(username.begin(), username.end())
+            << " dh_size=" << pubkey.size()
+            << " identity_size=" << identity_key.size() << std::endl;
   DH_keys[username] = DH_Key::from_public_bytes(pubkey);
   identity_keys[username] = IdentityKey::from_public_bytes(identity_key);
 }

@@ -10,15 +10,17 @@ void LoginCommand::fromParsedCommand(const ParsedCommand &parsed) {
 }
 
 Message LoginCommand::toMessage() const {
-  ParsedCommand pc;
-  pc.name = "login";
-  pc.args = {std::vector<uint8_t>(username.begin(), username.end())};
-  pc.args.push_back(DH_public_bytes);
-  pc.args.push_back(identity_pub_bytes);
-  pc.args.push_back(signature);
+  Message msg;
+  msg.header.type = MessageType::Command;
+  msg.header.protocol_version = 1;
 
-  Parser parser;
-  return parser.make_command_from_struct(pc);
+  msg.insert_metadata({static_cast<uint8_t>(CommandType::LOGIN)});
+  msg.insert_metadata(username);
+  msg.insert_metadata(DH_public_bytes);
+  msg.insert_metadata(identity_pub_bytes);
+  msg.insert_metadata(signature);
+
+  return msg;
 }
 
 void LoginCommand::fromMessage(const Message &msg) {

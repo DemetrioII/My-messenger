@@ -15,21 +15,17 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenSSL REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Threads REQUIRED)
+find_package(Protobuf REQUIRED)
 
-option(BUILD_TESTS "Build tests" ON)
-option(BUILD_LOGGING "Build with log4cplus" ON)
-
-if(BUILD_LOGGING)
-  include(FetchContent)
-  FetchContent_Declare(
-    log4cplus
-    GIT_REPOSITORY https://github.com/log4cplus/log4cplus.git
-    GIT_TAG REL_2_1_2
-  )
-  set(LOG4CPLUS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-  set(LOG4CPLUS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(log4cplus)
-endif()
+include(FetchContent)
+FetchContent_Declare(
+	log4cplus
+	GIT_REPOSITORY https://github.com/log4cplus/log4cplus.git
+	GIT_TAG REL_2_1_2
+)
+set(LOG4CPLUS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(LOG4CPLUS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(log4cplus)
 
 file(GLOB_RECURSE MESSENGER_DOMAIN_HEADERS CONFIGURE_DEPENDS
   include/models/*.hpp
@@ -121,13 +117,41 @@ target_link_libraries(messenger_core
     Threads::Threads
 )
 
-if(BUILD_LOGGING)
-  target_link_libraries(messenger_core
-    PUBLIC
-      log4cplus::log4cplus
-  )
-  target_compile_definitions(messenger_core PUBLIC MESSENGER_WITH_LOG4CPLUS=1)
-endif()
+target_link_libraries(messenger_core
+	PUBLIC
+	log4cplus::log4cplus
+)
+target_compile_definitions(messenger_core PUBLIC MESSENGER_WITH_LOG4CPLUS=1)
+
+set(PROTO_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/proto)
+set(PROTO_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
+file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
+
+set(PROTO_FILE ${PROTO_SRC_DIR}/messenger.proto)
+set(PROTO_CPP ${PROTO_GEN_DIR}/messenger.pb.cc)
+set(PROTO_H ${PROTO_GEN_DIR}/messenger.pb.h)
+
+add_custom_command(
+  OUTPUT ${PROTO_CPP} ${PROTO_H}
+  COMMAND protobuf::protoc
+  ARGS --proto_path=${PROTO_SRC_DIR} --cpp_out=${PROTO_GEN_DIR} ${PROTO_FILE}
+  DEPENDS ${PROTO_FILE}
+  COMMENT "Generating protobuf sources"
+  VERBATIM
+)
+
+target_sources(messenger_core PRIVATE ${PROTO_CPP})
+
+target_include_directories(messenger_core
+  PUBLIC
+    ${PROTO_GEN_DIR}
+)
+
+target_link_libraries(messenger_core
+  PUBLIC
+    protobuf::libprotobuf
+)
+target_compile_definitions(messenger_core PUBLIC MESSENGER_WITH_PROTOBUF=1)
 
 add_executable(messenger_server
   main.cpp
@@ -150,40 +174,38 @@ target_link_libraries(messenger_client
 include(CTest)
 enable_testing()
 
-if(BUILD_TESTS)
-  include(FetchContent)
-  FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG release-1.12.1
-  )
+include(FetchContent)
+FetchContent_Declare(
+	googletest
+	GIT_REPOSITORY https://github.com/google/googletest.git
+	GIT_TAG release-1.12.1
+)
 
-  if(WIN32)
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-  endif()
-
-  set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(googletest)
-
-  add_executable(run_tests
-    tests/tests.cpp
-  )
-
-  target_link_libraries(run_tests
-    PRIVATE
-      messenger_core
-      GTest::gtest
-      GTest::gtest_main
-  )
-
-  add_test(NAME all_tests COMMAND run_tests)
-
-  add_custom_target(check
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS run_tests
-    COMMENT "Running tests..."
-  )
+if(WIN32)
+	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 endif()
+
+set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+add_executable(run_tests
+	tests/tests.cpp
+)
+
+target_link_libraries(run_tests
+	PRIVATE
+	messenger_core
+	GTest::gtest
+	GTest::gtest_main
+)
+
+add_test(NAME all_tests COMMAND run_tests)
+
+add_custom_target(check
+	COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+	DEPENDS run_tests
+	COMMENT "Running tests..."
+)
 
 if(WIN32)
   target_link_libraries(messenger_server PRIVATE ws2_32)

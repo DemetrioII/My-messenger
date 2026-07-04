@@ -1,5 +1,10 @@
 #include "include/protocol/parser.hpp"
 
+#include <chrono>
+#include <cctype>
+#include <sstream>
+#include <stdexcept>
+
 namespace {
 uint64_t now_seconds() {
   return static_cast<uint64_t>(
@@ -8,34 +13,69 @@ uint64_t now_seconds() {
           .count());
 }
 
-const std::unordered_map<std::string, CommandType> &command_types_map() {
-  static const std::unordered_map<std::string, CommandType> types = {
-      {"login", CommandType::LOGIN},
-      {"room", CommandType::MAKE_ROOM},
-      {"join", CommandType::JOIN},
-      {"send", CommandType::SEND},
-      {"pmess", CommandType::PRIVATE_MESSAGE},
-      {"getpub", CommandType::GET_PUBKEY},
-      {"sendfile", CommandType::SEND_FILE},
-      {"connect", CommandType::CONNECT},
-      {"disconnect", CommandType::DISCONNECT},
-      {"exit", CommandType::EXIT}};
-  return types;
+std::vector<std::string> split_ws(const std::string &line) {
+  std::stringstream ss(line);
+  std::vector<std::string> tokens;
+  std::string token;
+  while (ss >> token) {
+    tokens.push_back(token);
+  }
+  return tokens;
 }
 
-const std::unordered_map<CommandType, std::string> &command_names_map() {
-  static const std::unordered_map<CommandType, std::string> names = {
-      {CommandType::LOGIN, "login"},
-      {CommandType::MAKE_ROOM, "room"},
-      {CommandType::JOIN, "join"},
-      {CommandType::SEND, "send"},
-      {CommandType::PRIVATE_MESSAGE, "pmess"},
-      {CommandType::GET_PUBKEY, "getpub"},
-      {CommandType::SEND_FILE, "sendfile"},
-      {CommandType::CONNECT, "connect"},
-      {CommandType::DISCONNECT, "disconnect"},
-      {CommandType::EXIT, "exit"}};
-  return names;
+CommandType command_type_from_name(const std::string &name) {
+  if (name == "login")
+    return CommandType::LOGIN;
+  if (name == "room")
+    return CommandType::MAKE_ROOM;
+  if (name == "join")
+    return CommandType::JOIN;
+  if (name == "send")
+    return CommandType::SEND;
+  if (name == "pmess")
+    return CommandType::PRIVATE_MESSAGE;
+  if (name == "getpub")
+    return CommandType::GET_PUBKEY;
+  if (name == "sendfile")
+    return CommandType::SEND_FILE;
+  if (name == "connect")
+    return CommandType::CONNECT;
+  if (name == "disconnect")
+    return CommandType::DISCONNECT;
+  if (name == "exit")
+    return CommandType::EXIT;
+  if (name == "help")
+    return CommandType::HELP;
+  return CommandType::UNKNOWN;
+}
+
+std::string command_name_from_type(CommandType type) {
+  switch (type) {
+  case CommandType::LOGIN:
+    return "login";
+  case CommandType::MAKE_ROOM:
+    return "room";
+  case CommandType::JOIN:
+    return "join";
+  case CommandType::SEND:
+    return "send";
+  case CommandType::PRIVATE_MESSAGE:
+    return "pmess";
+  case CommandType::GET_PUBKEY:
+    return "getpub";
+  case CommandType::SEND_FILE:
+    return "sendfile";
+  case CommandType::CONNECT:
+    return "connect";
+  case CommandType::DISCONNECT:
+    return "disconnect";
+  case CommandType::EXIT:
+    return "exit";
+  case CommandType::HELP:
+    return "help";
+  default:
+    return "unknown";
+  }
 }
 } // namespace
 
@@ -68,19 +108,14 @@ Message Parser::make_command_from_struct(const ParsedCommand &cmd_struct) {
   msg.header.protocol_version = 1;
   msg.header.timestamp = now_seconds();
 
-  const auto &types = command_types_map();
-  const auto it = types.find(cmd_struct.name);
-  const auto command_type = it != types.end() ? it->second : CommandType::UNKNOWN;
-
-  msg.insert_metadata(std::vector<uint8_t>{static_cast<uint8_t>(command_type)});
+  const auto cmd_type = command_type_from_name(cmd_struct.name);
+  msg.insert_metadata(std::vector<uint8_t>{static_cast<uint8_t>(cmd_type)});
   for (const auto &arg : cmd_struct.args) {
     msg.insert_metadata(arg);
   }
 
   if (!cmd_struct.args.empty()) {
     msg.set_payload(cmd_struct.args.back());
-  } else {
-    msg.set_payload({});
   }
   return msg;
 }
@@ -94,42 +129,27 @@ ParsedCommand Parser::parse_line(const std::string &line) {
   const auto match = command_matcher_.match(line);
   if (match.matched) {
     result.name = match.command_name;
+    result.args.reserve(match.captures.size());
     for (const auto &capture : match.captures) {
       result.args.emplace_back(capture.begin(), capture.end());
     }
     return result;
   }
 
-  std::stringstream ss(line);
-  std::string first_segment;
-  if (!(ss >> first_segment)) {
-    return result;
-  }
-
-  if (!first_segment.empty() &&
-      (first_segment[0] == '/' || first_segment[0] == '$')) {
-    result.name = first_segment.substr(1);
-  } else {
-    result.name = first_segment;
-  }
-
-  std::vector<std::string> tokens;
-  std::string token;
-  while (ss >> token) {
-    tokens.push_back(token);
-  }
-
+  auto tokens = split_ws(line);
   if (tokens.empty()) {
     return result;
   }
 
-  // Keep compatibility with the old "last argument is the tail" behavior.
-  for (size_t i = 0; i + 1 < tokens.size(); ++i) {
+  std::string head = tokens.front();
+  if (!head.empty() && (head.front() == '/' || head.front() == '$')) {
+    head.erase(head.begin());
+  }
+  result.name = head;
+
+  for (size_t i = 1; i < tokens.size(); ++i) {
     result.args.emplace_back(tokens[i].begin(), tokens[i].end());
   }
-
-  const auto tail = tokens.back();
-  result.args.emplace_back(tail.begin(), tail.end());
   return result;
 }
 
@@ -141,11 +161,7 @@ ParsedCommand Parser::make_struct_from_command(const Message &msg) {
     return res;
   }
 
-  const auto cmd_type = static_cast<CommandType>(type_meta[0]);
-  const auto &names = command_names_map();
-  const auto it = names.find(cmd_type);
-  res.name = it != names.end() ? it->second : "unknown";
-
+  res.name = command_name_from_type(static_cast<CommandType>(type_meta[0]));
   for (size_t i = 1; i < msg.meta_count(); ++i) {
     res.args.push_back(msg.get_meta(i));
   }
